@@ -13,7 +13,7 @@ const res = await fetch(url, {
 });
 const data = await res.json();
 console.log("status:", res.status);
-console.log(JSON.stringify(data).slice(0, 500));
+console.log("keys:", Object.keys(data.Items?.[0]?.Item ?? {}));
 if (data.error) {
   console.error("APIエラー:", data.error, data.error_description);
   process.exit(1);

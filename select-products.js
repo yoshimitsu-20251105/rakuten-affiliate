@@ -73,6 +73,18 @@ const evergreenTier = {
   pickCount: 3,
 };
 
+// ---- 発見枠: ジャンルを固定せず、楽天全体のリアルタイムランキングから発掘する ----
+// 高額なブランド品・PCパーツなど単発商品も混ざるため、価格帯と品質フィルタで絞り込む
+const discoveryTier = {
+  name: "発見枠",
+  minPrice: 1500,
+  maxPrice: 15000,
+  minReviewCount: 30,
+  minReviewAverage: 4.0,
+  requireRepeatSignal: false, // ランキング入りしていること自体が需要の証拠なのでリピート語は必須にしない
+  pickCount: 3,
+};
+
 const currentMonth = new Date().getMonth() + 1;
 const tiers = [seasonalTier(currentMonth), evergreenTier];
 console.log(`実行月: ${currentMonth}月 → ${tiers[0].name}`);
@@ -129,6 +141,47 @@ function sleep(ms) {
 
 const apiErrors = [];
 
+// ジャンルを指定しない総合リアルタイムランキング(上位30件)を取得
+async function searchRanking() {
+  const url = new URL("https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601");
+  url.searchParams.set("applicationId", appId);
+  url.searchParams.set("accessKey", accessKey);
+  if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
+  url.searchParams.set("genreId", "0");
+  url.searchParams.set("period", "realtime");
+  url.searchParams.set("format", "json");
+
+  const res = await fetch(url, {
+    headers: { accessKey, Authorization: `Bearer ${accessKey}` },
+  });
+  const data = await res.json();
+  if (data.error) {
+    console.error(`[総合ランキング] APIエラー:`, data.error, data.error_description);
+    apiErrors.push(`総合ランキング: ${data.error} ${data.error_description ?? ""}`);
+    return [];
+  }
+  return (data.Items ?? []).map((wrap) => wrap.Item);
+}
+
+async function pickFromDiscovery(history, seenInThisRun) {
+  const items = await searchRanking();
+  await sleep(1200);
+  const candidates = [];
+  for (const item of items) {
+    if (history.has(item.itemCode)) continue;
+    if (seenInThisRun.has(item.itemCode)) continue;
+    seenInThisRun.add(item.itemCode);
+    if (item.itemPrice < discoveryTier.minPrice || item.itemPrice > discoveryTier.maxPrice) continue;
+    if (item.reviewCount < discoveryTier.minReviewCount) continue;
+    if (item.reviewAverage < discoveryTier.minReviewAverage) continue;
+    const repeatSignal = hasRepeatSignal(item);
+    if (discoveryTier.requireRepeatSignal && !repeatSignal) continue;
+    candidates.push({ ...item, matchedKeyword: `総合${item.rank}位`, repeatSignal, tier: discoveryTier.name });
+  }
+  candidates.sort((a, b) => b.reviewCount * b.reviewAverage - a.reviewCount * a.reviewAverage);
+  return candidates.slice(0, discoveryTier.pickCount);
+}
+
 async function pickFromTier(tier, history, seenInThisRun) {
   const candidates = [];
   for (const sub of tier.subKeywords) {
@@ -159,6 +212,9 @@ async function main() {
     const items = await pickFromTier(tier, history, seenInThisRun);
     picked.push(...items);
   }
+
+  const discoveryItems = await pickFromDiscovery(history, seenInThisRun);
+  picked.push(...discoveryItems);
 
   console.log(`選定: ${picked.length}件\n`);
   for (const item of picked) {
