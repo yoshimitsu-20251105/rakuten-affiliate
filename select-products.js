@@ -17,31 +17,65 @@ if (!appId || !accessKey) {
 // 商品名・キャッチコピーにこれらの語を含むものを「リピートが多い商品」とみなす(共通)
 const repeatSignalKeywords = ["リピート", "定期便", "定期コース", "殿堂入り", "累計", "毎年注文", "何度も", "サブスク"];
 
-// ---- 階層ごとの選定条件(ここを調整) ----
-const tiers = [
-  {
-    name: "高利益枠",
-    baseKeyword: "ふるさと納税",
-    subKeywords: ["肉", "海鮮"],
-    minPrice: 8000,
-    maxPrice: 30000,
-    minReviewCount: 10,
-    minReviewAverage: 4.0,
-    requireRepeatSignal: true,
-    pickCount: 2, // この階層から選ぶ件数
-  },
-  {
-    name: "安定枠",
+// ---- 季節枠(高利益枠): 実行月に応じて自動で切り替える ----
+// 9〜12月: ふるさと納税(年末の駆け込み需要期) / 6〜8月: 水・飲料(夏の需要期) / それ以外: 通年ジャンルを厚めに
+function seasonalTier(month) {
+  if (month >= 9 && month <= 12) {
+    return {
+      name: "季節枠(ふるさと納税)",
+      baseKeyword: "ふるさと納税",
+      subKeywords: ["肉", "海鮮"],
+      minPrice: 8000,
+      maxPrice: 30000,
+      minReviewCount: 10,
+      minReviewAverage: 4.0,
+      requireRepeatSignal: true,
+      pickCount: 2,
+    };
+  }
+  if (month >= 6 && month <= 8) {
+    return {
+      name: "季節枠(水・飲料)",
+      baseKeyword: "",
+      subKeywords: ["水 500ml 定期便", "炭酸水 定期便"],
+      minPrice: 2000,
+      maxPrice: 8000,
+      minReviewCount: 15,
+      minReviewAverage: 4.0,
+      requireRepeatSignal: true,
+      pickCount: 2,
+    };
+  }
+  // 1〜5月: 閑散期。通年ジャンルを高利益枠としても厚めに
+  return {
+    name: "季節枠(通年ジャンル強化)",
     baseKeyword: "",
-    subKeywords: ["水 500ml 定期便", "サプリメント 定期便", "美容 サブスク", "食品 まとめ買い 定期便"],
-    minPrice: 1000,
-    maxPrice: 6000,
-    minReviewCount: 20,
+    subKeywords: ["インテリア 定期便", "家電 サブスク"],
+    minPrice: 5000,
+    maxPrice: 20000,
+    minReviewCount: 10,
     minReviewAverage: 3.8,
-    requireRepeatSignal: true,
-    pickCount: 3, // この階層から選ぶ件数
-  },
-];
+    requireRepeatSignal: false,
+    pickCount: 2,
+  };
+}
+
+// ---- 安定枠(エバーグリーン): 季節を問わず通年で選定対象にする ----
+const evergreenTier = {
+  name: "安定枠",
+  baseKeyword: "",
+  subKeywords: ["サプリメント 定期便", "美容 サブスク", "食品 まとめ買い 定期便"],
+  minPrice: 1000,
+  maxPrice: 6000,
+  minReviewCount: 20,
+  minReviewAverage: 3.8,
+  requireRepeatSignal: true,
+  pickCount: 3,
+};
+
+const currentMonth = new Date().getMonth() + 1;
+const tiers = [seasonalTier(currentMonth), evergreenTier];
+console.log(`実行月: ${currentMonth}月 → ${tiers[0].name}`);
 
 const hitsPerKeyword = 30;
 
