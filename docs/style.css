@@ -1,0 +1,78 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fafaf8;
+  --fg: #222;
+  --card-bg: #fff;
+  --border: #e2e2df;
+  --accent: #bf0000;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a;
+    --fg: #eee;
+    --card-bg: #262626;
+    --border: #3a3a3a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
+  line-height: 1.7;
+}
+header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.site-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: var(--fg);
+  text-decoration: none;
+}
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.card {
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+.card h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+.price {
+  color: var(--accent);
+  font-weight: bold;
+}
+.buy-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.7rem 1.4rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+}
+footer {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1rem 1.5rem;
+  color: #888;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+}
