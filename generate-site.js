@@ -63,6 +63,13 @@ function describeItem(item) {
   return parts.join("") || "楽天市場で人気の商品です。";
 }
 
+// 楽天のサムネイルURLはクエリの _ex=WxH でサイズ指定できる
+function imageUrl(item, size) {
+  const raw = item.mediumImageUrls?.[0]?.imageUrl || item.smallImageUrls?.[0]?.imageUrl;
+  if (!raw) return null;
+  return raw.replace(/_ex=\d+x\d+/, `_ex=${size}x${size}`);
+}
+
 function pageShell({ title, body, isTop = false }) {
   const prefix = isTop ? "" : "../";
   return `<!doctype html>
@@ -82,8 +89,11 @@ function pageShell({ title, body, isTop = false }) {
 }
 
 function articlePage(item) {
+  const img = imageUrl(item, 500);
+  const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">` : "";
   const body = `
 <article>
+${imgTag}
 <h1>${escapeHtml(item.itemName)}</h1>
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
 <p>${escapeHtml(describeItem(item))}</p>
@@ -96,11 +106,16 @@ function indexPage(items) {
   const cards = items
     .slice()
     .reverse()
-    .map((item) => `
+    .map((item) => {
+      const img = imageUrl(item, 300);
+      const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="card-img" loading="lazy">` : "";
+      return `
 <a class="card" href="articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html">
+  ${imgTag}
   <h2>${escapeHtml(item.itemName.slice(0, 40))}${item.itemName.length > 40 ? "…" : ""}</h2>
   <p class="price">¥${item.itemPrice.toLocaleString()}</p>
-</a>`)
+</a>`;
+    })
     .join("\n");
   const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n<div class="card-list">${cards}</div>`;
   return pageShell({ title: SITE_TITLE, body, isTop: true });
