@@ -9,9 +9,20 @@ node generate-site.js *>> $logFile
 
 git add -A
 $changes = git status --porcelain
+$pushOk = $false
+$pushError = ""
 if ($changes) {
-  git commit -m "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新(要レビュー・push待ち)" *>> $logFile
-  "変更をローカルにコミットしました。push前にレビューしてください。" | Out-File -Append -Encoding utf8 $logFile
+  git commit -m "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新" *>> $logFile
+  "ローカルにコミットしました。続けてpushします。" | Out-File -Append -Encoding utf8 $logFile
+
+  git push *>> $logFile
+  if ($LASTEXITCODE -eq 0) {
+    $pushOk = $true
+    "GitHubへのpushが完了しました。" | Out-File -Append -Encoding utf8 $logFile
+  } else {
+    $pushError = "git push が失敗しました(終了コード $LASTEXITCODE)。ログを確認してください。"
+    $pushError | Out-File -Append -Encoding utf8 $logFile
+  }
 
   # .env を読み込んでGmailアプリパスワードを取得
   Get-Content ".env" | ForEach-Object {
@@ -27,8 +38,13 @@ if ($changes) {
       $smtp = New-Object Net.Mail.SmtpClient("smtp.gmail.com", 587)
       $smtp.EnableSsl = $true
       $smtp.Credentials = New-Object Net.NetworkCredential($gmailUser, $appPassword)
-      $subject = "[rakuten-affiliate] サイト更新あり - $(Get-Date -Format 'yyyy-MM-dd')"
-      $body = "商品選定とサイト更新が完了し、ローカルにコミットされました。`n内容を確認してpushしてください。`n`nリポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate"
+      if ($pushOk) {
+        $subject = "[rakuten-affiliate] サイト更新・公開完了 - $(Get-Date -Format 'yyyy-MM-dd')"
+        $body = "商品選定・サイト更新・GitHubへのpushが完了し、公開サイトに反映されました。`n`n公開サイト: https://yoshimitsu-20251105.github.io/rakuten-affiliate/`nリポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate"
+      } else {
+        $subject = "[rakuten-affiliate] 【要確認】push失敗 - $(Get-Date -Format 'yyyy-MM-dd')"
+        $body = "商品選定・サイト更新は完了しましたが、GitHubへのpushに失敗しました。手動で確認してください。`n`nエラー: $pushError`nリポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate"
+      }
       $smtp.Send($gmailUser, $gmailUser, $subject, $body)
       "通知メールを送信しました。" | Out-File -Append -Encoding utf8 $logFile
     } catch {
@@ -42,5 +58,6 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
