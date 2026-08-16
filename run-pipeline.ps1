@@ -35,7 +35,8 @@ function Send-Notify($subject, $body) {
 # APIエラーの検知(新商品の有無に関わらず、エラーがあれば必ずアラートする)
 $apiErrorText = ""
 if (Test-Path "api-errors.log") {
-  $apiErrorText = (Get-Content "api-errors.log" -Raw).Trim()
+  $raw = Get-Content "api-errors.log" -Raw
+  if ($raw) { $apiErrorText = $raw.Trim() }
 }
 if ($apiErrorText) {
   "楽天APIエラーを検知しました。" | Out-File -Append -Encoding utf8 $logFile
@@ -64,4 +65,5 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
