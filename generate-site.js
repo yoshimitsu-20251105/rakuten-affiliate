@@ -4,6 +4,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
 const SITE_TITLE = "ふるさと納税＆グルメ セレクト";
+const SITE_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
@@ -70,15 +71,28 @@ function imageUrl(item, size) {
   return raw.replace(/_ex=\d+x\d+/, `_ex=${size}x${size}`);
 }
 
-function pageShell({ title, body, isTop = false }) {
+function pageShell({ title, body, description, canonicalPath, structuredData, isTop = false }) {
   const prefix = isTop ? "" : "../";
+  const canonical = `${SITE_URL}/${canonicalPath}`;
+  const descTag = description
+    ? `<meta name="description" content="${escapeHtml(description)}">\n<meta property="og:description" content="${escapeHtml(description)}">`
+    : "";
+  const jsonLd = structuredData
+    ? `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`
+    : "";
   return `<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
+${descTag}
+<link rel="canonical" href="${canonical}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${canonical}">
 <link rel="stylesheet" href="${prefix}style.css">
+${jsonLd}
 </head>
 <body>
 <header><a href="${prefix}index.html" class="site-title">${escapeHtml(SITE_TITLE)}</a></header>
@@ -91,15 +105,42 @@ function pageShell({ title, body, isTop = false }) {
 function articlePage(item) {
   const img = imageUrl(item, 500);
   const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">` : "";
+  const description = describeItem(item);
+  const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
   const body = `
 <article>
 ${imgTag}
 <h1>${escapeHtml(item.itemName)}</h1>
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
-<p>${escapeHtml(describeItem(item))}</p>
+<p>${escapeHtml(description)}</p>
 <p><a class="buy-btn" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">楽天市場で見る</a></p>
 </article>`;
-  return pageShell({ title: item.itemName, body });
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: item.itemName,
+    image: img ? [img] : undefined,
+    description,
+    offers: {
+      "@type": "Offer",
+      price: item.itemPrice,
+      priceCurrency: "JPY",
+      url: item.itemUrl,
+      availability: "https://schema.org/InStock",
+    },
+    aggregateRating: item.reviewCount > 0 ? {
+      "@type": "AggregateRating",
+      ratingValue: item.reviewAverage,
+      reviewCount: item.reviewCount,
+    } : undefined,
+  };
+  return pageShell({
+    title: item.itemName,
+    body,
+    description,
+    canonicalPath: `articles/${fileName}`,
+    structuredData,
+  });
 }
 
 function indexPage(items) {
@@ -118,7 +159,26 @@ function indexPage(items) {
     })
     .join("\n");
   const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n<div class="card-list">${cards}</div>`;
-  return pageShell({ title: SITE_TITLE, body, isTop: true });
+  return pageShell({
+    title: SITE_TITLE,
+    body,
+    description: "ふるさと納税の人気グルメや、水・サプリなど定期便で買える人気商品を紹介しています。",
+    canonicalPath: "index.html",
+    isTop: true,
+  });
+}
+
+function sitemapXml(items) {
+  const urls = [
+    `${SITE_URL}/index.html`,
+    ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
+  ];
+  const entries = urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+}
+
+function robotsTxt() {
+  return `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`;
 }
 
 async function main() {
@@ -140,6 +200,8 @@ async function main() {
     await writeFile(new URL(fileName, ARTICLES_DIR), articlePage(item));
   }
   await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles));
+  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles));
+  await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
 
   console.log(`サイト生成完了: 記事${articles.length}件 → docs/`);

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://yoshimitsu-20251105.github.io/rakuten-affiliate/sitemap.xml
