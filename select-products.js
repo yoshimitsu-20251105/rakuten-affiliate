@@ -116,16 +116,25 @@ async function searchItems(keyword, tier) {
   const data = await res.json();
   if (data.error) {
     console.error(`[${keyword}] APIエラー:`, data.error, data.error_description);
+    apiErrors.push(`${keyword}: ${data.error} ${data.error_description ?? ""}`);
     return [];
   }
   return (data.Items ?? []).map((wrap) => wrap.Item);
 }
+
+// 楽天APIは「1秒に1回以下」の制限があるため、リクエスト間隔を空ける
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const apiErrors = [];
 
 async function pickFromTier(tier, history, seenInThisRun) {
   const candidates = [];
   for (const sub of tier.subKeywords) {
     const keyword = tier.baseKeyword ? `${tier.baseKeyword} ${sub}` : sub;
     const items = await searchItems(keyword, tier);
+    await sleep(1200); // レート制限(1秒1回)を守るための間隔
     for (const item of items) {
       if (history.has(item.itemCode)) continue;
       if (seenInThisRun.has(item.itemCode)) continue;
@@ -167,6 +176,15 @@ async function main() {
   await saveHistory(newHistory);
 
   console.log(`selected-products.json に保存しました。`);
+
+  // APIエラーがあれば、後続のパイプラインが検知できるようファイルに残す
+  const errorFile = new URL("./api-errors.log", import.meta.url);
+  if (apiErrors.length > 0) {
+    await writeFile(errorFile, apiErrors.join("\n"));
+    console.error(`APIエラーが${apiErrors.length}件発生しました。api-errors.log を確認してください。`);
+  } else {
+    await writeFile(errorFile, "");
+  }
 }
 
 main();
