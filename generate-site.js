@@ -3,7 +3,7 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
-const SITE_TITLE = "ふるさと納税＆グルメ セレクト";
+const SITE_TITLE = "楽天トレンドセレクト";
 const SITE_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
@@ -162,7 +162,7 @@ function indexPage(items) {
   return pageShell({
     title: SITE_TITLE,
     body,
-    description: "ふるさと納税の人気グルメや、水・サプリなど定期便で買える人気商品を紹介しています。",
+    description: "楽天市場のリアルタイムランキングとレビュー評価をもとに、ジャンルを問わず今売れている商品を毎日厳選して紹介しています。",
     canonicalPath: "index.html",
     isTop: true,
   });
