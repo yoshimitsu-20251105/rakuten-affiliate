@@ -261,7 +261,9 @@ main {
   font-weight: normal;
 }
 .buy-btn-sm {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--accent);
   color: #fff;
   padding: 0.4rem 0.8rem;
@@ -269,6 +271,14 @@ main {
   text-decoration: none;
   font-size: 0.85rem;
   white-space: nowrap;
+  min-height: 44px;
+  min-width: 44px;
+  box-sizing: border-box;
+}
+/* ランキング表内は行が密集するため、タップ領域は確保しつつ見た目はコンパクトに保つ */
+.rank-table .buy-btn-sm {
+  min-height: 36px;
+  padding: 0.5rem 0.7rem;
 }
 footer {
   max-width: 800px;
