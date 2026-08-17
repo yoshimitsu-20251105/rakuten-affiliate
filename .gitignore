@@ -2,3 +2,4 @@
 node_modules/
 pipeline.log
 api-errors.log
+social-posts.txt

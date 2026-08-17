@@ -413,7 +413,7 @@ function buildRankingGroups(articles) {
     .filter(([, items]) => items.length >= 3)
     .map(([key, items]) => ({
       title: key,
-      slug: key.replace(/[^a-zA-Z0-9ぁ-んァ-ヶ一-龠]/g, "_"),
+      slug: key.replace(/[^a-zA-Z0-9ぁ-んァ-ヶー一-龠]/g, "_"),
       items,
     }));
 }
