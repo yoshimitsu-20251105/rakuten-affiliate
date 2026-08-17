@@ -1,6 +1,11 @@
 ﻿$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 Set-Location "C:\Users\user\projects\rakuten-affiliate"
 
+# タスクスケジューラ実行時は既定のコンソールエンコーディングがシステムのコードページになり、
+# Node/Gitからの日本語出力が文字化けするため、UTF-8に固定する
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $logFile = "C:\Users\user\projects\rakuten-affiliate\pipeline.log"
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン開始 =====" | Out-File -Append -Encoding utf8 $logFile
 
@@ -65,5 +70,6 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
