@@ -12,6 +12,7 @@ $logFile = "C:\Users\user\projects\rakuten-affiliate\pipeline.log"
 $nodeExe = (Get-Command node).Source
 & cmd /c "`"$nodeExe`" --env-file=.env select-products.js >> `"$logFile`" 2>&1"
 & cmd /c "`"$nodeExe`" generate-site.js >> `"$logFile`" 2>&1"
+& cmd /c "`"$nodeExe`" generate-social-posts.js >> `"$logFile`" 2>&1"
 
 # .env を読み込んでGmailアプリパスワードを取得
 Get-Content ".env" | ForEach-Object {
@@ -62,7 +63,7 @@ if ($changes) {
   if ($LASTEXITCODE -eq 0) {
     "GitHubへのpushが完了しました。" | Out-File -Append -Encoding utf8 $logFile
     Send-Notify "[rakuten-affiliate] サイト更新・公開完了 - $(Get-Date -Format 'yyyy-MM-dd')" `
-      "商品選定・サイト更新・GitHubへのpushが完了し、公開サイトに反映されました。`n`n公開サイト: https://yoshimitsu-20251105.github.io/rakuten-affiliate/`nリポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate"
+      "商品選定・サイト更新・GitHubへのpushが完了し、公開サイトに反映されました。`nSNS投稿文の下書きも social-posts.txt に更新済みです(お手元のPCに保存)。`n`n公開サイト: https://yoshimitsu-20251105.github.io/rakuten-affiliate/`nリポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate`n投稿文: C:\Users\user\projects\rakuten-affiliate\social-posts.txt"
   } else {
     "git push が失敗しました(終了コード $LASTEXITCODE)。" | Out-File -Append -Encoding utf8 $logFile
     Send-Notify "[rakuten-affiliate] 【要確認】push失敗 - $(Get-Date -Format 'yyyy-MM-dd')" `
@@ -73,6 +74,7 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
 
