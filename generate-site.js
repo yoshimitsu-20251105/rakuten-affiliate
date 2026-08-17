@@ -175,6 +175,7 @@ function pageShell({ title, body, description, canonicalPath, structuredData, is
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google-site-verification" content="1B8NP13E-4ecfPIJYaucSZLHYlRFfpQ0-TjSXPy43AM" />
 <title>${escapeHtml(title)}</title>
 ${descTag}
 <link rel="canonical" href="${canonical}">
