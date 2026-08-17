@@ -50,13 +50,15 @@ if ($apiErrorText) {
     "商品選定中に楽天APIエラーが発生しました。IP制限やAPIキーの有効期限などを確認してください。`n`nエラー内容:`n$apiErrorText"
 }
 
+$gitExe = (Get-Command git).Source
 git add -A
 $changes = git status --porcelain
 if ($changes) {
-  git commit -m "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新" 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
+  $commitMsg = "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新"
+  & cmd /c "`"$gitExe`" commit -m `"$commitMsg`" >> `"$logFile`" 2>&1"
   "ローカルにコミットしました。続けてpushします。" | Out-File -Append -Encoding utf8 $logFile
 
-  git push 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
+  & cmd /c "`"$gitExe`" push >> `"$logFile`" 2>&1"
   if ($LASTEXITCODE -eq 0) {
     "GitHubへのpushが完了しました。" | Out-File -Append -Encoding utf8 $logFile
     Send-Notify "[rakuten-affiliate] サイト更新・公開完了 - $(Get-Date -Format 'yyyy-MM-dd')" `
@@ -71,6 +73,7 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
 
