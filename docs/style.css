@@ -156,6 +156,53 @@ main {
 @media (prefers-color-scheme: dark) {
   .urgency { background: #4a3b00; color: #ffd76a; }
 }
+.related-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.related-section h2 {
+  font-size: 1.1rem;
+}
+.ranking-link-sm {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: bold;
+  text-decoration: none;
+  margin-bottom: 0.8rem;
+}
+.related-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+.related-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+.related-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.4rem;
+}
+.related-name {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.related-price {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
 .ranking-links {
   display: flex;
   flex-direction: column;

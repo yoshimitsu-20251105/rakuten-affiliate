@@ -196,7 +196,45 @@ ${gaTag}
 </html>`;
 }
 
-function articlePage(item) {
+function relatedProductsBlock(item, articles, rankingSlugByKeyword) {
+  const key = item.matchedKeyword;
+  if (!key || key.startsWith("総合")) return "";
+
+  const related = articles
+    .filter((a) => a.matchedKeyword === key && a.itemCode !== item.itemCode)
+    .map((a) => ({ item: a, score: scoreItem(a) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  if (related.length === 0) return "";
+
+  const rankingSlug = rankingSlugByKeyword.get(key);
+  const rankingLink = rankingSlug
+    ? `<a href="../rankings/${rankingSlug}.html" class="ranking-link-sm">🏆 「${escapeHtml(key)}」のランキング比較を見る</a>`
+    : "";
+
+  const cards = related
+    .map(({ item: r }) => {
+      const img = imageUrls(r, 200, 1)[0];
+      const fileName = r.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
+      return `
+<a class="related-card" href="${fileName}">
+  ${img ? `<img src="${img}" alt="${escapeHtml(r.itemName)}" class="related-img" loading="lazy">` : ""}
+  <span class="related-name">${escapeHtml(r.itemName.slice(0, 30))}${r.itemName.length > 30 ? "…" : ""}</span>
+  <span class="related-price">¥${r.itemPrice.toLocaleString()}</span>
+</a>`;
+    })
+    .join("\n");
+
+  return `
+<section class="related-section">
+<h2>関連商品も比較する</h2>
+${rankingLink}
+<div class="related-list">${cards}</div>
+</section>`;
+}
+
+function articlePage(item, articles, rankingSlugByKeyword) {
   const imgs = imageUrls(item, 500, 3);
   const galleryTag = imgs.length
     ? `<div class="img-gallery">${imgs.map((u) => `<img src="${u}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">`).join("")}</div>`
@@ -216,6 +254,7 @@ function articlePage(item) {
   const caveat = caveatPhrase(item);
   const closing = closingPhrase(item);
   const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
+  const relatedBlock = relatedProductsBlock(item, articles, rankingSlugByKeyword);
   const body = `
 <article>
 ${galleryTag}
@@ -233,6 +272,7 @@ ${trustList}
   <p class="micro-copy">価格・在庫は変動する場合があります(公式ページで最新情報を確認できます)</p>
 </div>
 <p class="provenance">情報取得日: ${TODAY_JP}(楽天市場の商品情報をもとに作成)</p>
+${relatedBlock}
 </article>`;
   const structuredData = {
     "@context": "https://schema.org",
@@ -387,12 +427,14 @@ async function main() {
   await mkdir(ARTICLES_DIR, { recursive: true });
   await mkdir(RANKING_DIR, { recursive: true });
 
+  const rankingGroups = buildRankingGroups(articles);
+  const rankingSlugByKeyword = new Map(rankingGroups.map((g) => [g.title, g.slug]));
+
   for (const item of articles) {
     const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
-    await writeFile(new URL(fileName, ARTICLES_DIR), articlePage(item));
+    await writeFile(new URL(fileName, ARTICLES_DIR), articlePage(item, articles, rankingSlugByKeyword));
   }
 
-  const rankingGroups = buildRankingGroups(articles);
   for (const g of rankingGroups) {
     await writeFile(new URL(g.slug + ".html", RANKING_DIR), rankingPage(g.title, g.slug, g.items));
   }
