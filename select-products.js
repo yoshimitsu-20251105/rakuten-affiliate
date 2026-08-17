@@ -133,10 +133,18 @@ async function searchItems(keyword, tier) {
   url.searchParams.set("sort", "-reviewCount");
   url.searchParams.set("format", "json");
 
-  const res = await fetch(url, {
-    headers: { accessKey, Authorization: `Bearer ${accessKey}` },
-  });
-  const data = await res.json();
+  let res, data;
+  try {
+    res = await fetch(url, {
+      headers: { accessKey, Authorization: `Bearer ${accessKey}` },
+    });
+    data = await res.json();
+  } catch (e) {
+    // オフライン・ネットワーク不通などでfetch自体が失敗した場合、クラッシュさせずエラーとして記録する
+    console.error(`[${keyword}] ネットワークエラー:`, e.message);
+    apiErrors.push(`${keyword}: ネットワークエラー(オフラインの可能性) ${e.message}`);
+    return [];
+  }
   if (data.error) {
     console.error(`[${keyword}] APIエラー:`, data.error, data.error_description);
     apiErrors.push(`${keyword}: ${data.error} ${data.error_description ?? ""}`);
@@ -162,10 +170,17 @@ async function searchRanking() {
   url.searchParams.set("period", "realtime");
   url.searchParams.set("format", "json");
 
-  const res = await fetch(url, {
-    headers: { accessKey, Authorization: `Bearer ${accessKey}` },
-  });
-  const data = await res.json();
+  let res, data;
+  try {
+    res = await fetch(url, {
+      headers: { accessKey, Authorization: `Bearer ${accessKey}` },
+    });
+    data = await res.json();
+  } catch (e) {
+    console.error(`[総合ランキング] ネットワークエラー:`, e.message);
+    apiErrors.push(`総合ランキング: ネットワークエラー(オフラインの可能性) ${e.message}`);
+    return [];
+  }
   if (data.error) {
     console.error(`[総合ランキング] APIエラー:`, data.error, data.error_description);
     apiErrors.push(`総合ランキング: ${data.error} ${data.error_description ?? ""}`);
