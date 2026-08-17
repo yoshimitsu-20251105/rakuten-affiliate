@@ -9,8 +9,9 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $logFile = "C:\Users\user\projects\rakuten-affiliate\pipeline.log"
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン開始 =====" | Out-File -Append -Encoding utf8 $logFile
 
-node --env-file=.env select-products.js 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
-node generate-site.js 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
+$nodeExe = (Get-Command node).Source
+& cmd /c "`"$nodeExe`" --env-file=.env select-products.js >> `"$logFile`" 2>&1"
+& cmd /c "`"$nodeExe`" generate-site.js >> `"$logFile`" 2>&1"
 
 # .env を読み込んでGmailアプリパスワードを取得
 Get-Content ".env" | ForEach-Object {
@@ -70,6 +71,7 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
 
