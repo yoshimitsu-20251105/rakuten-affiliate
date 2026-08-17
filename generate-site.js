@@ -9,6 +9,9 @@ const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
 const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
+const NOW = new Date();
+const TODAY_ISO = NOW.toISOString().slice(0, 10);
+const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
 
 async function loadJson(url, fallback) {
   try {
@@ -180,7 +183,7 @@ ${jsonLd}
 <main>${body}</main>
 <footer>
 <p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価・売れ筋ランキングをもとに毎日自動で選定しています。</p>
-<p>運営者: 楽天トレンドセレクト運営チーム</p>
+<p>運営者: 楽天トレンドセレクト運営チーム / 最終更新日: ${TODAY_JP}</p>
 </footer>
 </body>
 </html>`;
@@ -213,6 +216,7 @@ ${galleryTag}
 ${hook}
 ${urgencyTag}
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
+<div class="cta-quick"><a class="buy-btn-sm" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">▶ 楽天市場で価格・在庫を見る</a></div>
 ${featureList}
 ${trustList}
 <p class="caveat">${escapeHtml(caveat)}</p>
@@ -221,6 +225,7 @@ ${trustList}
   <a class="buy-btn" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">▶ 今すぐ楽天市場で詳細を見る</a>
   <p class="micro-copy">価格・在庫は変動する場合があります(公式ページで最新情報を確認できます)</p>
 </div>
+<p class="provenance">情報取得日: ${TODAY_JP}(楽天市場の商品情報をもとに作成)</p>
 </article>`;
   const structuredData = {
     "@context": "https://schema.org",
@@ -333,7 +338,7 @@ function sitemapXml(items, rankingGroups) {
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
     ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
   ];
-  const entries = urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n");
+  const entries = urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY_ISO}</lastmod></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
