@@ -6,7 +6,7 @@
   --border: #e2e2df;
   --accent: #bf0000;
   --accent-dark: #950000;
-  --muted: #767670;
+  --muted: #6a6a64;
 }
 @media (prefers-color-scheme: dark) {
   :root {
