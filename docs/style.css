@@ -153,6 +153,18 @@ main {
   font-weight: bold;
   font-size: 0.9rem;
 }
+.social-proof {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--fg);
+  margin: 0.4rem 0;
+}
+.social-proof-count {
+  color: var(--muted);
+  font-weight: normal;
+  font-size: 0.95rem;
+}
 @media (prefers-color-scheme: dark) {
   .urgency { background: #4a3b00; color: #ffd76a; }
 }

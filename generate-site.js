@@ -243,6 +243,10 @@ function articlePage(item, articles, rankingSlugByKeyword) {
   const hook = item.catchcopy && item.catchcopy !== item.itemName ? `<p class="hook">${escapeHtml(item.catchcopy)}</p>` : "";
   const urgency = urgencyBadge(item);
   const urgencyTag = urgency ? `<p class="urgency">⏰ ${escapeHtml(urgency)}</p>` : "";
+  // 「1秒で伝わる」社会的証明バッジ(Meta広告の定番パターン: 実績数字を目立たせる)
+  const socialProofTag = item.reviewCount > 0
+    ? `<div class="social-proof">⭐ ${item.reviewAverage} <span class="social-proof-count">${item.reviewCount.toLocaleString()}件${item.reviewCount >= 1000 ? "が選んだ" : "のレビュー"}</span></div>`
+    : "";
   const featureBullets = extractFeatureBullets(item);
   const featureList = featureBullets.length
     ? `<ul class="features"><li>${featureBullets.map(escapeHtml).join("</li><li>")}</li></ul>`
@@ -260,6 +264,7 @@ function articlePage(item, articles, rankingSlugByKeyword) {
 <article>
 ${galleryTag}
 <h1>${escapeHtml(item.itemName)}</h1>
+${socialProofTag}
 ${hook}
 ${urgencyTag}
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
