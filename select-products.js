@@ -24,53 +24,64 @@ function seasonalTier(month) {
     return {
       name: "季節枠(ふるさと納税)",
       baseKeyword: "ふるさと納税",
-      subKeywords: ["肉", "海鮮"],
+      subKeywords: ["肉", "海鮮", "米", "フルーツ"],
       minPrice: 8000,
       maxPrice: 30000,
       minReviewCount: 10,
       minReviewAverage: 4.0,
       requireRepeatSignal: true,
-      pickCount: 2,
+      pickCount: 3,
     };
   }
   if (month >= 6 && month <= 8) {
     return {
       name: "季節枠(水・飲料)",
       baseKeyword: "",
-      subKeywords: ["水 500ml 定期便", "炭酸水 定期便"],
+      subKeywords: ["水 500ml 定期便", "炭酸水 定期便", "アイスコーヒー 定期便"],
       minPrice: 2000,
       maxPrice: 8000,
       minReviewCount: 15,
       minReviewAverage: 4.0,
       requireRepeatSignal: true,
-      pickCount: 2,
+      pickCount: 3,
     };
   }
   // 1〜5月: 閑散期。通年ジャンルを高利益枠としても厚めに
   return {
     name: "季節枠(通年ジャンル強化)",
     baseKeyword: "",
-    subKeywords: ["インテリア 定期便", "家電 サブスク"],
+    subKeywords: ["インテリア 定期便", "家電 サブスク", "キッチン用品 定期便"],
     minPrice: 5000,
     maxPrice: 20000,
     minReviewCount: 10,
     minReviewAverage: 3.8,
     requireRepeatSignal: false,
-    pickCount: 2,
+    pickCount: 3,
   };
 }
 
 // ---- 安定枠(エバーグリーン): 季節を問わず通年で選定対象にする ----
+// ジャンルの間口を広げるほど、対応する検索クエリ(=集客経路)が増えるため、
+// カテゴリ数を拡張(サプリ・美容だけでなく、ペット・日用品・飲料系も追加)
 const evergreenTier = {
   name: "安定枠",
   baseKeyword: "",
-  subKeywords: ["サプリメント 定期便", "美容 サブスク", "食品 まとめ買い 定期便"],
+  subKeywords: [
+    "サプリメント 定期便",
+    "美容 サブスク",
+    "食品 まとめ買い 定期便",
+    "ペット用品 定期便",
+    "コーヒー 定期便",
+    "洗剤 まとめ買い",
+    "スキンケア 定期便",
+    "お茶 まとめ買い",
+  ],
   minPrice: 1000,
   maxPrice: 6000,
   minReviewCount: 20,
   minReviewAverage: 3.8,
   requireRepeatSignal: true,
-  pickCount: 3,
+  pickCount: 5,
 };
 
 // ---- 発見枠: ジャンルを固定せず、楽天全体のリアルタイムランキングから発掘する ----
