@@ -12,6 +12,8 @@ const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
 const NOW = new Date();
 const TODAY_ISO = NOW.toISOString().slice(0, 10);
 const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
+// GA4測定ID(.envのGA_MEASUREMENT_IDから読み込み)。未設定なら解析タグは出力しない
+const GA_MEASUREMENT_ID = process.env.GA_MEASUREMENT_ID || "";
 
 async function loadJson(url, fallback) {
   try {
@@ -164,6 +166,10 @@ function pageShell({ title, body, description, canonicalPath, structuredData, is
   const jsonLd = structuredData
     ? `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`
     : "";
+  const gaTag = GA_MEASUREMENT_ID
+    ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}');</script>`
+    : "";
   return `<!doctype html>
 <html lang="ja">
 <head>
@@ -177,6 +183,7 @@ ${descTag}
 <meta property="og:url" content="${canonical}">
 <link rel="stylesheet" href="${prefix}style.css">
 ${jsonLd}
+${gaTag}
 </head>
 <body>
 <header><a href="${prefix}index.html" class="site-title">${escapeHtml(SITE_TITLE)}</a></header>
