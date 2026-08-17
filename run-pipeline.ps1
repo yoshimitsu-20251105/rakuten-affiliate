@@ -9,8 +9,8 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $logFile = "C:\Users\user\projects\rakuten-affiliate\pipeline.log"
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン開始 =====" | Out-File -Append -Encoding utf8 $logFile
 
-node --env-file=.env select-products.js *>> $logFile
-node generate-site.js *>> $logFile
+node --env-file=.env select-products.js 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
+node generate-site.js 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
 
 # .env を読み込んでGmailアプリパスワードを取得
 Get-Content ".env" | ForEach-Object {
@@ -52,10 +52,10 @@ if ($apiErrorText) {
 git add -A
 $changes = git status --porcelain
 if ($changes) {
-  git commit -m "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新" *>> $logFile
+  git commit -m "auto: $(Get-Date -Format 'yyyy-MM-dd') 商品選定・サイト更新" 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
   "ローカルにコミットしました。続けてpushします。" | Out-File -Append -Encoding utf8 $logFile
 
-  git push *>> $logFile
+  git push 2>&1 | ForEach-Object { $_.ToString() } | Out-File -Append -Encoding utf8 $logFile
   if ($LASTEXITCODE -eq 0) {
     "GitHubへのpushが完了しました。" | Out-File -Append -Encoding utf8 $logFile
     Send-Notify "[rakuten-affiliate] サイト更新・公開完了 - $(Get-Date -Format 'yyyy-MM-dd')" `
@@ -70,6 +70,7 @@ if ($changes) {
 }
 
 "===== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') パイプライン終了 =====" | Out-File -Append -Encoding utf8 $logFile
+
 
 
 
