@@ -5,6 +5,8 @@
   --card-bg: #fff;
   --border: #e2e2df;
   --accent: #bf0000;
+  --accent-dark: #950000;
+  --muted: #767670;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -12,6 +14,7 @@
     --fg: #eee;
     --card-bg: #262626;
     --border: #3a3a3a;
+    --muted: #a3a39c;
   }
 }
 * { box-sizing: border-box; }
@@ -75,14 +78,38 @@ main {
   color: var(--accent);
   font-weight: bold;
 }
+.caveat {
+  color: var(--muted);
+  font-size: 0.9rem;
+  border-left: 3px solid var(--border);
+  padding-left: 0.8rem;
+}
+.closing {
+  font-weight: bold;
+}
+.cta-block {
+  text-align: center;
+  margin: 1.5rem 0;
+}
 .buy-btn {
   display: inline-block;
   background: var(--accent);
   color: #fff;
-  padding: 0.7rem 1.4rem;
-  border-radius: 6px;
+  padding: 1rem 2rem;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: bold;
+  font-size: 1.1rem;
+  box-shadow: 0 3px 10px rgba(191, 0, 0, 0.35);
+  transition: background 0.15s ease;
+}
+.buy-btn:hover {
+  background: var(--accent-dark);
+}
+.micro-copy {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
 }
 footer {
   max-width: 800px;

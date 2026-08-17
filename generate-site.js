@@ -59,6 +59,28 @@ function tierPhrase(item) {
   return "";
 }
 
+// 正直な注意点を一言添える(メリットだけでなくデメリットも書く方が信頼され、成約率が上がるため)
+function caveatPhrase(item) {
+  const variants = [
+    "人気商品のため、時期によっては入荷までお時間がかかる場合があります。",
+    "口コミには個人差もあるため、購入前に商品ページのレビューも合わせてチェックするのがおすすめです。",
+    "セット内容や数量で価格が変わることがあるので、購入前に選択肢を確認してみてください。",
+  ];
+  const idx = ([...item.itemCode].reduce((a, c) => a + c.charCodeAt(0), 0) + 1) % variants.length;
+  return variants[idx];
+}
+
+// 行動を後押しするクロージング文
+function closingPhrase(item) {
+  const variants = [
+    "気になった方は、この機会にチェックしてみてください。",
+    "詳しい内容は商品ページで確認してみると、イメージが掴みやすいと思います。",
+    "在庫や価格は変動することがあるので、早めに見ておくと安心です。",
+  ];
+  const idx = ([...item.itemCode].reduce((a, c) => a + c.charCodeAt(0), 0) + 2) % variants.length;
+  return variants[idx];
+}
+
 function describeItem(item) {
   const parts = [reviewPhrase(item), repeatPhrase(item), tierPhrase(item)].filter(Boolean);
   return parts.join("") || "楽天市場で人気の商品です。";
@@ -106,6 +128,8 @@ function articlePage(item) {
   const img = imageUrl(item, 500);
   const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">` : "";
   const description = describeItem(item);
+  const caveat = caveatPhrase(item);
+  const closing = closingPhrase(item);
   const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
   const body = `
 <article>
@@ -113,7 +137,12 @@ ${imgTag}
 <h1>${escapeHtml(item.itemName)}</h1>
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
 <p>${escapeHtml(description)}</p>
-<p><a class="buy-btn" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">楽天市場で見る</a></p>
+<p class="caveat">${escapeHtml(caveat)}</p>
+<p class="closing">${escapeHtml(closing)}</p>
+<div class="cta-block">
+  <a class="buy-btn" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">▶ 今すぐ楽天市場で詳細を見る</a>
+  <p class="micro-copy">価格・在庫は変動する場合があります(公式ページで最新情報を確認できます)</p>
+</div>
 </article>`;
   const structuredData = {
     "@context": "https://schema.org",
