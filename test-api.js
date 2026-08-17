@@ -7,7 +7,7 @@ if (!appId || !accessKey) {
   process.exit(1);
 }
 
-const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601");
+const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701");
 url.searchParams.set("applicationId", appId);
 url.searchParams.set("accessKey", accessKey);
 if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
