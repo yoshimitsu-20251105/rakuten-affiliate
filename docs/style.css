@@ -135,6 +135,85 @@ main {
   font-size: 0.8rem;
   margin-top: 0.5rem;
 }
+.urgency {
+  display: inline-block;
+  background: #fff3cd;
+  color: #8a6300;
+  padding: 0.3rem 0.7rem;
+  border-radius: 5px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+@media (prefers-color-scheme: dark) {
+  .urgency { background: #4a3b00; color: #ffd76a; }
+}
+.ranking-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+.ranking-link {
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.9rem 1.2rem;
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: bold;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+.rank-table th, .rank-table td {
+  padding: 0.7rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+.rank-cell {
+  font-size: 1.3rem;
+  text-align: center;
+}
+.rank-img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.rank-name {
+  color: var(--fg);
+  font-weight: bold;
+  text-decoration: none;
+}
+.score-cell {
+  font-weight: bold;
+  color: var(--accent);
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+.score-max {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: normal;
+}
+.buy-btn-sm {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
 footer {
   max-width: 800px;
   margin: 2rem auto;

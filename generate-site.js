@@ -8,6 +8,7 @@ const SITE_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
+const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
 
 async function loadJson(url, fallback) {
   try {
@@ -115,6 +116,32 @@ function extractFeatureBullets(item, max = 3) {
   return sentences.slice(0, max).map((s) => (s.endsWith("！") || s.endsWith("!") ? s : s + "。"));
 }
 
+// 期間限定・数量限定などの煽り文句は、実際に販売者がそう記載している場合のみ表示する
+// (捏造した緊急性は景品表示法上のリスクがあるため使わない)
+const SCARCITY_WORDS = ["数量限定", "期間限定", "タイムセール", "在庫限り", "売り切れ次第終了", "個数限定", "早期終了"];
+function urgencyBadge(item) {
+  const text = `${item.itemName} ${item.catchcopy ?? ""}`;
+  const found = SCARCITY_WORDS.find((w) => text.includes(w));
+  if (found) return found;
+  // 実際にキャンペーン終了日が設定されており、かつ現実的な近future日付の場合のみ
+  if (item.endTime) {
+    const end = new Date(item.endTime);
+    const now = new Date();
+    const daysLeft = (end - now) / (1000 * 60 * 60 * 24);
+    if (daysLeft > 0 && daysLeft <= 90) return `${end.getMonth() + 1}/${end.getDate()}まで`;
+  }
+  return null;
+}
+
+// ジェイ・エイブラハムの「客単価×購入頻度×客数」に沿った100点満点スコア
+// (レビュー評価=品質の証拠、レビュー件数=客数の実績、リピート性=購入頻度の代理指標)
+function scoreItem(item) {
+  const qualityScore = (item.reviewAverage / 5) * 55; // 品質: 最大55点
+  const volumeScore = Math.min(item.reviewCount / 200, 1) * 30; // 実績: 最大30点(200件で頭打ち)
+  const repeatScore = item.repeatSignal ? 15 : 0; // 購入頻度の高さ: 15点
+  return Math.round(qualityScore + volumeScore + repeatScore);
+}
+
 // 楽天のサムネイルURLはクエリの _ex=WxH でサイズ指定できる
 function imageUrl(raw, size) {
   return raw.replace(/_ex=\d+x\d+/, `_ex=${size}x${size}`);
@@ -165,6 +192,8 @@ function articlePage(item) {
     ? `<div class="img-gallery">${imgs.map((u) => `<img src="${u}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">`).join("")}</div>`
     : "";
   const hook = item.catchcopy && item.catchcopy !== item.itemName ? `<p class="hook">${escapeHtml(item.catchcopy)}</p>` : "";
+  const urgency = urgencyBadge(item);
+  const urgencyTag = urgency ? `<p class="urgency">⏰ ${escapeHtml(urgency)}</p>` : "";
   const featureBullets = extractFeatureBullets(item);
   const featureList = featureBullets.length
     ? `<ul class="features"><li>${featureBullets.map(escapeHtml).join("</li><li>")}</li></ul>`
@@ -182,6 +211,7 @@ function articlePage(item) {
 ${galleryTag}
 <h1>${escapeHtml(item.itemName)}</h1>
 ${hook}
+${urgencyTag}
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
 ${featureList}
 ${trustList}
@@ -220,7 +250,54 @@ ${trustList}
   });
 }
 
-function indexPage(items) {
+const RANK_MEDALS = ["🥇", "🥈", "🥉", "④", "⑤", "⑥", "⑦", "⑧"];
+
+function rankingPage(groupTitle, groupSlug, items) {
+  const ranked = items
+    .map((item) => ({ item, score: scoreItem(item) }))
+    .sort((a, b) => b.score - a.score);
+
+  const rows = ranked
+    .map(({ item, score }, i) => {
+      const img = imageUrls(item, 200, 1)[0];
+      const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
+      const urgency = urgencyBadge(item);
+      return `
+<tr>
+  <td class="rank-cell">${RANK_MEDALS[i] ?? i + 1}</td>
+  <td>${img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="rank-img" loading="lazy">` : ""}</td>
+  <td>
+    <a href="../articles/${fileName}" class="rank-name">${escapeHtml(item.itemName.slice(0, 45))}${item.itemName.length > 45 ? "…" : ""}</a>
+    ${urgency ? `<div class="urgency">⏰ ${escapeHtml(urgency)}</div>` : ""}
+  </td>
+  <td class="score-cell">${score}<span class="score-max">/100点</span></td>
+  <td>¥${item.itemPrice.toLocaleString()}</td>
+  <td>${item.reviewAverage}${item.reviewCount ? ` (${item.reviewCount.toLocaleString()}件)` : ""}</td>
+  <td><a href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener" class="buy-btn-sm">見る</a></td>
+</tr>`;
+    })
+    .join("\n");
+
+  const body = `
+<h1>${escapeHtml(groupTitle)}おすすめランキング</h1>
+<p class="hook">レビュー評価・件数・リピート性をもとに100点満点でスコアリングし、総合点順にランキングしました。</p>
+<div class="table-scroll">
+<table class="rank-table">
+<thead><tr><th>順位</th><th>画像</th><th>商品名</th><th>スコア</th><th>価格</th><th>評価</th><th></th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</div>
+<p class="micro-copy">スコアはレビュー評価(55点)・レビュー件数の実績(30点)・リピート性(15点)の合計です。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。</p>
+`;
+  return pageShell({
+    title: `${groupTitle}おすすめランキング比較`,
+    body,
+    description: `${groupTitle}の商品を、レビュー評価・件数・リピート性でスコアリングして比較したランキングです。`,
+    canonicalPath: `rankings/${groupSlug}.html`,
+  });
+}
+
+function indexPage(items, rankingGroups) {
   const cards = items
     .slice()
     .reverse()
@@ -235,7 +312,12 @@ function indexPage(items) {
 </a>`;
     })
     .join("\n");
-  const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n<div class="card-list">${cards}</div>`;
+  const rankingLinks = rankingGroups.length
+    ? `<h2>おすすめ比較ランキング</h2>\n<div class="ranking-links">${rankingGroups
+        .map((g) => `<a href="rankings/${g.slug}.html" class="ranking-link">🏆 ${escapeHtml(g.title)}おすすめランキング</a>`)
+        .join("\n")}</div>`
+    : "";
+  const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n${rankingLinks}\n<h2>新着商品</h2>\n<div class="card-list">${cards}</div>`;
   return pageShell({
     title: SITE_TITLE,
     body,
@@ -245,10 +327,11 @@ function indexPage(items) {
   });
 }
 
-function sitemapXml(items) {
+function sitemapXml(items, rankingGroups) {
   const urls = [
     `${SITE_URL}/index.html`,
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
+    ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
   ];
   const entries = urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
@@ -256,6 +339,25 @@ function sitemapXml(items) {
 
 function robotsTxt() {
   return `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`;
+}
+
+// matchedKeywordが同じ商品同士をグループ化し、3件以上集まったジャンルのみランキングページを作る
+// (発見枠は「総合○位」というランク表記でジャンル性がないため対象外)
+function buildRankingGroups(articles) {
+  const groups = new Map();
+  for (const item of articles) {
+    const key = item.matchedKeyword;
+    if (!key || key.startsWith("総合")) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  return [...groups.entries()]
+    .filter(([, items]) => items.length >= 3)
+    .map(([key, items]) => ({
+      title: key,
+      slug: key.replace(/[^a-zA-Z0-9ぁ-んァ-ヶ一-龠]/g, "_"),
+      items,
+    }));
 }
 
 async function main() {
@@ -271,17 +373,24 @@ async function main() {
   }
 
   await mkdir(ARTICLES_DIR, { recursive: true });
+  await mkdir(RANKING_DIR, { recursive: true });
 
   for (const item of articles) {
     const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
     await writeFile(new URL(fileName, ARTICLES_DIR), articlePage(item));
   }
-  await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles));
-  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles));
+
+  const rankingGroups = buildRankingGroups(articles);
+  for (const g of rankingGroups) {
+    await writeFile(new URL(g.slug + ".html", RANKING_DIR), rankingPage(g.title, g.slug, g.items));
+  }
+
+  await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
+  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups));
   await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
 
-  console.log(`サイト生成完了: 記事${articles.length}件 → docs/`);
+  console.log(`サイト生成完了: 記事${articles.length}件、ランキングページ${rankingGroups.length}件 → docs/`);
 }
 
 main();
