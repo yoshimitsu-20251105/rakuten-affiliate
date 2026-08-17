@@ -86,11 +86,43 @@ function describeItem(item) {
   return parts.join("") || "楽天市場で人気の商品です。";
 }
 
+// itemCaption(販売者が書いた商品詳細)から「商品説明」部分を抜き出し、
+// こだわり・特徴が伝わる短い箇条書きに変換する(実在するデータのみ使用、創作しない)
+const CAPTION_LABELS = ["原材料", "アレルギー表記", "賞味期限", "消費期限", "保存方法", "配送方法", "提供元", "注意事項", "名称", "内容量", "サイズ", "お届け", "発送時期", "製造者", "販売者"];
+
+function extractFeatureBullets(item, max = 3) {
+  const raw = item.itemCaption;
+  if (!raw) return [];
+
+  let section = raw;
+  const startMatch = raw.match(/商品説明\s*/);
+  if (startMatch) {
+    section = raw.slice(startMatch.index + startMatch[0].length);
+  }
+  // 次のラベルが出てきたところで切る
+  let cutAt = section.length;
+  for (const label of CAPTION_LABELS) {
+    const idx = section.indexOf(label);
+    if (idx > 0 && idx < cutAt) cutAt = idx;
+  }
+  section = section.slice(0, Math.min(cutAt, 400));
+
+  const sentences = section
+    .split(/[。\n]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8 && s.length <= 70); // 短すぎ・長すぎる断片は除外
+
+  return sentences.slice(0, max).map((s) => (s.endsWith("！") || s.endsWith("!") ? s : s + "。"));
+}
+
 // 楽天のサムネイルURLはクエリの _ex=WxH でサイズ指定できる
-function imageUrl(item, size) {
-  const raw = item.mediumImageUrls?.[0]?.imageUrl || item.smallImageUrls?.[0]?.imageUrl;
-  if (!raw) return null;
+function imageUrl(raw, size) {
   return raw.replace(/_ex=\d+x\d+/, `_ex=${size}x${size}`);
+}
+
+function imageUrls(item, size, count) {
+  const list = item.mediumImageUrls?.length ? item.mediumImageUrls : item.smallImageUrls ?? [];
+  return list.slice(0, count).map((i) => imageUrl(i.imageUrl, size));
 }
 
 function pageShell({ title, body, description, canonicalPath, structuredData, isTop = false }) {
@@ -119,24 +151,40 @@ ${jsonLd}
 <body>
 <header><a href="${prefix}index.html" class="site-title">${escapeHtml(SITE_TITLE)}</a></header>
 <main>${body}</main>
-<footer><p>本サイトは楽天アフィリエイトプログラムを利用しています。</p></footer>
+<footer>
+<p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価・売れ筋ランキングをもとに毎日自動で選定しています。</p>
+<p>運営者: 楽天トレンドセレクト運営チーム</p>
+</footer>
 </body>
 </html>`;
 }
 
 function articlePage(item) {
-  const img = imageUrl(item, 500);
-  const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">` : "";
+  const imgs = imageUrls(item, 500, 3);
+  const galleryTag = imgs.length
+    ? `<div class="img-gallery">${imgs.map((u) => `<img src="${u}" alt="${escapeHtml(item.itemName)}" class="article-img" loading="lazy">`).join("")}</div>`
+    : "";
+  const hook = item.catchcopy && item.catchcopy !== item.itemName ? `<p class="hook">${escapeHtml(item.catchcopy)}</p>` : "";
+  const featureBullets = extractFeatureBullets(item);
+  const featureList = featureBullets.length
+    ? `<ul class="features"><li>${featureBullets.map(escapeHtml).join("</li><li>")}</li></ul>`
+    : "";
+  const trustBullets = [reviewPhrase(item), repeatPhrase(item), tierPhrase(item)].filter(Boolean);
+  const trustList = trustBullets.length
+    ? `<ul class="trust">${trustBullets.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>`
+    : "";
   const description = describeItem(item);
   const caveat = caveatPhrase(item);
   const closing = closingPhrase(item);
   const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
   const body = `
 <article>
-${imgTag}
+${galleryTag}
 <h1>${escapeHtml(item.itemName)}</h1>
+${hook}
 <p class="price">価格: ¥${item.itemPrice.toLocaleString()}</p>
-<p>${escapeHtml(description)}</p>
+${featureList}
+${trustList}
 <p class="caveat">${escapeHtml(caveat)}</p>
 <p class="closing">${escapeHtml(closing)}</p>
 <div class="cta-block">
@@ -148,7 +196,7 @@ ${imgTag}
     "@context": "https://schema.org",
     "@type": "Product",
     name: item.itemName,
-    image: img ? [img] : undefined,
+    image: imgs.length ? imgs : undefined,
     description,
     offers: {
       "@type": "Offer",
@@ -177,7 +225,7 @@ function indexPage(items) {
     .slice()
     .reverse()
     .map((item) => {
-      const img = imageUrl(item, 300);
+      const img = imageUrls(item, 300, 1)[0];
       const imgTag = img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="card-img" loading="lazy">` : "";
       return `
 <a class="card" href="articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html">
