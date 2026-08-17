@@ -1,0 +1,45 @@
+# rakuten-affiliate
+
+楽天市場の商品を毎日自動選定し、静的サイト(GitHub Pages)として公開する楽天アフィリエイトサイト。
+
+- 公開サイト: https://yoshimitsu-20251105.github.io/rakuten-affiliate/
+- リポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate
+- GitHubアカウント: yoshimitsu-20251105
+
+## 全体アーキテクチャ
+
+1. `select-products.js` — 楽天APIから商品を検索・選定し `selected-products.json` に保存
+2. `generate-site.js` — `selected-products.json` の新着分を `articles-data.json`(全商品の蓄積)に追加し、`docs/` 以下に静的HTMLサイトを生成
+3. `generate-social-posts.js` — ランキンググループからSNS投稿文の下書きを `social-posts.txt` に生成(自動投稿はしない、手動コピペ用)
+4. `run-pipeline.ps1` — 上記1〜3を実行し、`git commit` → `git push` まで行う。Windowsタスクスケジューラで毎朝7:00(JST)に自動実行(`RakutenAffiliatePipeline`)
+5. クラウド定期タスク(claude.ai routine, 毎日8:00 JST)が、SNS/Web調査を行いサイト改善を提案・実装する。ただし**GitHub Appの書き込み権限が付与されるまでpushできない**(未解決、要 https://github.com/settings/installations でContents: Read and write権限の付与)
+
+## 商品選定ロジック(select-products.js)
+
+- 季節枠(高利益枠): 実行月に応じて自動切替(9-12月ふるさと納税/6-8月水飲料/1-5月通年ジャンル強化)
+- 安定枠(エバーグリーン): サプリ・美容サブスク等、通年
+- 発見枠: 楽天総合リアルタイムランキングから、ジャンルを問わず品質フィルタ通過分を発掘
+- スコアリング: レビュー評価55点+レビュー件数30点+リピート性15点=100点満点(ランキング比較ページで使用)
+
+## 絶対に守るルール
+
+- **捏造禁止**: 存在しない「期間限定」「数量限定」等の緊急性を作らない。著名人の使用実績も実データに記載がない限り書かない。レビューや実績を誇張しない
+- **実データ最優先**: 商品名・catchcopy・itemCaption・reviewCount・reviewAverageなど、楽天APIの実データのみを根拠にする
+- 大規模な作り直しより、着実な改善の積み重ねを優先する
+- 半自動(以前) → 完全自動push(現在、ユーザー承認済み)。ただし何か大きな設計変更をする際は確認を取る
+
+## 既知の落とし穴(ハマりやすい点)
+
+- **楽天検索APIのバージョンは度々変わる**。`IchibaItem/Search` は `20260701` を使用中(2026年8月時点)。`wrong_parameter: API Configuration not found` が出たら、まず https://webservice.rakuten.co.jp/documentation/ichiba-item-search で最新バージョンを確認すること。ランキングAPI(`IchibaItem/Ranking`)は `20220601` のままで別物
+- **文字化け**: タスクスケジューラ(無コンソール環境)ではPowerShellのオブジェクトパイプ(`*>>`, `2>&1 | ...`)経由の出力が文字化けする。node/gitの出力は `cmd /c "... >> logfile 2>&1"` の生バイトリダイレクトを使うこと(`run-pipeline.ps1`参照)
+- **APIレート制限**: 楽天APIは1秒1回まで。`select-products.js`は`sleep(1200)`でリクエスト間隔を空けている
+- **URLスラッグの長音記号**: 日本語スラッグ生成の正規表現には `ー`(長音記号)を含めること。含めないと「コーヒー」等が壊れる
+- **`.env`は絶対にコミットしない**(`.gitignore`済み)。`RAKUTEN_APP_ID`, `RAKUTEN_SECRET`, `RAKUTEN_AFFILIATE_ID`, `GMAIL_APP_PASSWORD`, `GA_MEASUREMENT_ID` を含む
+
+## 運用状況(2026年8月時点)
+
+- 楽天ウェブサービス: APIバックエンド型で登録済み(IPアドレス制限方式)
+- 楽天アフィリエイト: 登録・サイト登録済み
+- 楽天銀行口座: 申込完了、承認待ち
+- Google Search Console / GA4: 連携済み
+- 収益: まだ発生していない(公開直後のため、インデックス反映待ち)
