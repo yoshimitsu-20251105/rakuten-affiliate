@@ -11,8 +11,9 @@
 1. `select-products.js` — 楽天APIから商品を検索・選定し `selected-products.json` に保存
 2. `generate-site.js` — `selected-products.json` の新着分を `articles-data.json`(全商品の蓄積)に追加し、`docs/` 以下に静的HTMLサイトを生成
 3. `generate-social-posts.js` — ランキンググループからSNS投稿文の下書きを `social-posts.txt` に生成(自動投稿はしない、手動コピペ用)
-4. `run-pipeline.ps1` — 上記1〜3を実行し、`git commit` → `git push` まで行う。Windowsタスクスケジューラで毎朝7:00(JST)に自動実行(`RakutenAffiliatePipeline`)
-5. クラウド定期タスク(claude.ai routine, 毎日8:00 JST)が、SNS/Web調査を行いサイト改善を提案・実装する。ただし**GitHub Appの書き込み権限が付与されるまでpushできない**(未解決、要 https://github.com/settings/installations でContents: Read and write権限の付与)
+4. **`.github/workflows/daily-pipeline.yml`(2026-08-19導入、本番の自動実行経路)** — 上記1〜3を実行し、`git commit` → `git push` → 結果をメール通知(`dawidd6/action-send-mail`)まで行う。**GitHub Actions上で毎日22:07 UTC(7:07 JST)に実行**され、ローカルPCの起動状態(電源・スリープ・外出)と一切関係なく動く。リポジトリSecrets(`RAKUTEN_APP_ID`/`RAKUTEN_SECRET`/`RAKUTEN_AFFILIATE_ID`/`GMAIL_ADDRESS`/`GMAIL_APP_PASSWORD`)を使用。公開リポジトリのためGitHub Actionsの実行時間は無料・無制限。手動実行は `gh workflow run daily-pipeline.yml`
+5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **旧経路。GitHub Actions移行の動作確認が取れ次第、停止予定**。それまでは並行稼働(新商品がなければ「変更なし」で終わるだけなので二重実行の実害はない)
+6. クラウド定期タスク(claude.ai routine「楽天トレンドセレクト 毎日調査・改善」)は**2026-08-19付けで無効化(停止)済み**。理由: claude.aiのGitHub連携が書き込み権限を一切付与できない既知の未解決バグ(Anthropic公式issue [anthropics/claude-ai-mcp#822](https://github.com/anthropics/claude-ai-mcp/issues/822))があり、このルーティンが生成した改善は常にpush失敗で失われ続けていた。削除はしていないため再開は可能だが、再開するならGitHub Actions経由でのAI実行(`anthropics/claude-code-action`、要`ANTHROPIC_API_KEY`のリポジトリSecret、従量課金あり)に置き換える方が確実
 
 ## 商品選定ロジック(select-products.js)
 
