@@ -12,7 +12,7 @@
 2. `generate-site.js` — `selected-products.json` の新着分を `articles-data.json`(全商品の蓄積)に追加し、`docs/` 以下に静的HTMLサイトを生成
 3. `generate-social-posts.js` — ランキンググループからSNS投稿文の下書きを `social-posts.txt` に生成(自動投稿はしない、手動コピペ用)
 4. **`.github/workflows/daily-pipeline.yml`(2026-08-19導入、本番の自動実行経路)** — 上記1〜3を実行し、`git commit` → `git push` → 結果をメール通知(`dawidd6/action-send-mail`)まで行う。**GitHub Actions上で毎日22:07 UTC(7:07 JST)に実行**され、ローカルPCの起動状態(電源・スリープ・外出)と一切関係なく動く。リポジトリSecrets(`RAKUTEN_APP_ID`/`RAKUTEN_SECRET`/`RAKUTEN_AFFILIATE_ID`/`GMAIL_ADDRESS`/`GMAIL_APP_PASSWORD`)を使用。公開リポジトリのためGitHub Actionsの実行時間は無料・無制限。手動実行は `gh workflow run daily-pipeline.yml`
-5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **旧経路。GitHub Actions移行の動作確認が取れ次第、停止予定**。それまでは並行稼働(新商品がなければ「変更なし」で終わるだけなので二重実行の実害はない)
+5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **2026-08-25付けで無効化(Disabled)済み**。GitHub Actionsが8/19〜8/25の7日間連続で安定稼働したことを確認して停止。並行稼働中、ローカル側が数日間PC未起動で止まっていた一方GitHub Actions側は毎日確実に動いており、移行の効果を裏付けた。また並行稼働により、生成物(docs/以下)が両経路で別々に更新されマージ衝突が発生する実害も確認したため、これ以上の並行稼働はしない方針。再開する場合はタスクスケジューラで`Enable-ScheduledTask -TaskName "RakutenAffiliatePipeline"`
 6. クラウド定期タスク(claude.ai routine「楽天トレンドセレクト 毎日調査・改善」)は**2026-08-19付けで無効化(停止)済み**。理由: claude.aiのGitHub連携が書き込み権限を一切付与できない既知の未解決バグ(Anthropic公式issue [anthropics/claude-ai-mcp#822](https://github.com/anthropics/claude-ai-mcp/issues/822))があり、このルーティンが生成した改善は常にpush失敗で失われ続けていた。削除はしていないため再開は可能だが、再開するならGitHub Actions経由でのAI実行(`anthropics/claude-code-action`、要`ANTHROPIC_API_KEY`のリポジトリSecret、従量課金あり)に置き換える方が確実
 
 ## 商品選定ロジック(select-products.js)
