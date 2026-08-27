@@ -26,7 +26,6 @@ jobs:
           RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
           RAKUTEN_SECRET: ${{ secrets.RAKUTEN_SECRET }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
-          DEBUG_RAKUTEN: "1"
         run: node select-products.js
 
       - name: サイト生成

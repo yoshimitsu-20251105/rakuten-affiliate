@@ -153,13 +153,15 @@ async function searchItems(keyword, tier) {
     apiErrors.push(`${keyword}: ネットワークエラー(オフラインの可能性) ${e.message}`);
     return [];
   }
-  if (data.error) {
-    console.error(`[${keyword}] APIエラー:`, data.error, data.error_description);
-    apiErrors.push(`${keyword}: ${data.error} ${data.error_description ?? ""}`);
+  // 楽天APIのエラー応答は data.error(旧形式)と data.errors.errorCode(新形式、IP制限等)の
+  // 2種類の形があるため、両方を検知する(片方だけだと「エラーなのに気づけない」静かな失敗になる)
+  if (data.error || data.errors) {
+    const msg = data.error
+      ? `${data.error} ${data.error_description ?? ""}`
+      : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
+    console.error(`[${keyword}] APIエラー:`, msg);
+    apiErrors.push(`${keyword}: ${msg}`);
     return [];
-  }
-  if (process.env.DEBUG_RAKUTEN) {
-    console.log(`[DEBUG][${keyword}] status=${res.status} count=${data.count} items=${(data.Items ?? []).length} raw=${JSON.stringify(data).slice(0, 300)}`);
   }
   return (data.Items ?? []).map((wrap) => wrap.Item);
 }
@@ -192,9 +194,12 @@ async function searchRanking() {
     apiErrors.push(`総合ランキング: ネットワークエラー(オフラインの可能性) ${e.message}`);
     return [];
   }
-  if (data.error) {
-    console.error(`[総合ランキング] APIエラー:`, data.error, data.error_description);
-    apiErrors.push(`総合ランキング: ${data.error} ${data.error_description ?? ""}`);
+  if (data.error || data.errors) {
+    const msg = data.error
+      ? `${data.error} ${data.error_description ?? ""}`
+      : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
+    console.error(`[総合ランキング] APIエラー:`, msg);
+    apiErrors.push(`総合ランキング: ${msg}`);
     return [];
   }
   return (data.Items ?? []).map((wrap) => wrap.Item);
