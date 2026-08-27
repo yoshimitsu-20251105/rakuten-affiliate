@@ -12,7 +12,7 @@
 2. `generate-site.js` — `selected-products.json` の新着分を `articles-data.json`(全商品の蓄積)に追加し、`docs/` 以下に静的HTMLサイトを生成
 3. `generate-social-posts.js` — ランキンググループからSNS投稿文の下書きを `social-posts.txt` に生成(自動投稿はしない、手動コピペ用)
 4. **`.github/workflows/daily-pipeline.yml`(2026-08-19導入、本番の自動実行経路)** — 上記1〜3を実行し、`git commit` → `git push` → 結果をメール通知(`dawidd6/action-send-mail`)まで行う。**GitHub Actions上で毎日22:07 UTC(7:07 JST)に実行**され、ローカルPCの起動状態(電源・スリープ・外出)と一切関係なく動く。リポジトリSecrets(`RAKUTEN_APP_ID`/`RAKUTEN_SECRET`/`RAKUTEN_AFFILIATE_ID`/`GMAIL_ADDRESS`/`GMAIL_APP_PASSWORD`)を使用。公開リポジトリのためGitHub Actionsの実行時間は無料・無制限。手動実行は `gh workflow run daily-pipeline.yml`
-5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **2026-08-25付けで無効化(Disabled)済み**。GitHub Actionsが8/19〜8/25の7日間連続で安定稼働したことを確認して停止。並行稼働中、ローカル側が数日間PC未起動で止まっていた一方GitHub Actions側は毎日確実に動いており、移行の効果を裏付けた。また並行稼働により、生成物(docs/以下)が両経路で別々に更新されマージ衝突が発生する実害も確認したため、これ以上の並行稼働はしない方針。再開する場合はタスクスケジューラで`Enable-ScheduledTask -TaskName "RakutenAffiliatePipeline"`
+5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **無効化(Disabled)済み**(2026-08-27時点)。GitHub Actionsが8/19〜8/25の7日間連続で安定稼働したことを確認して停止。並行稼働中、ローカル側が数日間PC未起動で止まっていた一方GitHub Actions側は毎日確実に動いており、移行の効果を裏付けた。また並行稼働により、生成物(docs/以下)が両経路で別々に更新されマージ衝突が発生する実害も確認したため、これ以上の並行稼働はしない方針。再開する場合はタスクスケジューラで`Enable-ScheduledTask -TaskName "RakutenAffiliatePipeline"`
 6. クラウド定期タスク(claude.ai routine「楽天トレンドセレクト 毎日調査・改善」)は**2026-08-19付けで無効化(停止)済み**。理由: claude.aiのGitHub連携が書き込み権限を一切付与できない既知の未解決バグ(Anthropic公式issue [anthropics/claude-ai-mcp#822](https://github.com/anthropics/claude-ai-mcp/issues/822))があり、このルーティンが生成した改善は常にpush失敗で失われ続けていた。削除はしていないため再開は可能だが、再開するならGitHub Actions経由でのAI実行(`anthropics/claude-code-action`、要`ANTHROPIC_API_KEY`のリポジトリSecret、従量課金あり)に置き換える方が確実
 
 ## 商品選定ロジック(select-products.js)
@@ -36,7 +36,10 @@
 - **APIレート制限**: 楽天APIは1秒1回まで。`select-products.js`は`sleep(1200)`でリクエスト間隔を空けている
 - **URLスラッグの長音記号**: 日本語スラッグ生成の正規表現には `ー`(長音記号)を含めること。含めないと「コーヒー」等が壊れる
 - **`.env`は絶対にコミットしない**(`.gitignore`済み)。`RAKUTEN_APP_ID`, `RAKUTEN_SECRET`, `RAKUTEN_AFFILIATE_ID`, `GMAIL_APP_PASSWORD`, `GA_MEASUREMENT_ID` を含む
-- **【重要・2026-08-27発覚】楽天API「IPアドレス制限方式」とGitHub Actionsは相性が悪い**: 楽天ウェブサービスのアプリが「IPアドレス制限方式」で登録されているため、GitHub Actions(実行のたびにIPが変わる)からのアクセスは`403 CLIENT_IP_NOT_ALLOWED`で拒否される。しかもこのエラー形式(`{"errors":{"errorCode":...}}`)は旧形式(`data.error`)と異なり、修正前は検知されず「エラーなし・新商品0件」として静かに見過ごされていた(2026-08-22〜08-27の6日間、新商品0件で気づかれずにいた)。エラー検知自体は修正済み(`select-products.js`が両形式を検知する)。**ただし根本原因(IP制限そのもの)は未解決**。楽天ウェブサービスの管理画面でアクセス制限方式を確認し、IPアドレス制限以外の方式(リファラ制限等)に変更できるか確認が必要
+- **【解決済み・2026-08-27】楽天API「IPアドレス制限方式」とGitHub Actionsは相性が悪い → リファラ制限方式に切替**: 楽天ウェブサービスのアプリが「IPアドレス制限方式」で登録されていたため、GitHub Actions(実行のたびにIPが変わる)からのアクセスは`403 CLIENT_IP_NOT_ALLOWED`で拒否されていた。このエラー形式(`{"errors":{"errorCode":...}}`)は旧形式(`data.error`)と異なり検知されず、「エラーなし・新商品0件」として静かに見過ごされていた(2026-08-22〜08-27の6日間、新商品0件)。
+  - **エラー検知の修正**: `select-products.js`が新旧両方のエラー形式(`data.error`/`data.errors.errorCode`)を検知するよう修正済み
+  - **根本解決**: 楽天デベロッパーズのアプリケーションタイプを「API/バックエンドサービス(IPアドレス制限)」から**「Webアプリケーション(リファラ制限、許可されたWebサイト: `yoshimitsu-20251105.github.io`)」に変更**。あわせて`select-products.js`のfetch呼び出しに `referrer: APP_URL` と `headers.Origin` を追加(Node.jsのfetchは`Referer`ヘッダーを`headers`に直接書いても送信されず、`referrer`オプション経由でのみ送信される点に注意。さらに楽天側は`Referer`だけでなく`Origin`ヘッダーも見ているため、両方が必要だった)
+  - ローカル・GitHub Actions両方で動作確認済み(各7件選定、エラー0件)
 
 ## 判断の境界線(専門家確認が必要な領域)
 
