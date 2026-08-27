@@ -15,6 +15,10 @@
 5. `run-pipeline.ps1` + Windowsタスクスケジューラ(`RakutenAffiliatePipeline`, 毎朝7:00 JST) — **無効化(Disabled)済み**(2026-08-27時点)。GitHub Actionsが8/19〜8/25の7日間連続で安定稼働したことを確認して停止。並行稼働中、ローカル側が数日間PC未起動で止まっていた一方GitHub Actions側は毎日確実に動いており、移行の効果を裏付けた。また並行稼働により、生成物(docs/以下)が両経路で別々に更新されマージ衝突が発生する実害も確認したため、これ以上の並行稼働はしない方針。再開する場合はタスクスケジューラで`Enable-ScheduledTask -TaskName "RakutenAffiliatePipeline"`
 6. クラウド定期タスク(claude.ai routine「楽天トレンドセレクト 毎日調査・改善」)は**2026-08-19付けで無効化(停止)済み**。理由: claude.aiのGitHub連携が書き込み権限を一切付与できない既知の未解決バグ(Anthropic公式issue [anthropics/claude-ai-mcp#822](https://github.com/anthropics/claude-ai-mcp/issues/822))があり、このルーティンが生成した改善は常にpush失敗で失われ続けていた。削除はしていないため再開は可能だが、再開するならGitHub Actions経由でのAI実行(`anthropics/claude-code-action`、要`ANTHROPIC_API_KEY`のリポジトリSecret、従量課金あり)に置き換える方が確実
 
+## SNS用の統合ランキングページ(2026-08-27追加)
+
+`docs/rankings/all.html` — 全ジャンルのランキングを1ページにまとめた、SNS投稿専用のハブページ。目次(アンカーリンク)から各ジャンルへジャンプでき、各ジャンルは上位5件のみ表示(続きは既存の個別ページ`docs/rankings/<slug>.html`へ誘導)。SNSでは投稿1つ・リンク1つで済ませたいという運用要件から追加。既存の個別ランキングページはSEO目的でそのまま維持している。生成ロジックは`generate-site.js`の`hubPage()`。
+
 ## 商品選定ロジック(select-products.js)
 
 - 季節枠(高利益枠): 実行月に応じて自動切替(9-12月ふるさと納税/6-8月水飲料/1-5月通年ジャンル強化)
