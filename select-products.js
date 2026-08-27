@@ -22,37 +22,44 @@ if (!appId || !accessKey) {
 // 商品名・キャッチコピーにこれらの語を含むものを「リピートが多い商品」とみなす(共通)
 const repeatSignalKeywords = ["リピート", "定期便", "定期コース", "殿堂入り", "累計", "毎年注文", "何度も", "サブスク"];
 
-// ---- 季節枠(高利益枠): 実行月に応じて自動で切り替える ----
-// 9〜12月: ふるさと納税(年末の駆け込み需要期) / 6〜8月: 水・飲料(夏の需要期) / それ以外: 通年ジャンルを厚めに
+// ---- ふるさと納税枠: 年間を通じて需要があるため常時稼働 ----
+// 2026-08-27: 「9〜12月しか動かさない」設計は誤りだった。ふるさと納税は年間を通じて
+// 寄付できる制度であり、9〜12月は「駆け込み需要期で活発になる」だけで、他の月の需要が
+// ゼロというわけではない。年間常時稼働に変更し、繁忙期(9〜12月)はpickCountを増やして
+// 稼働率を上げる形にした。
+function furusatoTier(month) {
+  const isRushSeason = month >= 9 && month <= 12;
+  return {
+    name: isRushSeason ? "ふるさと納税枠(繁忙期)" : "ふるさと納税枠",
+    baseKeyword: "ふるさと納税",
+    // 2026-08-21: 頭キーワード(肉/海鮮/米/フルーツ単体)は大手3社(ふるさとチョイス/さとふる/ふるなび)が
+    // 固定的に上位独占していることが調査で判明(research-log.md参照)。3〜4語のロングテール句に変更。
+    // 2026-08-27: 肉・海鮮・米・フルーツを商品種別でさらに細分化(ユーザー指定の分類)。
+    // 全キーワード実在庫を検証済み(research-log.md参照)。
+    // 米のこだわり系(無農薬有機/自然栽培)は、小規模農家の商品名に「定期便」等の
+    // リピート語がほとんど付かないため、requireRepeatSignal を個別にfalseへ上書きしている。
+    subKeywords: [
+      "牛肉 訳あり", "豚肉 訳あり", "鶏肉 訳あり", "ジビエ 肉",
+      "マグロ 訳あり", "貝類 訳あり", "カニ 訳あり", "エビ 訳あり", "海鮮 訳あり",
+      { keyword: "無農薬 有機 白米", requireRepeatSignal: false },
+      { keyword: "無農薬 有機 玄米", requireRepeatSignal: false },
+      { keyword: "自然栽培 白米", requireRepeatSignal: false },
+      { keyword: "自然栽培 玄米", requireRepeatSignal: false },
+    ],
+    // 2026-08-27: フルーツはふるさと納税枠から外し、安定枠へ移動(evergreenTier参照)。
+    // 細分化もしない方針になったため、みかん/りんご/ぶどうの個別キーワードは廃止。
+    minPrice: 8000,
+    maxPrice: 30000,
+    minReviewCount: 10,
+    minReviewAverage: 4.0,
+    requireRepeatSignal: true,
+    pickCount: isRushSeason ? 12 : 8,
+  };
+}
+
+// ---- 季節枠(高利益枠): ふるさと納税とは別に、実行月に応じて自動で切り替える ----
+// 6〜8月: 水・飲料(夏の需要期) / それ以外: 通年ジャンルを厚めに
 function seasonalTier(month) {
-  if (month >= 9 && month <= 12) {
-    return {
-      name: "季節枠(ふるさと納税)",
-      baseKeyword: "ふるさと納税",
-      // 2026-08-21: 頭キーワード(肉/海鮮/米/フルーツ単体)は大手3社(ふるさとチョイス/さとふる/ふるなび)が
-      // 固定的に上位独占していることが調査で判明(research-log.md参照)。3〜4語のロングテール句に変更。
-      // 2026-08-27: 肉・海鮮・米・フルーツを商品種別でさらに細分化(ユーザー指定の分類)。
-      // 全キーワード実在庫を検証済み(research-log.md参照)。
-      // 米のこだわり系(無農薬有機/自然栽培)は、小規模農家の商品名に「定期便」等の
-      // リピート語がほとんど付かないため、requireRepeatSignal を個別にfalseへ上書きしている。
-      subKeywords: [
-        "牛肉 訳あり", "豚肉 訳あり", "鶏肉 訳あり", "ジビエ 肉",
-        "マグロ 訳あり", "貝類 訳あり", "カニ 訳あり", "エビ 訳あり", "海鮮 訳あり",
-        { keyword: "無農薬 有機 白米", requireRepeatSignal: false },
-        { keyword: "無農薬 有機 玄米", requireRepeatSignal: false },
-        { keyword: "自然栽培 白米", requireRepeatSignal: false },
-        { keyword: "自然栽培 玄米", requireRepeatSignal: false },
-      ],
-      // 2026-08-27: フルーツはふるさと納税枠から外し、安定枠へ移動(evergreenTier参照)。
-      // 細分化もしない方針になったため、みかん/りんご/ぶどうの個別キーワードは廃止。
-      minPrice: 8000,
-      maxPrice: 30000,
-      minReviewCount: 10,
-      minReviewAverage: 4.0,
-      requireRepeatSignal: true,
-      pickCount: 10,
-    };
-  }
   if (month >= 6 && month <= 8) {
     return {
       name: "季節枠(水・飲料)",
@@ -137,8 +144,8 @@ const discoveryTier = {
 };
 
 const currentMonth = new Date().getMonth() + 1;
-const tiers = [seasonalTier(currentMonth), evergreenTier];
-console.log(`実行月: ${currentMonth}月 → ${tiers[0].name}`);
+const tiers = [furusatoTier(currentMonth), seasonalTier(currentMonth), evergreenTier];
+console.log(`実行月: ${currentMonth}月 → ${tiers[0].name} + ${tiers[1].name}`);
 
 const hitsPerKeyword = 30;
 
@@ -269,26 +276,48 @@ function normalizeSubKeyword(sub) {
 }
 
 async function pickFromTier(tier, history, seenInThisRun) {
-  const candidates = [];
+  // 2026-08-27: キーワードごとに検索した候補を集めるが、以前は全キーワードの候補を
+  // プールしてレビュー数順に上位N件を取るだけだったため、「海鮮 訳あり」のような
+  // 話題性の高い広いキーワードが枠を独占し、細分化した「牛肉」「豚肉」等が
+  // 1件も選ばれないという問題が発生した。キーワードごとに候補を保持しておき、
+  // 採用時は「各キーワードから順番に1件ずつ」ラウンドロビン方式にすることで、
+  // 特定のキーワードが枠を独占しないようにする。
+  const perKeyword = [];
   for (const rawSub of tier.subKeywords) {
     const sub = normalizeSubKeyword(rawSub);
     const keyword = tier.baseKeyword ? `${tier.baseKeyword} ${sub.keyword}` : sub.keyword;
     const requireRepeatSignal = sub.requireRepeatSignal ?? tier.requireRepeatSignal;
     const items = await searchItems(keyword, tier);
     await sleep(1200); // レート制限(1秒1回)を守るための間隔
+    const matched = [];
     for (const item of items) {
       if (history.has(item.itemCode)) continue;
       if (seenInThisRun.has(item.itemCode)) continue;
-      seenInThisRun.add(item.itemCode);
       if (item.reviewCount < tier.minReviewCount) continue;
       if (item.reviewAverage < tier.minReviewAverage) continue;
       const repeatSignal = hasRepeatSignal(item);
       if (requireRepeatSignal && !repeatSignal) continue;
-      candidates.push({ ...item, matchedKeyword: sub.keyword, repeatSignal, tier: tier.name });
+      matched.push({ ...item, matchedKeyword: sub.keyword, repeatSignal, tier: tier.name });
     }
+    matched.sort((a, b) => b.reviewCount * b.reviewAverage - a.reviewCount * a.reviewAverage);
+    perKeyword.push(matched);
   }
-  candidates.sort((a, b) => b.reviewCount * b.reviewAverage - a.reviewCount * a.reviewAverage);
-  return candidates.slice(0, tier.pickCount);
+
+  const picked = [];
+  for (let round = 0; picked.length < tier.pickCount; round++) {
+    let addedThisRound = false;
+    for (const matched of perKeyword) {
+      if (picked.length >= tier.pickCount) break;
+      const candidate = matched[round];
+      if (candidate && !seenInThisRun.has(candidate.itemCode)) {
+        seenInThisRun.add(candidate.itemCode);
+        picked.push(candidate);
+        addedThisRound = true;
+      }
+    }
+    if (!addedThisRound) break; // どのキーワードにも次の候補が残っていなければ終了
+  }
+  return picked;
 }
 
 async function main() {
