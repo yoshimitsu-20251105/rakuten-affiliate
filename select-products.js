@@ -42,14 +42,15 @@ function seasonalTier(month) {
         { keyword: "無農薬 有機 玄米", requireRepeatSignal: false },
         { keyword: "自然栽培 白米", requireRepeatSignal: false },
         { keyword: "自然栽培 玄米", requireRepeatSignal: false },
-        "みかん 訳あり", "りんご 訳あり", "ぶどう 訳あり",
       ],
+      // 2026-08-27: フルーツはふるさと納税枠から外し、安定枠へ移動(evergreenTier参照)。
+      // 細分化もしない方針になったため、みかん/りんご/ぶどうの個別キーワードは廃止。
       minPrice: 8000,
       maxPrice: 30000,
       minReviewCount: 10,
       minReviewAverage: 4.0,
       requireRepeatSignal: true,
-      pickCount: 12,
+      pickCount: 10,
     };
   }
   if (month >= 6 && month <= 8) {
@@ -110,13 +111,17 @@ const evergreenTier = {
     "美容液 まとめ買い", "オールインワンゲル まとめ買い", "クレンジング まとめ買い",
     "ヒト幹細胞 化粧品", "植物幹細胞 化粧品",
     "緑茶 ティーバッグ まとめ買い", "ほうじ茶 まとめ買い", "紅茶 ティーバッグ まとめ買い",
+    // 2026-08-27: フルーツはふるさと納税枠(訳あり/リピート語必須)から移動。
+    // 細分化はせず1区分のみ。ギフト用のフルーツ詰め合わせは「定期便」等の
+    // リピート語をほぼ使わないため、requireRepeatSignalを個別にfalseへ上書き
+    { keyword: "フルーツ 詰め合わせ", requireRepeatSignal: false },
   ],
   minPrice: 1000,
   maxPrice: 6000,
   minReviewCount: 20,
   minReviewAverage: 3.8,
   requireRepeatSignal: true,
-  pickCount: 14,
+  pickCount: 15,
 };
 
 // ---- 発見枠: ジャンルを固定せず、楽天全体のリアルタイムランキングから発掘する ----

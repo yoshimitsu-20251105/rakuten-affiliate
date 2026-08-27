@@ -462,13 +462,29 @@ function buildRankingGroups(articles) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(item);
   }
-  return [...groups.entries()]
+  const commodityGroups = [...groups.entries()]
     .filter(([, items]) => items.length >= 3)
     .map(([key, items]) => ({
       title: key,
       slug: key.replace(/[^a-zA-Z0-9ぁ-んァ-ヶー一-龠]/g, "_"),
       items,
     }));
+
+  // 2026-08-27: 商品ジャンル別ランキングとは別に、ふるさと納税だけを横断的に集めた
+  // 「ふるさと納税 総合ランキング」(上位10件)も需要があるため追加。判定はitemNameに
+  // 「ふるさと納税」を含むかどうか(該当商品は必ずこの文言をタイトルに含む)。
+  const furusatoItems = articles
+    .filter((item) => item.itemName.includes("ふるさと納税"))
+    .map((item) => ({ item, score: scoreItem(item) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .map(({ item }) => item);
+  const furusatoGroup =
+    furusatoItems.length >= 3
+      ? [{ title: "ふるさと納税 総合", slug: "furusato-sougou", items: furusatoItems }]
+      : [];
+
+  return [...furusatoGroup, ...commodityGroups];
 }
 
 async function main() {
