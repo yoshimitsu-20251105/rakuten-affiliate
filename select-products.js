@@ -31,13 +31,15 @@ function seasonalTier(month) {
       baseKeyword: "ふるさと納税",
       // 2026-08-21: 頭キーワード(肉/海鮮/米/フルーツ単体)は大手3社(ふるさとチョイス/さとふる/ふるなび)が
       // 固定的に上位独占していることが調査で判明(research-log.md参照)。3〜4語のロングテール句に変更。
-      subKeywords: ["肉 訳あり", "海鮮 小分け", "米 定期便", "フルーツ 訳あり"],
+      // 2026-08-27: 「肉」を牛肉/豚肉/鶏肉に細分化(SNS用ランキングの深掘り)。実在庫を検証済み
+      // (牛肉1716件/豚肉359件/鶏肉106件、いずれもフィルタ通過多数)。細分化した分pickCountも増やす。
+      subKeywords: ["牛肉 訳あり", "豚肉 訳あり", "鶏肉 訳あり", "海鮮 小分け", "米 定期便", "フルーツ 訳あり"],
       minPrice: 8000,
       maxPrice: 30000,
       minReviewCount: 10,
       minReviewAverage: 4.0,
       requireRepeatSignal: true,
-      pickCount: 3,
+      pickCount: 5,
     };
   }
   if (month >= 6 && month <= 8) {

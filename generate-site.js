@@ -310,12 +310,16 @@ ${relatedBlock}
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉", "④", "⑤", "⑥", "⑦", "⑧"];
 
-function rankingPage(groupTitle, groupSlug, items) {
+// rankingPage()と統合ランキングページ(hubPage)の両方で使う行描画ロジックを共通化。
+// pathPrefixは記事へのリンクの相対階層を吸収する("../articles/" or "articles/")。
+// limitを指定すると上位N件だけに絞る(統合ページで各ジャンルを短く見せるため)。
+function rankingRows(items, pathPrefix, limit) {
   const ranked = items
     .map((item) => ({ item, score: scoreItem(item) }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit ?? items.length);
 
-  const rows = ranked
+  return ranked
     .map(({ item, score }, i) => {
       const img = imageUrls(item, 200, 1)[0];
       const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
@@ -325,7 +329,7 @@ function rankingPage(groupTitle, groupSlug, items) {
   <td class="rank-cell">${RANK_MEDALS[i] ?? i + 1}</td>
   <td>${img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="rank-img" loading="lazy">` : ""}</td>
   <td>
-    <a href="../articles/${fileName}" class="rank-name">${escapeHtml(item.itemName.slice(0, 45))}${item.itemName.length > 45 ? "…" : ""}</a>
+    <a href="${pathPrefix}${fileName}" class="rank-name">${escapeHtml(item.itemName.slice(0, 45))}${item.itemName.length > 45 ? "…" : ""}</a>
     ${urgency ? `<div class="urgency">⏰ ${escapeHtml(urgency)}</div>` : ""}
   </td>
   <td class="score-cell">${score}<span class="score-max">/100点</span></td>
@@ -335,7 +339,10 @@ function rankingPage(groupTitle, groupSlug, items) {
 </tr>`;
     })
     .join("\n");
+}
 
+function rankingPage(groupTitle, groupSlug, items) {
+  const rows = rankingRows(items, "../articles/");
   const body = `
 <h1>${escapeHtml(groupTitle)}おすすめランキング</h1>
 <p class="hook">レビュー評価・件数・リピート性をもとに100点満点でスコアリングし、総合点順にランキングしました。</p>
@@ -346,12 +353,57 @@ function rankingPage(groupTitle, groupSlug, items) {
 </table>
 </div>
 <p class="micro-copy">スコアはレビュー評価(55点)・レビュー件数の実績(30点)・リピート性(15点)の合計です。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。</p>
+<p><a href="all.html">← ジャンル別ランキングまとめ一覧に戻る</a></p>
 `;
   return pageShell({
     title: `${groupTitle}おすすめランキング比較`,
     body,
     description: `${groupTitle}の商品を、レビュー評価・件数・リピート性でスコアリングして比較したランキングです。`,
     canonicalPath: `rankings/${groupSlug}.html`,
+  });
+}
+
+// SNS投稿用の統合ランキングページ: 1つのURLで全ジャンルのランキングをまとめて見られるようにする
+// (SNSでは投稿1回・リンク1つで済ませたいが、各ジャンル別ページを個別にシェアすると投稿が分散するため)。
+// 各ジャンルは上位5件のみの短縮表示にし、続きは個別ページへのリンクに誘導する。
+const HUB_ROW_LIMIT = 5;
+
+function hubPage(rankingGroups) {
+  const toc = rankingGroups
+    .map((g) => `<li><a href="#${g.slug}">${escapeHtml(g.title)}</a></li>`)
+    .join("\n");
+
+  const sections = rankingGroups
+    .map((g) => {
+      const rows = rankingRows(g.items, "../articles/", HUB_ROW_LIMIT);
+      const hasMore = g.items.length > HUB_ROW_LIMIT;
+      return `
+<section id="${g.slug}" class="hub-section">
+<h2>${escapeHtml(g.title)}おすすめランキング(上位${Math.min(HUB_ROW_LIMIT, g.items.length)})</h2>
+<div class="table-scroll">
+<table class="rank-table">
+<thead><tr><th>順位</th><th>画像</th><th>商品名</th><th>スコア</th><th>価格</th><th>評価</th><th></th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</div>
+${hasMore ? `<p><a href="rankings/${g.slug}.html">「${escapeHtml(g.title)}」の全${g.items.length}件を見る →</a></p>` : ""}
+<p class="hub-back"><a href="#top">↑ 目次に戻る</a></p>
+</section>`;
+    })
+    .join("\n");
+
+  const body = `
+<h1 id="top">ジャンル別ランキングまとめ</h1>
+<p class="hook">気になるジャンルだけタップして見てください。レビュー評価・件数・リピート性をもとに100点満点でスコアリングしています。</p>
+<nav class="hub-toc"><ul>${toc}</ul></nav>
+${sections}
+<p class="micro-copy">スコアはレビュー評価(55点)・レビュー件数の実績(30点)・リピート性(15点)の合計です。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。</p>
+`;
+  return pageShell({
+    title: "ジャンル別ランキングまとめ",
+    body,
+    description: "楽天市場の人気商品を、ジャンルごとにレビュー評価・件数・リピート性でスコアリングしたランキングを1ページにまとめました。",
+    canonicalPath: "rankings/all.html",
   });
 }
 
@@ -371,7 +423,7 @@ function indexPage(items, rankingGroups) {
     })
     .join("\n");
   const rankingLinks = rankingGroups.length
-    ? `<h2>おすすめ比較ランキング</h2>\n<div class="ranking-links">${rankingGroups
+    ? `<h2>おすすめ比較ランキング</h2>\n<p><a href="rankings/all.html" class="ranking-link-hub">🏆 ジャンル別ランキングまとめを1ページで見る</a></p>\n<div class="ranking-links">${rankingGroups
         .map((g) => `<a href="rankings/${g.slug}.html" class="ranking-link">🏆 ${escapeHtml(g.title)}おすすめランキング</a>`)
         .join("\n")}</div>`
     : "";
@@ -390,6 +442,7 @@ function sitemapXml(items, rankingGroups) {
     `${SITE_URL}/index.html`,
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
     ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
+    ...(rankingGroups.length ? [`${SITE_URL}/rankings/all.html`] : []),
   ];
   const entries = urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY_ISO}</lastmod></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
@@ -443,6 +496,10 @@ async function main() {
 
   for (const g of rankingGroups) {
     await writeFile(new URL(g.slug + ".html", RANKING_DIR), rankingPage(g.title, g.slug, g.items));
+  }
+
+  if (rankingGroups.length) {
+    await writeFile(new URL("all.html", RANKING_DIR), hubPage(rankingGroups));
   }
 
   await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
