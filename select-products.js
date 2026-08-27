@@ -158,6 +158,9 @@ async function searchItems(keyword, tier) {
     apiErrors.push(`${keyword}: ${data.error} ${data.error_description ?? ""}`);
     return [];
   }
+  if (process.env.DEBUG_RAKUTEN) {
+    console.log(`[DEBUG][${keyword}] status=${res.status} count=${data.count} items=${(data.Items ?? []).length} raw=${JSON.stringify(data).slice(0, 300)}`);
+  }
   return (data.Items ?? []).map((wrap) => wrap.Item);
 }
 
