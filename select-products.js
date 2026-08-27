@@ -31,12 +31,17 @@ function seasonalTier(month) {
       baseKeyword: "ふるさと納税",
       // 2026-08-21: 頭キーワード(肉/海鮮/米/フルーツ単体)は大手3社(ふるさとチョイス/さとふる/ふるなび)が
       // 固定的に上位独占していることが調査で判明(research-log.md参照)。3〜4語のロングテール句に変更。
-      // 2026-08-27: 肉に続き、海鮮・米・フルーツも細分化(SNS用ランキングの深掘り)。
-      // 全11キーワードとも実在庫を検証済み(research-log.md参照)。細分化した分pickCountも増やす。
+      // 2026-08-27: 肉・海鮮・米・フルーツを商品種別でさらに細分化(ユーザー指定の分類)。
+      // 全キーワード実在庫を検証済み(research-log.md参照)。
+      // 米のこだわり系(無農薬有機/自然栽培)は、小規模農家の商品名に「定期便」等の
+      // リピート語がほとんど付かないため、requireRepeatSignal を個別にfalseへ上書きしている。
       subKeywords: [
-        "牛肉 訳あり", "豚肉 訳あり", "鶏肉 訳あり",
-        "鮭 訳あり", "カニ 訳あり", "ホタテ 訳あり",
-        "コシヒカリ 定期便", "無洗米 定期便",
+        "牛肉 訳あり", "豚肉 訳あり", "鶏肉 訳あり", "ジビエ 肉",
+        "マグロ 訳あり", "貝類 訳あり", "カニ 訳あり", "エビ 訳あり", "海鮮 訳あり",
+        { keyword: "無農薬 有機 白米", requireRepeatSignal: false },
+        { keyword: "無農薬 有機 玄米", requireRepeatSignal: false },
+        { keyword: "自然栽培 白米", requireRepeatSignal: false },
+        { keyword: "自然栽培 玄米", requireRepeatSignal: false },
         "みかん 訳あり", "りんご 訳あり", "ぶどう 訳あり",
       ],
       minPrice: 8000,
@@ -44,7 +49,7 @@ function seasonalTier(month) {
       minReviewCount: 10,
       minReviewAverage: 4.0,
       requireRepeatSignal: true,
-      pickCount: 8,
+      pickCount: 12,
     };
   }
   if (month >= 6 && month <= 8) {
@@ -99,7 +104,11 @@ const evergreenTier = {
     "ドッグフード まとめ買い", "キャットフード まとめ買い",
     "ドリップコーヒー まとめ買い", "コーヒー豆 まとめ買い",
     "洗濯洗剤 液体 まとめ買い", "柔軟剤 詰め替え まとめ買い",
-    "化粧水 敏感肌 まとめ買い", "オールインワンゲル まとめ買い",
+    // 2026-08-27: コスメ系を7区分(洗顔・日焼け止め・化粧水・乳液・美容液・オールインワン・
+    // クレンジング)+幹細胞コスメ2区分(ヒト由来・植物由来。動物由来は市場にほぼ存在せず除外)に細分化
+    "洗顔料 まとめ買い", "日焼け止め まとめ買い", "化粧水 まとめ買い", "乳液 まとめ買い",
+    "美容液 まとめ買い", "オールインワンゲル まとめ買い", "クレンジング まとめ買い",
+    "ヒト幹細胞 化粧品", "植物幹細胞 化粧品",
     "緑茶 ティーバッグ まとめ買い", "ほうじ茶 まとめ買い", "紅茶 ティーバッグ まとめ買い",
   ],
   minPrice: 1000,
@@ -107,7 +116,7 @@ const evergreenTier = {
   minReviewCount: 20,
   minReviewAverage: 3.8,
   requireRepeatSignal: true,
-  pickCount: 10,
+  pickCount: 14,
 };
 
 // ---- 発見枠: ジャンルを固定せず、楽天全体のリアルタイムランキングから発掘する ----
@@ -246,10 +255,20 @@ async function pickFromDiscovery(history, seenInThisRun) {
   return candidates.slice(0, discoveryTier.pickCount);
 }
 
+// subKeywordsの各要素は文字列(通常時)、または { keyword, requireRepeatSignal } の形の
+// オブジェクト(2026-08-27追加: こだわり系ニッチキーワードだけ「リピート語必須」を個別に
+// 上書きしたい場合に使う。例: 無農薬・自然栽培の米は実在庫はあるが小規模農家の商品名に
+// 「定期便」等のリピート語が付くことがほとんどなく、tier全体の条件のままでは実質選ばれない)
+function normalizeSubKeyword(sub) {
+  return typeof sub === "string" ? { keyword: sub } : sub;
+}
+
 async function pickFromTier(tier, history, seenInThisRun) {
   const candidates = [];
-  for (const sub of tier.subKeywords) {
-    const keyword = tier.baseKeyword ? `${tier.baseKeyword} ${sub}` : sub;
+  for (const rawSub of tier.subKeywords) {
+    const sub = normalizeSubKeyword(rawSub);
+    const keyword = tier.baseKeyword ? `${tier.baseKeyword} ${sub.keyword}` : sub.keyword;
+    const requireRepeatSignal = sub.requireRepeatSignal ?? tier.requireRepeatSignal;
     const items = await searchItems(keyword, tier);
     await sleep(1200); // レート制限(1秒1回)を守るための間隔
     for (const item of items) {
@@ -259,8 +278,8 @@ async function pickFromTier(tier, history, seenInThisRun) {
       if (item.reviewCount < tier.minReviewCount) continue;
       if (item.reviewAverage < tier.minReviewAverage) continue;
       const repeatSignal = hasRepeatSignal(item);
-      if (tier.requireRepeatSignal && !repeatSignal) continue;
-      candidates.push({ ...item, matchedKeyword: sub, repeatSignal, tier: tier.name });
+      if (requireRepeatSignal && !repeatSignal) continue;
+      candidates.push({ ...item, matchedKeyword: sub.keyword, repeatSignal, tier: tier.name });
     }
   }
   candidates.sort((a, b) => b.reviewCount * b.reviewAverage - a.reviewCount * a.reviewAverage);
