@@ -12,6 +12,7 @@ const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
 // (2026-08-27: IPアドレス制限方式がGitHub Actionsの動的IPと相性が悪いため、
 //  Webアプリケーションタイプ(リファラ制限方式)への切替に合わせて追加)
 const APP_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate/";
+const APP_ORIGIN = "https://yoshimitsu-20251105.github.io";
 
 if (!appId || !accessKey) {
   console.error("RAKUTEN_APP_ID または RAKUTEN_SECRET が .env に設定されていません。");
@@ -148,7 +149,9 @@ async function searchItems(keyword, tier) {
   let res, data;
   try {
     res = await fetch(url, {
-      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Referer: APP_URL },
+      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Origin: APP_ORIGIN },
+      referrer: APP_URL,
+      referrerPolicy: "no-referrer-when-downgrade",
     });
     data = await res.json();
   } catch (e) {
@@ -190,7 +193,9 @@ async function searchRanking() {
   let res, data;
   try {
     res = await fetch(url, {
-      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Referer: APP_URL },
+      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Origin: APP_ORIGIN },
+      referrer: APP_URL,
+      referrerPolicy: "no-referrer-when-downgrade",
     });
     data = await res.json();
   } catch (e) {
