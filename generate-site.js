@@ -386,7 +386,7 @@ function hubPage(rankingGroups) {
 <tbody>${rows}</tbody>
 </table>
 </div>
-${hasMore ? `<p><a href="rankings/${g.slug}.html">「${escapeHtml(g.title)}」の全${g.items.length}件を見る →</a></p>` : ""}
+${hasMore ? `<p><a href="${g.slug}.html">「${escapeHtml(g.title)}」の全${g.items.length}件を見る →</a></p>` : ""}
 <p class="hub-back"><a href="#top">↑ 目次に戻る</a></p>
 </section>`;
     })
