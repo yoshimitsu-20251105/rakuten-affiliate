@@ -288,6 +288,12 @@ main {
   font-size: 1.3rem;
   text-align: center;
 }
+.rank-top3 {
+  background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+}
+.rank-top3 .rank-cell {
+  font-size: 1.6rem;
+}
 .rank-img {
   width: 60px;
   height: 60px;

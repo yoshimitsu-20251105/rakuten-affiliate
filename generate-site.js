@@ -310,6 +310,11 @@ ${relatedBlock}
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉", "④", "⑤", "⑥", "⑦", "⑧"];
 
+// 2026-08-28: スコアの意味を実際の計算根拠以上に拡大解釈させないための開示文。
+// 「最も安全」「健康に最も良い」等の断定を避け、レビューベースの人気度指標であることを明記する。
+const SCORE_DISCLOSURE_TEXT =
+  "当サイトのスコアは、楽天市場のレビュー評価・レビュー件数・リピート性(定期便等の表記)をもとにした独自の人気度指標であり、原材料・栄養成分・安全性を専門的に評価したものではありません。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。";
+
 // rankingPage()と統合ランキングページ(hubPage)の両方で使う行描画ロジックを共通化。
 // pathPrefixは記事へのリンクの相対階層を吸収する("../articles/" or "articles/")。
 // limitを指定すると上位N件だけに絞る(統合ページで各ジャンルを短く見せるため)。
@@ -325,7 +330,7 @@ function rankingRows(items, pathPrefix, limit) {
       const fileName = item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".html";
       const urgency = urgencyBadge(item);
       return `
-<tr>
+<tr${i < 3 ? ' class="rank-top3"' : ""}>
   <td class="rank-cell">${RANK_MEDALS[i] ?? i + 1}</td>
   <td>${img ? `<img src="${img}" alt="${escapeHtml(item.itemName)}" class="rank-img" loading="lazy">` : ""}</td>
   <td>
@@ -352,7 +357,7 @@ function rankingPage(groupTitle, groupSlug, items) {
 <tbody>${rows}</tbody>
 </table>
 </div>
-<p class="micro-copy">スコアはレビュー評価(55点)・レビュー件数の実績(30点)・リピート性(15点)の合計です。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。</p>
+<p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
 <p><a href="all.html">← ジャンル別ランキングまとめ一覧に戻る</a></p>
 `;
   return pageShell({
@@ -397,7 +402,7 @@ ${hasMore ? `<p><a href="${g.slug}.html">「${escapeHtml(g.title)}」の全${g.i
 <p class="hook">気になるジャンルだけタップして見てください。レビュー評価・件数・リピート性をもとに100点満点でスコアリングしています。</p>
 <nav class="hub-toc"><ul>${toc}</ul></nav>
 ${sections}
-<p class="micro-copy">スコアはレビュー評価(55点)・レビュー件数の実績(30点)・リピート性(15点)の合計です。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。</p>
+<p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
 `;
   return pageShell({
     title: "ジャンル別ランキングまとめ",
@@ -484,7 +489,45 @@ function buildRankingGroups(articles) {
       ? [{ title: "ふるさと納税 総合", slug: "furusato-sougou", items: furusatoItems }]
       : [];
 
-  return [...furusatoGroup, ...commodityGroups];
+  // 2026-08-28: ペットフードも同様に、ジャンル別ランキングとは別に「ペットフード総合」を
+  // 横断的に集めたランキングを追加(実装方針書に基づく)。判定はmatchedKeywordが
+  // ペットフード関連キーワード(select-products.jsのevergreenTier参照)かどうかで行う。
+  const PET_FOOD_KEYWORDS = new Set([
+    "ドッグフード まとめ買い",
+    "キャットフード まとめ買い",
+    "国産 無添加 ドッグフード",
+    "国産 無添加 キャットフード",
+    "シニア犬 国産 無添加",
+    "シニア猫 国産 無添加",
+    "グレインフリー 国産 ドッグフード",
+    "国産 無添加 犬 おやつ",
+    "国産 無添加 猫 おやつ",
+  ]);
+  const petFoodItems = articles
+    .filter((item) => PET_FOOD_KEYWORDS.has(item.matchedKeyword))
+    .map((item) => ({ item, score: scoreItem(item) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .map(({ item }) => item);
+  const petFoodGroup =
+    petFoodItems.length >= 3
+      ? [{ title: "ペットフード総合", slug: "petfood-sougou", items: petFoodItems }]
+      : [];
+
+  // 2026-08-28: 同一商品シリーズ(同じ出店者)がランキング上位を占有しすぎていないか、
+  // 目視確認用にログを出す(実装方針書の要求。完全なブランド正規化は今回実装しない)。
+  for (const group of [...furusatoGroup, ...petFoodGroup, ...commodityGroups]) {
+    const top5ShopCodes = group.items.slice(0, 5).map((item) => item.itemCode.split(":")[0]);
+    const shopCounts = new Map();
+    for (const shop of top5ShopCodes) shopCounts.set(shop, (shopCounts.get(shop) ?? 0) + 1);
+    for (const [shop, count] of shopCounts) {
+      if (count >= 3) {
+        console.warn(`[要確認] 「${group.title}」の上位5件中${count}件が同じ出店者(${shop})です。同一商品シリーズが占有している可能性があります。`);
+      }
+    }
+  }
+
+  return [...furusatoGroup, ...petFoodGroup, ...commodityGroups];
 }
 
 async function main() {
