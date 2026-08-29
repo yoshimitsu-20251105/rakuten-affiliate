@@ -1,0 +1,27 @@
+{
+  "name": "rakuten-affiliate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "check-links.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yoshimitsu-20251105/rakuten-affiliate.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/yoshimitsu-20251105/rakuten-affiliate/issues"
+  },
+  "homepage": "https://github.com/yoshimitsu-20251105/rakuten-affiliate#readme",
+  "dependencies": {
+    "googleapis": "^176.0.0"
+  }
+}

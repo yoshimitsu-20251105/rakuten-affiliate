@@ -30,6 +30,8 @@ jobs:
         run: node select-products.js
 
       - name: サイト生成
+        env:
+          GA_MEASUREMENT_ID: ${{ secrets.GA_MEASUREMENT_ID }}
         run: node generate-site.js
 
       - name: SNS投稿文生成
