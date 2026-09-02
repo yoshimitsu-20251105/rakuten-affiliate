@@ -157,11 +157,21 @@ function imageUrls(item, size, count) {
   return list.slice(0, count).map((i) => imageUrl(i.imageUrl, size));
 }
 
-function pageShell({ title, body, description, canonicalPath, structuredData, isTop = false }) {
+function pageShell({ title, body, description, canonicalPath, structuredData, isTop = false, image }) {
   const prefix = isTop ? "" : "../";
   const canonical = `${SITE_URL}/${canonicalPath}`;
   const descTag = description
     ? `<meta name="description" content="${escapeHtml(description)}">\n<meta property="og:description" content="${escapeHtml(description)}">`
+    : "";
+  // OGP画像/Twitter Cardタグ(2026-09-02追加): 従来og:imageが未設定だったため、
+  // X/LINE等でリンク共有した際にサムネイル画像が表示されずクリック率を落としていた。
+  // og:imageさえあればXはtwitter:card未設定でもsummary_large_imageとして表示するとされるが、
+  // 挙動が不安定になるとの情報もあるため明示的にtwitter:cardも設定する。
+  const imageTags = image
+    ? `<meta property="og:image" content="${escapeHtml(image)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:image" content="${escapeHtml(image)}">${description ? `\n<meta name="twitter:description" content="${escapeHtml(description)}">` : ""}`
     : "";
   const jsonLd = structuredData
     ? `<script type="application/ld+json">${JSON.stringify(structuredData)}</script>`
@@ -183,6 +193,7 @@ ${descTag}
 <meta property="og:type" content="website">
 <meta property="og:url" content="${canonical}">
 <link rel="stylesheet" href="${prefix}style.css">
+${imageTags}
 ${jsonLd}
 ${gaTag}
 </head>
@@ -305,6 +316,7 @@ ${relatedBlock}
     description,
     canonicalPath: `articles/${fileName}`,
     structuredData,
+    image: imgs[0],
   });
 }
 
@@ -348,6 +360,8 @@ function rankingRows(items, pathPrefix, limit) {
 
 function rankingPage(groupTitle, groupSlug, items) {
   const rows = rankingRows(items, "../articles/");
+  const topItem = items.map((item) => ({ item, score: scoreItem(item) })).sort((a, b) => b.score - a.score)[0]?.item;
+  const topImage = topItem ? imageUrls(topItem, 500, 1)[0] : undefined;
   const body = `
 <h1>${escapeHtml(groupTitle)}おすすめランキング</h1>
 <p class="hook">レビュー評価・件数・リピート性をもとに100点満点でスコアリングし、総合点順にランキングしました。</p>
@@ -365,6 +379,7 @@ function rankingPage(groupTitle, groupSlug, items) {
     body,
     description: `${groupTitle}の商品を、レビュー評価・件数・リピート性でスコアリングして比較したランキングです。`,
     canonicalPath: `rankings/${groupSlug}.html`,
+    image: topImage,
   });
 }
 
@@ -404,11 +419,16 @@ ${hasMore ? `<p><a href="${g.slug}.html">「${escapeHtml(g.title)}」の全${g.i
 ${sections}
 <p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
 `;
+  const firstGroupTop = rankingGroups[0]?.items
+    .map((item) => ({ item, score: scoreItem(item) }))
+    .sort((a, b) => b.score - a.score)[0]?.item;
+  const hubImage = firstGroupTop ? imageUrls(firstGroupTop, 500, 1)[0] : undefined;
   return pageShell({
     title: "ジャンル別ランキングまとめ",
     body,
     description: "楽天市場の人気商品を、ジャンルごとにレビュー評価・件数・リピート性でスコアリングしたランキングを1ページにまとめました。",
     canonicalPath: "rankings/all.html",
+    image: hubImage,
   });
 }
 
@@ -433,12 +453,15 @@ function indexPage(items, rankingGroups) {
         .join("\n")}</div>`
     : "";
   const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n${rankingLinks}\n<h2>新着商品</h2>\n<div class="card-list">${cards}</div>`;
+  const newestItem = items[items.length - 1];
+  const indexImage = newestItem ? imageUrls(newestItem, 500, 1)[0] : undefined;
   return pageShell({
     title: SITE_TITLE,
     body,
     description: "楽天市場のリアルタイムランキングとレビュー評価をもとに、ジャンルを問わず今売れている商品を毎日厳選して紹介しています。",
     canonicalPath: "index.html",
     isTop: true,
+    image: indexImage,
   });
 }
 
