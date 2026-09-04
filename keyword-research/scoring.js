@@ -38,7 +38,7 @@ const INTENT_PURCHASE_SCORE_RATIO = {
  * @param {SearchIntent} intent
  * @param {{ matched: boolean }} clusterResult
  * @param {number} eligibleRakutenCount
- * @param {{ scoreWeights: Record<string,number>, demandNormalization: {volumeCapForLog:number} }} config
+ * @param {{ scoreWeights: Record<string,number>, demandNormalization: {volumeCapForLog:number}, trustedSourceProviders?: string[] }} config
  * @param {{ usedFixtureFallback?: boolean }} [dataQuality]
  * @returns {KeywordScoreBreakdown}
  */
@@ -125,17 +125,12 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
   }
   if (anyMissingSoftField && confidence === "HIGH") confidence = "MEDIUM"; // 念のための保険(通常はpresentSoftFieldCountで既に反映される)
 
-  // --- businessValidated: 実際の市場データ(fixtureでも欠損でもない)で裏付けられているか ---
-  const isObservationFixture = observation.source === "fixture" || dataQuality.usedFixtureFallback;
-  const businessValidated =
-    !isObservationFixture &&
-    !anyMissingSoftField &&
-    typeof observation.monthlySearches === "number";
-  if (isObservationFixture) {
-    reasons.push("businessValidated=false: この観測データはfixture(再現用の固定データ)であり、実際の市場需要を示すものではない");
-  } else if (!businessValidated) {
-    reasons.push("businessValidated=false: 一部の実データ(検索数・競合・トレンド)が欠損しているため、市場検証済みとは言えない");
-  }
+  // --- businessValidated (2026-09-04監査で判定ロジックを刷新) ---
+  // 「manual_csvという入力形式である」だけでtrue/falseを決めない。sourceProvider
+  // (信頼できる出所か)・isSynthetic(推定値/テスト値でないか)・取得期間の有無・
+  // データ種別ごとの必須項目、で判定する。
+  const { businessValidated, businessValidationReason } = evaluateBusinessValidation(observation, config);
+  reasons.push(businessValidationReason);
 
   return {
     demand: round1(demand),
@@ -154,4 +149,80 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
 
 function round1(n) {
   return Math.round(n * 10) / 10;
+}
+
+/**
+ * businessValidated判定(2026-09-04監査対応)。
+ *
+ * 判定表:
+ *   - fixture(isSynthetic=true)                        → false
+ *   - manual_csvでsourceProviderが未指定/unknown         → false
+ *   - manual_csvでsourceProvider="google_keyword_planner"
+ *     かつisSynthetic=falseかつ取得期間・検索量・対象地域・
+ *     対象言語が確認できる場合                            → true
+ *   - google_ads(sourceProvider="google_ads_api")の実データ → true
+ *   - search_console(sourceProvider="search_console_api")で
+ *     実impressionsが確認できるデータ                      → true
+ *   - 欠損値・推定値・テスト値                              → false
+ *
+ * @param {KeywordObservation} observation
+ * @param {{ trustedSourceProviders?: string[] }} config
+ * @returns {{ businessValidated: boolean, businessValidationReason: string }}
+ */
+function evaluateBusinessValidation(observation, config) {
+  const trusted = config.trustedSourceProviders ?? [];
+  const provider = observation.sourceProvider;
+
+  if (observation.isSynthetic) {
+    return {
+      businessValidated: false,
+      businessValidationReason:
+        "businessValidated=false: isSynthetic=trueのデータ(fixture等の再現用/推定値/テスト値)であり、実際の市場需要を示すものではない",
+    };
+  }
+
+  if (!provider || !trusted.includes(provider)) {
+    return {
+      businessValidated: false,
+      businessValidationReason: `businessValidated=false: sourceProvider="${provider ?? "未指定"}"は信頼できる出所として登録されていない(config.trustedSourceProviders参照)。manual_csvという入力形式だけでは検証済みとみなさない`,
+    };
+  }
+
+  const hasPeriod = Boolean(observation.periodStart || observation.periodEnd);
+  if (!hasPeriod) {
+    return {
+      businessValidated: false,
+      businessValidationReason: "businessValidated=false: 取得期間(periodStart/periodEnd)が確認できないため、いつ時点のデータか検証できない",
+    };
+  }
+
+  // Search Consoleは実impressionsの有無で判定(検索量・競合・トレンドという概念自体が無いため)
+  if (observation.source === "search_console") {
+    if (typeof observation.impressions === "number") {
+      return {
+        businessValidated: true,
+        businessValidationReason: `businessValidated=true: Search Console実績データ(impressions=${observation.impressions}、取得期間確認済み)`,
+      };
+    }
+    return {
+      businessValidated: false,
+      businessValidationReason: "businessValidated=false: Search Console由来だが実impressionsが確認できない",
+    };
+  }
+
+  // Google Ads API / Google Keyword Planner(manual_csv経由): 検索量・対象地域・対象言語が必須
+  const hasVolume = typeof observation.monthlySearches === "number";
+  const hasRegion = Boolean(observation.country);
+  const hasLanguage = Boolean(observation.language);
+  if (hasVolume && hasRegion && hasLanguage) {
+    return {
+      businessValidated: true,
+      businessValidationReason: `businessValidated=true: 信頼できる出所(${provider})の実データ(検索量=${observation.monthlySearches}、対象地域=${observation.country}、対象言語=${observation.language}、取得期間確認済み)`,
+    };
+  }
+  const missing = [!hasVolume && "検索量", !hasRegion && "対象地域", !hasLanguage && "対象言語"].filter(Boolean).join("・");
+  return {
+    businessValidated: false,
+    businessValidationReason: `businessValidated=false: 信頼できる出所(${provider})だが必須項目(${missing})が欠損しているため検証済みとみなさない`,
+  };
 }

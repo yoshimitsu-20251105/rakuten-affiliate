@@ -101,6 +101,12 @@ export const SCORE_WEIGHTS = {
 // ---- FinalPriorityの重み ----
 export const FINAL_PRIORITY_WEIGHTS = { webKeywordScore: 0.6, productQualityScore: 0.4 };
 
+// ---- businessValidated判定で信頼するsourceProvider一覧(2026-09-04監査対応) ----
+// ここに無いsourceProvider(空欄="unknown"含む)は、列が全部揃っていても
+// businessValidated=falseになる。「manual_csvという入力形式だから」ではなく、
+// 「どこから来たデータか」で判定するための一覧。
+export const TRUSTED_SOURCE_PROVIDERS = ["google_ads_api", "google_keyword_planner", "search_console_api"];
+
 // ---- 採用しきい値 ----
 export const ADOPTION_THRESHOLDS = {
   priority: 70, // 優先候補
@@ -136,6 +142,7 @@ export async function loadConfig(overridePath = new URL("./config.local.json", i
     adoptionThresholds: ADOPTION_THRESHOLDS,
     matchingRules: MATCHING_RULES,
     demandNormalization: DEMAND_NORMALIZATION,
+    trustedSourceProviders: TRUSTED_SOURCE_PROVIDERS,
   };
   try {
     const raw = await readFile(overridePath, "utf-8");

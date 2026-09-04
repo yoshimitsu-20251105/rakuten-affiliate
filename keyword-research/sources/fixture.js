@@ -12,7 +12,13 @@ export async function fetchFromFixture() {
   const raw = await readFile(FIXTURE_FILE, "utf-8");
   const data = JSON.parse(raw);
   const observedAt = new Date().toISOString();
-  const observations = data.map((row) => ({ ...row, source: "fixture", observedAt }));
+  const observations = data.map((row) => ({
+    ...row,
+    source: "fixture",
+    sourceProvider: "fixture",
+    isSynthetic: true, // 再現用の固定データであり、実際の市場需要を示すものではない(businessValidatedは常にfalse)
+    observedAt,
+  }));
   return {
     observations,
     meta: {

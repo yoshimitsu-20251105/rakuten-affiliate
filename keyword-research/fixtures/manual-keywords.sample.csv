@@ -1,4 +1,4 @@
-keyword,monthlySearches,competitionLevel,competitionIndex,lowTopOfPageBid,highTopOfPageBid,impressions,clicks,ctr,averagePosition,trendIndex,country,language,rawReference
-国産 無添加 ドッグフード 小型犬,480,LOW,28,50,140,,,,,48,JP,ja,manual-export-2026-08
-国産 無添加 キャットフード 高齢猫,150,LOW,22,40,120,,,,,42,JP,ja,manual-export-2026-08
-グレインフリー 犬 おやつ,300,MEDIUM,35,,,,,,,,JP,ja,manual-export-2026-08
+keyword,monthlySearches,competitionLevel,competitionIndex,lowTopOfPageBid,highTopOfPageBid,impressions,clicks,ctr,averagePosition,trendIndex,country,language,periodStart,periodEnd,sourceProvider,isSynthetic,rawReference
+国産 無添加 ドッグフード 小型犬,480,LOW,28,50,140,,,,,48,JP,ja,2026-08-01,2026-08-31,google_keyword_planner,false,keyword-planner-export-2026-08
+国産 無添加 キャットフード 高齢猫,150,LOW,22,40,120,,,,,42,JP,ja,,,,,出所未記入の参考データ(businessValidatedはfalseになる)
+グレインフリー 犬 おやつ,300,MEDIUM,35,,,,,,,,JP,ja,2026-08-01,2026-08-31,,true,社内での推定値(isSynthetic=trueのため常にbusinessValidated=false)

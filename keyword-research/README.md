@@ -45,11 +45,40 @@ commit・push)は一切行わない。`npm run keywords:export-approved` も例�
 加算しない**。欠損時は該当成分を0点とし、`reasons`に欠損である旨を明記した上で
 `confidence`を`LOW`に落とす。
 
-さらに `KeywordScoreBreakdown.businessValidated`(真偽値)と `dataSource`(文字列)を
-必ず出力する。`businessValidated=true` になるのは、観測データが`fixture`ではなく、
-かつ楽天照合もfixtureフォールバックを使わず、かつ月間検索数・競合指標・トレンド指標が
-すべて揃っている場合のみ。**`fixture`由来のスコアは実際の市場需要を示すものではない**
-ため、`keyword-scores.csv`の`businessValidated`/`dataSource`列を必ず確認すること。
+### `businessValidated`の判定ロジック(2026-09-04監査で刷新)
+
+**`manual_csv`という入力形式であることだけではtrue/falseを決めない。**
+`KeywordObservation`の以下のフィールドから判定する(`scoring.js`の
+`evaluateBusinessValidation()`参照):
+
+- `sourceProvider`: データの実際の出所(`google_ads_api`/`search_console_api`/
+  `google_keyword_planner`/`fixture`/`unknown`等)。`config.trustedSourceProviders`
+  (既定値: `google_ads_api`・`google_keyword_planner`・`search_console_api`)に
+  含まれない場合は、他の項目が完備していても常に`false`
+- `isSynthetic`: 推定値・テスト値・再現用の固定データなら`true`。`true`の場合は
+  常に`false`
+- `periodStart`/`periodEnd`(取得期間): どちらも無ければ`false`
+- データ種別ごとの必須項目: `search_console`は実`impressions`の有無、それ以外
+  (Google Ads API・Google Keyword Plannerのmanual_csv)は`monthlySearches`・
+  `country`・`language`がすべて揃っているか
+
+判定表:
+
+| データ | `businessValidated` |
+|---|---|
+| `fixture`(`isSynthetic=true`) | `false` |
+| `manual_csv`で`sourceProvider`未指定または`unknown` | `false`(検索量等が完備していても) |
+| `manual_csv`で`sourceProvider="google_keyword_planner"`かつ`isSynthetic=false`かつ取得期間・検索量・対象地域・対象言語が確認できる | `true` |
+| Google Ads API実データ(`sourceProvider="google_ads_api"`) | `true` |
+| Search Consoleで実`impressions`が確認できるデータ(`sourceProvider="search_console_api"`) | `true` |
+| 欠損値・推定値・テスト値(`isSynthetic=true`または必須項目欠損) | `false` |
+
+`KeywordScoreBreakdown.businessValidated`(真偽値)と`dataSource`(文字列、元観測の
+`source`)は必ず出力される。**`fixture`由来のスコアは実際の市場需要を示すものではない**
+ため、`keyword-scores.csv`/`keyword-candidates.csv`の`businessValidated`/
+`dataSource`/`sourceProvider`/`isSynthetic`列を必ず確認すること。単体テストは
+`test/scoring.test.js`(判定表の全パターン)と`test/sources.test.js`
+(各アダプターが正しい`sourceProvider`/`isSynthetic`を設定しているか)を参照。
 
 ## `adsCompetitionGap` について(旧`webCompetitionGap`)
 
@@ -78,11 +107,17 @@ UTF-8、ヘッダー行必須。`keyword`列のみ必須、他は任意(空欄�
 | `ctr` | 数値(0-1) | クリック率 |
 | `averagePosition` | 数値 | 平均掲載順位 |
 | `trendIndex` | 数値(0-100) | トレンドの相対指数(絶対検索数ではない) |
-| `country` | 文字列 | 国コード(例: `JP`) |
-| `language` | 文字列 | 言語コード(例: `ja`) |
+| `country` | 文字列 | 国コード(例: `JP`)。`businessValidated`の必須項目 |
+| `language` | 文字列 | 言語コード(例: `ja`)。`businessValidated`の必須項目 |
+| `periodStart` | 日付(`YYYY-MM-DD`) | データの取得期間(開始)。`businessValidated`の必須項目(`periodStart`/`periodEnd`のどちらか) |
+| `periodEnd` | 日付(`YYYY-MM-DD`) | データの取得期間(終了) |
+| `sourceProvider` | 文字列 | データの実際の出所。信頼できる出所として扱うのは`google_ads_api`/`search_console_api`/`google_keyword_planner`(`config.trustedSourceProviders`)のみ。空欄は`unknown`(出所不明)として扱われ、常に`businessValidated=false`になる |
+| `isSynthetic` | `true`/`false` | 推定値・テスト値なら`true`と明記する。`true`の場合は`sourceProvider`が信頼できる値でも常に`businessValidated=false` |
 | `rawReference` | 文字列 | 出典・エクスポート元の備考 |
 
 サンプル: [`fixtures/manual-keywords.sample.csv`](fixtures/manual-keywords.sample.csv)(秘密情報は含まない)。
+3行それぞれ「Googleキーワードプランナー由来で`businessValidated=true`になる例」
+「出所未記入で`false`になる例」「`isSynthetic=true`で`false`になる例」を収録している。
 
 ### Googleキーワードプランナーのエクスポートを読み込む手順
 
@@ -105,7 +140,12 @@ Googleキーワードプランナーの「キーワードプランを確認」�
 2. 上記対応表に従って列名をこのプロジェクトのスキーマへリネームし、
    `competitionLevel`の値を日本語(低/中/高)から`LOW`/`MEDIUM`/`HIGH`へ変換する
 3. `country`/`language`列を追加する場合は`JP`/`ja`を入力(任意)
-4. 変換後のCSVを読み込む:
+4. **`businessValidated=true`にしたい場合は必須**: `periodStart`/`periodEnd`列に
+   キーワードプランナーで指定した期間(通常は直近12か月)を、`sourceProvider`列に
+   `google_keyword_planner`を、`isSynthetic`列に`false`を入力する。これらが
+   無いと、検索量等が正しくてもこのプロジェクトの`businessValidated`は`false`の
+   ままになる(「manual_csvだから自動的にtrue」にはならない設計のため)
+5. 変換後のCSVを読み込む:
    ```bash
    npm run keywords:research -- --manual-csv path/to/converted-keyword-planner.csv
    npm run keywords:map-rakuten

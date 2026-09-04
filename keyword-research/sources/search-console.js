@@ -63,6 +63,8 @@ export async function fetchFromSearchConsole(options = {}) {
     const observedAt = new Date().toISOString();
     const observations = rows.map((row) => ({
       source: "search_console",
+      sourceProvider: "search_console_api",
+      isSynthetic: false,
       keyword: row.keys[0],
       observedAt,
       periodStart: dateNDaysAgo(startDaysAgo),

@@ -16,6 +16,12 @@ test("fixtureアダプターはfixture.jsonから観測データを返す(認証
   assert.equal(result.meta.configured, true);
 });
 
+test("【監査対応】fixtureアダプターは全観測にisSynthetic=trueを付与する(実需要ではないことを明示)", async () => {
+  const result = await fetchFromFixture();
+  assert.ok(result.observations.every((o) => o.isSynthetic === true));
+  assert.ok(result.observations.every((o) => o.sourceProvider === "fixture"));
+});
+
 test("manual_csvアダプターはUTF-8の日本語CSVを正しく読み込む", async () => {
   const filePath = SAMPLE_CSV_PATH;
   const result = await fetchFromManualCsv(filePath);
@@ -29,6 +35,27 @@ test("manual_csvアダプターは欠損値をundefinedとして扱う(0とは�
   const result = await fetchFromManualCsv(filePath);
   const grainFree = result.observations.find((o) => o.keyword.includes("グレインフリー"));
   assert.equal(grainFree.lowTopOfPageBid, undefined);
+});
+
+test("【監査対応】manual_csvアダプターはsourceProvider/isSynthetic/periodStart/periodEndを読み込む", async () => {
+  const result = await fetchFromManualCsv(SAMPLE_CSV_PATH);
+  const withProvider = result.observations.find((o) => o.keyword.includes("小型犬"));
+  assert.equal(withProvider.sourceProvider, "google_keyword_planner");
+  assert.equal(withProvider.isSynthetic, false);
+  assert.equal(withProvider.periodStart, "2026-08-01");
+  assert.equal(withProvider.periodEnd, "2026-08-31");
+});
+
+test("【監査対応】manual_csvでsourceProvider列が空欄の行は'unknown'として扱われる(出所不明)", async () => {
+  const result = await fetchFromManualCsv(SAMPLE_CSV_PATH);
+  const withoutProvider = result.observations.find((o) => o.keyword.includes("高齢猫"));
+  assert.equal(withoutProvider.sourceProvider, "unknown");
+});
+
+test("【監査対応】manual_csvでisSynthetic列が'true'の行はisSynthetic=trueとしてパースされる", async () => {
+  const result = await fetchFromManualCsv(SAMPLE_CSV_PATH);
+  const synthetic = result.observations.find((o) => o.keyword.includes("グレインフリー"));
+  assert.equal(synthetic.isSynthetic, true);
 });
 
 test("google_adsアダプター: 認証未設定時はfallbackへ委譲する(エラー終了しない)", async () => {

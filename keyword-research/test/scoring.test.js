@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { computeWebKeywordScore } from "../scoring.js";
-import { SCORE_WEIGHTS, DEMAND_NORMALIZATION } from "../config.js";
+import { SCORE_WEIGHTS, DEMAND_NORMALIZATION, TRUSTED_SOURCE_PROVIDERS } from "../config.js";
 
-const config = { scoreWeights: SCORE_WEIGHTS, demandNormalization: DEMAND_NORMALIZATION };
+const config = { scoreWeights: SCORE_WEIGHTS, demandNormalization: DEMAND_NORMALIZATION, trustedSourceProviders: TRUSTED_SOURCE_PROVIDERS };
 const matchedCluster = { matched: true };
 const unmatchedCluster = { matched: false };
 
@@ -92,44 +92,38 @@ test("fixtureフォールバック使用時はconfidenceがHIGHにならない",
   assert.notEqual(r.confidence, "HIGH");
 });
 
-test("【監査対応】businessValidated: 実データが完備している場合のみtrue", () => {
-  const complete = computeWebKeywordScore(
-    { source: "manual_csv", monthlySearches: 1000, competitionIndex: 40, trendIndex: 60 },
-    "CONDITION_PURCHASE",
-    matchedCluster,
-    3,
-    config
-  );
-  assert.equal(complete.businessValidated, true);
-});
+// 【2026-09-04監査対応】businessValidated判定表の直接検証。
+// 「manual_csvという入力形式である」だけでtrue/falseを決めていないことを、
+// 同じsource="manual_csv"でもsourceProvider/isSynthetic/取得期間の違いだけで
+// 結果が変わることを通して確認する。
 
-test("【監査対応】businessValidated: fixture由来のデータは実データが揃っていてもfalse", () => {
+test("判定表: fixture(isSynthetic=true) → false", () => {
   const r = computeWebKeywordScore(
-    { source: "fixture", monthlySearches: 1000, competitionIndex: 40, trendIndex: 60 },
+    { source: "fixture", sourceProvider: "fixture", isSynthetic: true, periodStart: "2026-08-01", periodEnd: "2026-08-31", monthlySearches: 1000, country: "JP", language: "ja" },
     "CONDITION_PURCHASE",
     matchedCluster,
     3,
     config
   );
   assert.equal(r.businessValidated, false);
-  assert.ok(r.reasons.some((x) => x.includes("businessValidated=false") && x.includes("fixture")));
+  assert.ok(r.reasons.some((x) => x.includes("businessValidated=false") && x.includes("isSynthetic")));
 });
 
-test("【監査対応】businessValidated: 楽天照合がfixtureフォールバックの場合もfalse", () => {
+test("判定表: 出所不明(sourceProvider未指定)のmanual_csv → false(検索量等が完備していても)", () => {
   const r = computeWebKeywordScore(
-    { source: "manual_csv", monthlySearches: 1000, competitionIndex: 40, trendIndex: 60 },
+    { source: "manual_csv", monthlySearches: 1000, competitionIndex: 40, trendIndex: 60, country: "JP", language: "ja", periodStart: "2026-08-01" },
     "CONDITION_PURCHASE",
     matchedCluster,
     3,
-    config,
-    { usedFixtureFallback: true }
+    config
   );
   assert.equal(r.businessValidated, false);
+  assert.ok(r.reasons.some((x) => x.includes("businessValidated=false") && x.includes("信頼できる出所")));
 });
 
-test("【監査対応】businessValidated: 一部データが欠損しているとfalse", () => {
+test("判定表: sourceProvider='unknown'を明示したmanual_csv → false", () => {
   const r = computeWebKeywordScore(
-    { source: "manual_csv", monthlySearches: 1000 }, // competitionIndex/trendIndexが欠損
+    { source: "manual_csv", sourceProvider: "unknown", isSynthetic: false, monthlySearches: 1000, country: "JP", language: "ja", periodStart: "2026-08-01" },
     "CONDITION_PURCHASE",
     matchedCluster,
     3,
@@ -138,7 +132,137 @@ test("【監査対応】businessValidated: 一部データが欠損している�
   assert.equal(r.businessValidated, false);
 });
 
-test("【監査対応】dataSourceが観測データのsourceをそのまま反映する", () => {
+test("判定表: Googleキーワードプランナー由来(sourceProvider='google_keyword_planner')でmanual_csv経由でも、必須項目(検索量・地域・言語・取得期間)が揃えばtrue", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "manual_csv",
+      sourceProvider: "google_keyword_planner",
+      isSynthetic: false,
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-31",
+      monthlySearches: 480,
+      country: "JP",
+      language: "ja",
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, true);
+});
+
+test("判定表: Googleキーワードプランナー由来でも、対象地域・対象言語のどちらかが欠損していればfalse", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "manual_csv",
+      sourceProvider: "google_keyword_planner",
+      isSynthetic: false,
+      periodStart: "2026-08-01",
+      monthlySearches: 480,
+      // countryが欠損
+      language: "ja",
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, false);
+});
+
+test("判定表: Googleキーワードプランナー由来でも、取得期間(periodStart/periodEnd)が欠損していればfalse", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "manual_csv",
+      sourceProvider: "google_keyword_planner",
+      isSynthetic: false,
+      monthlySearches: 480,
+      country: "JP",
+      language: "ja",
+      // periodStart/periodEndともに欠損
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, false);
+});
+
+test("判定表: Google Ads APIの実データ(sourceProvider='google_ads_api') → true", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "google_ads",
+      sourceProvider: "google_ads_api",
+      isSynthetic: false,
+      periodStart: "2025-09-01",
+      periodEnd: "2026-08-01",
+      monthlySearches: 8100,
+      country: "JP",
+      language: "ja",
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, true);
+});
+
+test("判定表: Search Consoleで実impressionsが確認できるデータ(sourceProvider='search_console_api') → true", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "search_console",
+      sourceProvider: "search_console_api",
+      isSynthetic: false,
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-28",
+      impressions: 340,
+      country: "JP",
+      language: "ja",
+      // search_consoleにはmonthlySearchesという概念が無い(欠損していてもtrueになる)
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, true);
+});
+
+test("判定表: Search Console由来だが実impressionsが確認できない → false", () => {
+  const r = computeWebKeywordScore(
+    { source: "search_console", sourceProvider: "search_console_api", isSynthetic: false, periodStart: "2026-08-01", periodEnd: "2026-08-28" },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, false);
+});
+
+test("判定表: 欠損値・推定値・テスト値(isSynthetic=true)は、信頼できる出所を名乗っていてもfalse", () => {
+  const r = computeWebKeywordScore(
+    {
+      source: "manual_csv",
+      sourceProvider: "google_keyword_planner",
+      isSynthetic: true, // 人間が「これは推定値/テスト値」と明示したケース
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-31",
+      monthlySearches: 480,
+      country: "JP",
+      language: "ja",
+    },
+    "CONDITION_PURCHASE",
+    matchedCluster,
+    3,
+    config
+  );
+  assert.equal(r.businessValidated, false);
+});
+
+test("dataSourceが観測データのsourceをそのまま反映する", () => {
   const r1 = computeWebKeywordScore({ source: "manual_csv", monthlySearches: 100 }, "CONDITION_PURCHASE", matchedCluster, 1, config);
   const r2 = computeWebKeywordScore({ source: "fixture", monthlySearches: 100 }, "CONDITION_PURCHASE", matchedCluster, 1, config);
   assert.equal(r1.dataSource, "manual_csv");

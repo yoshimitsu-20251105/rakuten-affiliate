@@ -10,6 +10,9 @@
 /**
  * @typedef {Object} KeywordObservation
  * @property {KeywordSourceName} source
+ * @property {string} [sourceProvider] - データの実際の出所('google_ads_api'|'search_console_api'|
+ *   'google_keyword_planner'|'fixture'|'unknown'等)。businessValidated判定に使う。未指定は'unknown'扱い
+ * @property {boolean} [isSynthetic] - 推定値・テスト値・再現用の固定データならtrue(businessValidatedは常にfalse)
  * @property {string} keyword
  * @property {string} observedAt - ISO8601
  * @property {string} [periodStart]

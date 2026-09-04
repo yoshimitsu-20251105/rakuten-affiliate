@@ -84,31 +84,47 @@ export async function fetchFromGoogleAds(seedKeywords, options) {
     }
     const data = await res.json();
     const observedAt = new Date().toISOString();
-    const observations = (data.results ?? []).map((r) => ({
-      source: "google_ads",
-      keyword: r.text,
-      observedAt,
-      country: "JP",
-      language: "ja",
-      monthlySearches: r.keywordIdeaMetrics?.avgMonthlySearches
-        ? Number(r.keywordIdeaMetrics.avgMonthlySearches)
-        : undefined,
-      monthlyVolumes: (r.keywordIdeaMetrics?.monthlySearchVolumes ?? []).map((m) => ({
+    const observations = (data.results ?? []).map((r) => {
+      const monthlyVolumes = (r.keywordIdeaMetrics?.monthlySearchVolumes ?? []).map((m) => ({
         month: `${m.year}-${String(m.month).padStart(2, "0")}`,
         volume: Number(m.monthlySearches ?? 0),
-      })),
-      competitionLevel: r.keywordIdeaMetrics?.competition ?? "UNKNOWN",
-      competitionIndex: r.keywordIdeaMetrics?.competitionIndex
-        ? Number(r.keywordIdeaMetrics.competitionIndex)
-        : undefined,
-      lowTopOfPageBid: r.keywordIdeaMetrics?.lowTopOfPageBidMicros
-        ? Number(r.keywordIdeaMetrics.lowTopOfPageBidMicros) / 1_000_000
-        : undefined,
-      highTopOfPageBid: r.keywordIdeaMetrics?.highTopOfPageBidMicros
-        ? Number(r.keywordIdeaMetrics.highTopOfPageBidMicros) / 1_000_000
-        : undefined,
-      rawReference: url,
-    }));
+      }));
+      // 取得期間: monthlySearchVolumesの範囲があればそれを使う。無ければ
+      // Keyword Planningの仕様(直近12か月平均)に合わせてobservedAtから12か月遡った
+      // 範囲を暫定値として設定する(businessValidatedの「取得期間」判定に使用)。
+      const periodStart = monthlyVolumes[0]
+        ? `${monthlyVolumes[0].month}-01`
+        : new Date(new Date(observedAt).setMonth(new Date(observedAt).getMonth() - 12)).toISOString().slice(0, 10);
+      const periodEnd = monthlyVolumes.length
+        ? `${monthlyVolumes[monthlyVolumes.length - 1].month}-01`
+        : observedAt.slice(0, 10);
+      return {
+        source: "google_ads",
+        sourceProvider: "google_ads_api",
+        isSynthetic: false,
+        keyword: r.text,
+        observedAt,
+        periodStart,
+        periodEnd,
+        country: "JP",
+        language: "ja",
+        monthlySearches: r.keywordIdeaMetrics?.avgMonthlySearches
+          ? Number(r.keywordIdeaMetrics.avgMonthlySearches)
+          : undefined,
+        monthlyVolumes,
+        competitionLevel: r.keywordIdeaMetrics?.competition ?? "UNKNOWN",
+        competitionIndex: r.keywordIdeaMetrics?.competitionIndex
+          ? Number(r.keywordIdeaMetrics.competitionIndex)
+          : undefined,
+        lowTopOfPageBid: r.keywordIdeaMetrics?.lowTopOfPageBidMicros
+          ? Number(r.keywordIdeaMetrics.lowTopOfPageBidMicros) / 1_000_000
+          : undefined,
+        highTopOfPageBid: r.keywordIdeaMetrics?.highTopOfPageBidMicros
+          ? Number(r.keywordIdeaMetrics.highTopOfPageBidMicros) / 1_000_000
+          : undefined,
+        rawReference: url,
+      };
+    });
 
     return {
       observations,
