@@ -1,0 +1,110 @@
+[
+  {
+    "itemCode": "fixture-shop:dog-food-001",
+    "itemName": "国産 無添加 ドッグフード 小粒 1kg 犬用 主食",
+    "catchcopy": "国産原料100%・無添加にこだわった犬用フード",
+    "itemCaption": "国内工場で製造した無添加ドッグフードです。保存料・着色料は使用していません。",
+    "itemPrice": 3980,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/dog-food-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/dog-food-001",
+    "reviewAverage": 4.5,
+    "reviewCount": 320,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:cat-food-001",
+    "itemName": "国産 無添加 キャットフード 猫用 500g",
+    "catchcopy": "国産の無添加キャットフード、猫の健康を考えた主食",
+    "itemCaption": "国産原料にこだわり、無添加で仕上げたキャットフードです。",
+    "itemPrice": 2480,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/cat-food-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/cat-food-001",
+    "reviewAverage": 4.3,
+    "reviewCount": 180,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:senior-dog-001",
+    "itemName": "シニア犬 国産 無添加 フード 高齢犬用",
+    "catchcopy": "シニア犬のための国産無添加フード",
+    "itemCaption": "高齢の犬向けに配合を調整した国産無添加ドッグフードです。",
+    "itemPrice": 4280,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/senior-dog-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/senior-dog-001",
+    "reviewAverage": 4.6,
+    "reviewCount": 95,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:senior-cat-001",
+    "itemName": "シニア猫 国産 無添加 フード",
+    "catchcopy": "高齢猫向け国産無添加フード",
+    "itemCaption": "シニア期の猫の体調に配慮した国産無添加のキャットフードです。",
+    "itemPrice": 3280,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/senior-cat-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/senior-cat-001",
+    "reviewAverage": 4.2,
+    "reviewCount": 60,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:grainfree-dog-001",
+    "itemName": "グレインフリー ドッグフード 穀物不使用 犬用",
+    "catchcopy": "穀物不使用のグレインフリードッグフード",
+    "itemCaption": "小麦・とうもろこし等の穀物を使わないグレインフリー設計です。",
+    "itemPrice": 5480,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/grainfree-dog-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/grainfree-dog-001",
+    "reviewAverage": 4.4,
+    "reviewCount": 210,
+    "affiliateRate": 3.5
+  },
+  {
+    "itemCode": "fixture-shop:treat-dog-001",
+    "itemName": "国産 無添加 犬 おやつ 小分けタイプ",
+    "catchcopy": "国産素材の無添加犬用おやつ",
+    "itemCaption": "国産の原材料のみを使用し、無添加で仕上げた犬用おやつです。",
+    "itemPrice": 1280,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/treat-dog-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/treat-dog-001",
+    "reviewAverage": 4.1,
+    "reviewCount": 140,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:cat-only-002",
+    "itemName": "猫用 国産 無添加 キャットフード 高級",
+    "catchcopy": "猫専用に開発した国産無添加フード",
+    "itemCaption": "猫のためだけに設計された国産無添加キャットフードです。",
+    "itemPrice": 2980,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/cat-only-002/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/cat-only-002",
+    "reviewAverage": 4.0,
+    "reviewCount": 50,
+    "affiliateRate": 3.0
+  },
+  {
+    "itemCode": "fixture-shop:dog-food-partial-001",
+    "itemName": "ドッグフード 1kg 犬用 主食",
+    "catchcopy": "毎日の主食に。食べやすい小粒タイプ",
+    "itemCaption": "犬用の主食フードです。",
+    "itemPrice": 1980,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/dog-food-partial-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/dog-food-partial-001",
+    "reviewAverage": 4.0,
+    "reviewCount": 400,
+    "affiliateRate": 2.0
+  },
+  {
+    "itemCode": "fixture-shop:unrelated-001",
+    "itemName": "電動歯ブラシ 音波振動 充電式",
+    "catchcopy": "毎日のオーラルケアに",
+    "itemCaption": "音波振動で歯垢を除去する電動歯ブラシです。",
+    "itemPrice": 3980,
+    "itemUrl": "https://item.rakuten.co.jp/fixture-shop/unrelated-001/",
+    "affiliateUrl": "https://hb.afl.rakuten.co.jp/fixture/unrelated-001",
+    "reviewAverage": 4.3,
+    "reviewCount": 900,
+    "affiliateRate": 1.0
+  }
+]

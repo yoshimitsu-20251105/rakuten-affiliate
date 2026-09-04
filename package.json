@@ -7,7 +7,13 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node keyword-research/cli/run-tests.js",
+    "keywords:research": "node --env-file-if-exists=.env keyword-research/cli/research.js",
+    "keywords:map-rakuten": "node --env-file-if-exists=.env keyword-research/cli/map-rakuten.js",
+    "keywords:report": "node --env-file-if-exists=.env keyword-research/cli/report.js",
+    "keywords:validate": "node --env-file-if-exists=.env keyword-research/cli/validate.js",
+    "keywords:publish": "node --env-file-if-exists=.env keyword-research/cli/publish.js",
+    "keywords:dry-run": "node --env-file-if-exists=.env keyword-research/cli/dry-run.js"
   },
   "repository": {
     "type": "git",
