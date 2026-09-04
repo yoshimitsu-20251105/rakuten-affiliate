@@ -2,6 +2,7 @@
 // 実行のたびに articles-data.json に商品を蓄積し、サイト全体を再生成する。
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { scoreItem } from "./lib/quality-score.js";
 
 const SITE_TITLE = "楽天トレンドセレクト";
 const SITE_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
@@ -140,12 +141,8 @@ function urgencyBadge(item) {
 
 // ジェイ・エイブラハムの「客単価×購入頻度×客数」に沿った100点満点スコア
 // (レビュー評価=品質の証拠、レビュー件数=客数の実績、リピート性=購入頻度の代理指標)
-function scoreItem(item) {
-  const qualityScore = (item.reviewAverage / 5) * 55; // 品質: 最大55点
-  const volumeScore = Math.min(item.reviewCount / 200, 1) * 30; // 実績: 最大30点(200件で頭打ち)
-  const repeatScore = item.repeatSignal ? 15 : 0; // 購入頻度の高さ: 15点
-  return Math.round(qualityScore + volumeScore + repeatScore);
-}
+// 2026-09-04: keyword-research機能から副作用なしで再利用できるよう、実装は
+// lib/quality-score.js へ移動した(計算式・重み・出力は一切変更していない)。
 
 // 楽天のサムネイルURLはクエリの _ex=WxH でサイズ指定できる
 function imageUrl(raw, size) {
