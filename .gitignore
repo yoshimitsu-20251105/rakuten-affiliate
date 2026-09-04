@@ -4,3 +4,6 @@ pipeline.log
 api-errors.log
 social-posts.txt
 credentials/
+keyword-research/output/
+keyword-research/config.local.json
+reports/
