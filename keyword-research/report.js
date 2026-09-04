@@ -1,5 +1,10 @@
 // 非公開ドライランレポート生成(12章)。summary.md + 5種のCSVを出力する。
 // dry-runでは公開ページ・本番状態・承認状態を一切変更しない。ここは出力のみを行う。
+//
+// 【2026-09-05監査対応】scoreBand(スコア上の候補数、simulation/test only)と
+// decisionStatus(businessValidatedを通過した実運用候補数)を明確に分離して表示する。
+// businessValidated=trueが0件なら、実運用上の優先候補・承認可能候補・出力可能候補は
+// すべて0件と表示する(スコア上のPRIORITY件数と混同しない)。
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { toCsv } from "./csv.js";
@@ -18,18 +23,27 @@ export async function writeReports(pipelineResult, runInfo) {
     clusterCounts[key] = (clusterCounts[key] ?? 0) + 1;
   }
 
-  const priorityCount = candidates.filter((c) => c.adoption === "PRIORITY").length;
-  const testCount = candidates.filter((c) => c.adoption === "TEST").length;
-  const observeCount = candidates.filter((c) => c.adoption === "OBSERVE").length;
-  const rejectCount = candidates.filter((c) => c.adoption === "REJECT").length;
+  // --- スコア帯(scoreBand): businessValidatedを問わない試算結果(simulation/test only) ---
+  const scoreBandPriorityCount = candidates.filter((c) => c.scoreBand === "PRIORITY").length;
+  const scoreBandTestCount = candidates.filter((c) => c.scoreBand === "TEST").length;
+  const scoreBandObserveCount = candidates.filter((c) => c.scoreBand === "OBSERVE").length;
+  const scoreBandRejectCount = candidates.filter((c) => c.scoreBand === "REJECT").length;
+
+  // --- 実運用判定(decisionStatus): businessValidated=trueの候補のみ ---
+  const businessValidatedCount = candidates.filter((c) => c.businessValidated === true).length;
+  const unvalidatedCount = candidates.filter((c) => c.decisionStatus === "UNVALIDATED").length;
+  const operationalPriorityCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "PRIORITY").length;
+  const operationalTestCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "TEST").length;
+  const operationalObserveCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "OBSERVE").length;
+  const eligibleForApprovalCount = candidates.filter((c) => c.eligibleForApproval === true).length;
+  const eligibleForExportCount = candidates.filter((c) => c.eligibleForExport === true).length;
+  const eligibleForPublishCount = candidates.filter((c) => c.eligibleForPublish === true).length;
+
   const medicalExcluded = candidates.filter((c) => c.intent === "MEDICAL_REVIEW_REQUIRED").length;
   const rakutenMatchedCount = candidates.filter((c) => c.rakuten.eligibleCount > 0).length;
   const needsReview = candidates.flatMap((c) => (c.rakuten.matches ?? []).filter((m) => m.status === "NEEDS_MANUAL_REVIEW"));
   const rejectedMatches = candidates.flatMap((c) => (c.rakuten.matches ?? []).filter((m) => m.status === "REJECTED"));
   const apiFallbacks = sourceMetas.filter((m) => m.fallbackUsed || !m.configured);
-  const publishTargetCount = candidates.filter((c) => (c.publishBlockReasons ?? []).length === 0).length;
-  const businessValidatedCount = candidates.filter((c) => c.webKeywordScore?.businessValidated).length;
-  const fixtureBackedCount = candidates.filter((c) => c.webKeywordScore && !c.webKeywordScore.businessValidated).length;
 
   const summaryLines = [
     `# Webキーワードリサーチ ドライランレポート`,
@@ -43,17 +57,26 @@ export async function writeReports(pipelineResult, runInfo) {
     ...Object.entries(clusterCounts).map(([k, v]) => `   - ${k}: ${v}件`),
     `6. 取得件数: ${candidates.reduce((s, c) => s + c.variantCount, 0)}件(観測) → 正規化・重複統合後: ${candidates.length}件`,
     `   重複統合数: ${candidates.filter((c) => c.variantCount > 1).length}件(語順違い等をcanonicalKeywordへ統合)`,
-    `7. 採用区分: 優先候補=${priorityCount} / テスト候補=${testCount} / 継続観測=${observeCount} / 除外=${rejectCount}`,
+    `7a. 【スコア帯(scoreBand) — simulation/test only、businessValidatedを問わない試算値】`,
+    `    優先候補相当=${scoreBandPriorityCount} / テスト候補相当=${scoreBandTestCount} / 継続観測相当=${scoreBandObserveCount} / 除外相当=${scoreBandRejectCount}`,
+    `    ※ここに表示される件数は「スコア計算のテスト結果」であり、fixtureや欠損データでも算出される。実運用可能な候補数ではない。`,
+    `7b. 【実運用判定(decisionStatus) — businessValidated=trueの候補のみ】`,
+    `    businessValidated=true: ${businessValidatedCount}件 / businessValidated=false(UNVALIDATED): ${unvalidatedCount}件`,
+    `    実運用上の優先候補=${operationalPriorityCount} / 実運用上のテスト候補=${operationalTestCount} / 実運用上の継続観測=${operationalObserveCount}`,
+    `    承認可能件数(eligibleForApproval)=${eligibleForApprovalCount} / 出力可能件数(eligibleForExport)=${eligibleForExportCount} / 公開可能件数(eligibleForPublish、Phase3未実装のため常に0)=${eligibleForPublishCount}`,
+    businessValidatedCount === 0
+      ? `    ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認可能候補・出力可能候補はすべて0件です(7aのスコア帯とは別物です)。`
+      : ``,
     `8. 楽天商品一致数(ELIGIBLE≥1件のキーワード): ${rakutenMatchedCount}件`,
     `9. 手動確認件数: ${needsReview.length}件(NEEDS_MANUAL_REVIEW、理由はneeds-review.csv参照)`,
     `10. 医療関連除外数: ${medicalExcluded}件(MEDICAL_REVIEW_REQUIRED、自動公開禁止)`,
     `11. API失敗・欠損・フォールバック: ${apiFallbacks.length}件`,
     ...apiFallbacks.map((m) => `   - ${m.source}: ${m.note}`),
-    `12. 公開対象件数(承認ゲート前の機械的な要件充足数、実際の公開にはkeywords:export-approvedでの人間承認が別途必要。旧keywords:publishは非推奨エイリアス): ${publishTargetCount}件`,
+    `12. 出力可能件数(eligibleForExport、承認ゲート前の機械的な要件充足数): ${eligibleForExportCount}件。実際の出力にはkeywords:export-approvedでの人間承認と、対象候補のbusinessValidated=trueが必須(旧keywords:publishは非推奨エイリアスで同じ制限がかかる)。`,
     `13. 【重要】これはdry-runのため、公開ページ・本番状態(articles-data.json/selected-products.json等)・承認状態の変更、commit、pushは一切行っていません。`,
-    `14. 【重要・市場検証区分】businessValidated=true(実データで市場需要を検証済み): ${businessValidatedCount}件 / businessValidated=false(fixtureまたはデータ欠損があり実際の市場需要を示すものではない): ${fixtureBackedCount}件。fixture由来のスコアを実需要として扱わないこと(keyword-scores.csvのdataSource列を参照)。`,
+    `14. 【重要・市場検証区分】businessValidated=true(実データで市場需要を検証済み): ${businessValidatedCount}件 / businessValidated=false(fixtureまたはデータ欠損があり実際の市場需要を示すものではない): ${candidates.length - businessValidatedCount}件。fixture由来のスコアを実需要・実運用候補として扱わないこと(keyword-scores.csvのbusinessValidated/dataSource/sourceProvider/isSynthetic列を参照)。`,
     ``,
-  ];
+  ].filter((line) => line !== "");
   await writeFile(`${runInfo.outDir}/summary.md`, summaryLines.join("\n"), "utf-8");
 
   const candidateRows = candidates.map((c) => ({
@@ -79,25 +102,30 @@ export async function writeReports(pipelineResult, runInfo) {
     "utf-8"
   );
 
-  const scoreRows = candidates
-    .filter((c) => c.webKeywordScore)
-    .map((c) => ({
-      canonicalKeyword: c.canonicalKeyword,
-      demand: c.webKeywordScore.demand,
-      purchaseIntent: c.webKeywordScore.purchaseIntent,
-      adsCompetitionGap_notSeoCompetition: c.webKeywordScore.adsCompetitionGap,
-      trendAndStability: c.webKeywordScore.trendAndStability,
-      rakutenSupplyFit: c.webKeywordScore.rakutenSupplyFit,
-      clusterFit: c.webKeywordScore.clusterFit,
-      webKeywordScoreTotal: c.webKeywordScore.total,
-      confidence: c.webKeywordScore.confidence,
-      businessValidated: c.webKeywordScore.businessValidated,
-      dataSource: c.webKeywordScore.dataSource,
-      bestProductQualityScore: c.bestProductQualityScore,
-      finalPriority: c.finalPriority,
-      adoption: c.adoption,
-      reasons: c.webKeywordScore.reasons.join(" / "),
-    }));
+  const scoreRows = candidates.map((c) => ({
+    canonicalKeyword: c.canonicalKeyword,
+    businessValidated: c.businessValidated,
+    scoreBand_simulationOnly: c.scoreBand,
+    decisionStatus: c.decisionStatus,
+    eligibleForApproval: c.eligibleForApproval,
+    eligibleForExport: c.eligibleForExport,
+    eligibleForPublish: c.eligibleForPublish,
+    validationFailureReasons: (c.validationFailureReasons ?? []).join(" / "),
+    dataSource: c.webKeywordScore?.dataSource ?? c.observation.source ?? "unknown",
+    sourceProvider: c.observation.sourceProvider ?? "unknown",
+    isSynthetic: c.observation.isSynthetic ?? false,
+    demand: c.webKeywordScore?.demand ?? "",
+    purchaseIntent: c.webKeywordScore?.purchaseIntent ?? "",
+    adsCompetitionGap_notSeoCompetition: c.webKeywordScore?.adsCompetitionGap ?? "",
+    trendAndStability: c.webKeywordScore?.trendAndStability ?? "",
+    rakutenSupplyFit: c.webKeywordScore?.rakutenSupplyFit ?? "",
+    clusterFit: c.webKeywordScore?.clusterFit ?? "",
+    webKeywordScoreTotal: c.webKeywordScore?.total ?? "",
+    confidence: c.webKeywordScore?.confidence ?? "",
+    bestProductQualityScore: c.bestProductQualityScore,
+    finalPriority: c.finalPriority,
+    reasons: (c.webKeywordScore?.reasons ?? []).join(" / "),
+  }));
   await writeFile(
     `${runInfo.outDir}/keyword-scores.csv`,
     toCsv(Object.keys(scoreRows[0] ?? { canonicalKeyword: "" }), scoreRows),
@@ -144,11 +172,13 @@ export async function writeReports(pipelineResult, runInfo) {
       level: "product",
     })),
     ...candidates
-      .filter((c) => c.adoption === "REJECT")
+      .filter((c) => c.scoreBand === "REJECT" || c.decisionStatus === "UNVALIDATED")
       .map((c) => ({
         canonicalKeyword: c.canonicalKeyword,
         itemCode: "",
-        reason: (c.publishBlockReasons ?? []).join(" / ") || `FinalPriorityが除外しきい値未満(${c.finalPriority}点)`,
+        reason:
+          (c.publishBlockReasons ?? []).join(" / ") ||
+          `FinalPriorityが除外しきい値未満(${c.finalPriority}点)`,
         level: "keyword",
       })),
   ];
@@ -160,6 +190,22 @@ export async function writeReports(pipelineResult, runInfo) {
 
   return {
     summaryPath: `${runInfo.outDir}/summary.md`,
-    counts: { priorityCount, testCount, observeCount, rejectCount, medicalExcluded, publishTargetCount },
+    counts: {
+      // 後方互換のためpriorityCount等はscoreBand相当の値を返すが、呼び出し側(CLI)には
+      // 実運用件数(operational*)とscoreBand件数を区別してログ表示させる。
+      priorityCount: scoreBandPriorityCount,
+      testCount: scoreBandTestCount,
+      observeCount: scoreBandObserveCount,
+      rejectCount: scoreBandRejectCount,
+      medicalExcluded,
+      businessValidatedCount,
+      operationalPriorityCount,
+      operationalTestCount,
+      operationalObserveCount,
+      eligibleForApprovalCount,
+      eligibleForExportCount,
+      eligibleForPublishCount,
+      publishTargetCount: eligibleForExportCount,
+    },
   };
 }

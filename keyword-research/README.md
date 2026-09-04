@@ -7,7 +7,8 @@ Web全体の商品検索需要を調査し、楽天商品へ照合する機能(P
 ## 実行方法
 
 ```bash
-npm run keywords:dry-run                 # research → map-rakuten → report を一括実行
+npm run keywords:dry-run                 # research → map-rakuten → report を一括実行(fixtureソース)
+npm run keywords:dry-run -- --use-search-console   # 上記に加えてSearch Console実接続も使う
 npm run keywords:research -- --manual-csv <path>   # 手動CSVを使う場合
 npm run keywords:map-rakuten             # 楽天商品照合(RAKUTEN_APP_ID等があれば実API、無ければfixture)
 npm run keywords:report                  # reports/keyword-research/<日付>/ にレポート出力
@@ -22,7 +23,38 @@ commit・push)は一切行わない。`npm run keywords:export-approved` も例�
 
 **`npm run keywords:publish` は非推奨**(`keywords:export-approved` の旧名)。実行すると
 非推奨警告が表示された上で `keywords:export-approved` に委譲される。互換性のためだけに
-残しているコマンドで、いずれ削除予定。
+残しているコマンドで、いずれ削除予定。**旧コマンド経由でもbusinessValidatedのゲートは
+回避できない**(`publish.js`は`export-approved.js`へ処理を委譲するだけで、独自の承認・
+出力ロジックを持たないため)。
+
+### Search Console実接続を使ったdry-runの正式な実行方法
+
+```bash
+npm run keywords:dry-run -- --use-search-console
+```
+
+`credentials/ga-search-console-key.json`が存在する場合、fixtureデータに加えて
+実際のSearch Console実績(直近28日間の検索クエリ・表示回数・クリック数)を取得する。
+実行ログとレポート(`summary.md`の「3. 使用データ源」)で`search_console:
+configured=true fallbackUsed=false`と表示されれば接続自体は成功している。
+
+**【重要】接続成功と取得件数は別物**: `configured=true`でも、対象期間
+(既定は直近28日、`--endDaysAgo`前日まで)にサイトへの実際の検索クエリが
+無ければ、取得件数は正当に**0件**になる。**0件は接続失敗を意味しない。**
+サイトが新しく、インデックス反映やクロールが進んでいない場合によく起こる。
+接続の失敗(認証エラー等)は`fallbackUsed`やログの別のエラーメッセージで
+判別できる(0件と接続失敗を混同しないこと)。
+
+### businessValidated=falseの候補について
+
+**businessValidated=falseの候補は、スコアがどれだけ高くても(scoreBand=PRIORITY
+であっても)、承認・エクスポート・サイト掲載のいずれにも使用できない。**
+`decisionStatus`は強制的に`UNVALIDATED`になり、`eligibleForApproval`・
+`eligibleForExport`・`eligibleForPublish`はすべて`false`になる。
+`npm run keywords:export-approved`(および非推奨の`keywords:publish`)は、
+承認ファイルに含まれている候補であっても、`businessValidated=false`なら
+理由コード`BUSINESS_DATA_NOT_VALIDATED`で必ずブロックする。詳細は
+「businessValidatedの判定ロジック」章を参照。
 
 ## Source層アダプターの実装状況
 
@@ -79,6 +111,32 @@ commit・push)は一切行わない。`npm run keywords:export-approved` も例�
 `dataSource`/`sourceProvider`/`isSynthetic`列を必ず確認すること。単体テストは
 `test/scoring.test.js`(判定表の全パターン)と`test/sources.test.js`
 (各アダプターが正しい`sourceProvider`/`isSynthetic`を設定しているか)を参照。
+
+## `scoreBand`(スコア帯)と`decisionStatus`(実運用判定)の違い(2026-09-05監査対応)
+
+以前は「スコアが高い(PRIORITY)」ことがそのまま「優先候補」として扱われ、
+`businessValidated=true`が0件のfixtureのみのdry-runでも「優先候補13件」のように
+実運用可能な候補であるかのような表示になっていた。これを避けるため、2つの概念を
+明確に分離した(`decision.js`参照)。
+
+- **`scoreBand`**(`PRIORITY`/`TEST`/`OBSERVE`/`REJECT`): `FinalPriority`のしきい値
+  だけで機械的に決まる**スコア上の試算結果**。fixture/syntheticなデータでも
+  算出される(スコア計算のテストとしては有用)。**実運用可能かどうかは表さない。**
+- **`decisionStatus`**(`PRIORITY`/`TEST`/`OBSERVE`/`REJECT`/`UNVALIDATED`):
+  実運用上の採否。`businessValidated=false`の候補は、`scoreBand`の値に関わらず
+  常に`UNVALIDATED`になる。`businessValidated=true`の場合のみ`scoreBand`の値が
+  そのまま採用される。
+
+そこから導かれる3つのゲート(すべて`businessValidated=false`なら強制的にfalse):
+
+- `eligibleForApproval`: 人間が承認する対象になり得るか
+- `eligibleForExport`: `keywords:export-approved`で出力され得るか
+- `eligibleForPublish`: 既存サイトへ公開され得るか(Phase 3未実装のため、
+  `businessValidated=true`でも現時点では常に`false`)
+
+`summary.md`は「7a. スコア帯(simulation/test only)」と「7b. 実運用判定」を別セクションで
+表示し、`businessValidated=true`が0件のときは実運用上の優先候補・承認可能候補・
+出力可能候補がすべて0件であることを明示する。
 
 ## `adsCompetitionGap` について(旧`webCompetitionGap`)
 

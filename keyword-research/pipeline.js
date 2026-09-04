@@ -10,8 +10,9 @@ import { extractAttributes } from "./attributes.js";
 import { groupByCanonicalKeyword } from "./dedupe.js";
 import { createRakutenSearchFn, matchKeywordToItems } from "./rakuten-match.js";
 import { computeWebKeywordScore } from "./scoring.js";
-import { computeFinalPriority, classifyAdoption } from "./final-priority.js";
+import { computeFinalPriority, classifyScoreBand } from "./final-priority.js";
 import { computeProductQualityScore } from "./quality-score-adapter.js";
+import { evaluateDecision } from "./decision.js";
 
 import { fetchFromFixture } from "./sources/fixture.js";
 import { fetchFromManualCsv } from "./sources/manual-csv.js";
@@ -110,15 +111,24 @@ export async function runMapRakuten(researchResult, options = {}) {
   for (const candidate of candidates) {
     // 医療関連キーワードは楽天照合をスキップ(自動公開しないため、無駄なAPI呼び出しをしない)
     if (candidate.intent === "MEDICAL_REVIEW_REQUIRED") {
+      const decision = evaluateDecision({
+        businessValidated: false,
+        scoreBand: "REJECT",
+        intent: candidate.intent,
+        eligibleRakutenCount: 0,
+        bestProductQualityScore: 0,
+      });
       results.push({
         ...candidate,
         rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "skipped" },
         webKeywordScore: null,
+        businessValidated: false,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
         finalPriority: 0,
-        adoption: "REJECT",
-        publishBlockReasons: ["医療・疾病・治療関連のため自動公開禁止(MEDICAL_REVIEW_REQUIRED)"],
+        scoreBand: "REJECT",
+        ...decision,
+        publishBlockReasons: ["医療・疾病・治療関連のため自動公開禁止(MEDICAL_REVIEW_REQUIRED)", "BUSINESS_DATA_NOT_VALIDATED"],
       });
       continue;
     }
@@ -127,15 +137,24 @@ export async function runMapRakuten(researchResult, options = {}) {
     try {
       searchResult = await search(candidate.searchPhrase);
     } catch (e) {
+      const decision = evaluateDecision({
+        businessValidated: false,
+        scoreBand: "REJECT",
+        intent: candidate.intent,
+        eligibleRakutenCount: 0,
+        bestProductQualityScore: 0,
+      });
       results.push({
         ...candidate,
         rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "error", error: e.message },
         webKeywordScore: null,
+        businessValidated: false,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
         finalPriority: 0,
-        adoption: "REJECT",
-        publishBlockReasons: [`楽天API呼び出し失敗: ${e.message}`],
+        scoreBand: "REJECT",
+        ...decision,
+        publishBlockReasons: [`楽天API呼び出し失敗: ${e.message}`, "BUSINESS_DATA_NOT_VALIDATED"],
       });
       continue;
     }
@@ -170,9 +189,19 @@ export async function runMapRakuten(researchResult, options = {}) {
     );
 
     const finalPriority = computeFinalPriority(webKeywordScore.total, bestProductQualityScore, config.finalPriorityWeights);
-    const adoption = classifyAdoption(finalPriority, config.adoptionThresholds);
+    const scoreBand = classifyScoreBand(finalPriority, config.adoptionThresholds);
 
-    const publishBlockReasons = [];
+    // 【2026-09-05監査対応】businessValidatedを承認・出力ゲートとして強制する。
+    // scoreBandがPRIORITYであっても、businessValidated=falseなら実運用上はUNVALIDATED。
+    const decision = evaluateDecision({
+      businessValidated: webKeywordScore.businessValidated,
+      scoreBand,
+      intent: candidate.intent,
+      eligibleRakutenCount: eligibleCount,
+      bestProductQualityScore,
+    });
+
+    const publishBlockReasons = [...decision.validationFailureReasons];
     if (eligibleCount === 0) publishBlockReasons.push("楽天側の条件一致商品が0件");
     if (!candidate.cluster.matched) publishBlockReasons.push("6クラスターのいずれにも属さない");
     if (eligibleCount < config.matchingRules.minEligibleProductsForRankingPage) {
@@ -185,10 +214,12 @@ export async function runMapRakuten(researchResult, options = {}) {
       ...candidate,
       rakuten: { matches, eligibleCount, supplyCount, searchSource: searchResult.source },
       webKeywordScore,
+      businessValidated: webKeywordScore.businessValidated,
       bestProductQualityScore,
       bestProductItemCode,
       finalPriority,
-      adoption,
+      scoreBand,
+      ...decision,
       publishBlockReasons,
     });
   }

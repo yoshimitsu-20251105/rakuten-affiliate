@@ -42,11 +42,19 @@ export async function loadApprovalFile(filePath, config) {
 
 /**
  * 公開対象となるための必要条件(10章)をすべて満たすか判定する。
- * @param {{ canonicalKeyword: string, matchStatus: string, intent: string, hasQualityScore: boolean }} candidate
+ *
+ * 【2026-09-05監査対応】businessValidatedを最優先の承認ゲートとして強制する。
+ * businessValidated=falseの候補は、承認ファイルに含まれていても、スコアが
+ * どれだけ高くても、常にブロックする(理由コード: BUSINESS_DATA_NOT_VALIDATED)。
+ * fixture/synthetic/推定値をこのゲートで人間の承認手続きに乗せないための最終防御線。
+ *
+ * @param {{ canonicalKeyword: string, matchStatus: string, intent: string, hasQualityScore: boolean, businessValidated: boolean }} candidate
  * @param {Set<string>} canonicalApprovedSet
  */
 export function isPublishEligible(candidate, canonicalApprovedSet) {
   const reasons = [];
+  // 最優先チェック: businessValidatedが無ければ他の条件を満たしていても即ブロック
+  if (!candidate.businessValidated) reasons.push("BUSINESS_DATA_NOT_VALIDATED");
   if (!canonicalApprovedSet.has(candidate.canonicalKeyword)) reasons.push("未承認(承認ファイルに含まれない)");
   if (candidate.intent === "MEDICAL_REVIEW_REQUIRED") reasons.push("医療関連のため自動公開禁止");
   if (candidate.matchStatus !== "ELIGIBLE") reasons.push(`楽天商品照合結果が${candidate.matchStatus}のため不可`);
