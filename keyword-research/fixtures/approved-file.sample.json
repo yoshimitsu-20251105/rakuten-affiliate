@@ -6,5 +6,5 @@
   ],
   "approvedBy": "yoshimitsu",
   "approvedAt": "2026-09-04T10:00:00+09:00",
-  "note": "サンプル承認ファイル。keywords:publish の動作確認用。"
+  "note": "サンプル承認ファイル。keywords:export-approved の動作確認用(サイトへの公開は行わない)。"
 }

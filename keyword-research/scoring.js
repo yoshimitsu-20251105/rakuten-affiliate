@@ -1,8 +1,20 @@
 // WebKeywordScore(0〜100点)の算出。既存Quality Scoreとは完全に別軸のスコアであり、
 // 商品価格・成果報酬率・検索数そのもの(生の大小)をQuality Score側に混ぜない。
 //
-// 配点(config.scoreWeights): demand30 + purchaseIntent25 + webCompetitionGap15
+// 配点(config.scoreWeights): demand30 + purchaseIntent25 + adsCompetitionGap15
 //   + trendAndStability10 + rakutenSupplyFit10 + clusterFit10 = 100
+//
+// 【2026-09-04 監査対応】
+// 1. データ欠損時に「中央値相当(0.5×配点)」を仮点数として加算していた実装を廃止した。
+//    根拠のないスコアを加算すると、fixture/manual_csvしか無い状態でも実データと
+//    見分けのつかない点数が出てしまうため。欠損時は該当成分を0点とし、reasonsに
+//    「欠損」である旨(実績ゼロと断定するものではない)を明記した上でconfidenceを
+//    強制的にLOWへ落とし、businessValidatedをfalseにする。
+// 2. `webCompetitionGap`は`adsCompetitionGap`に改称した。値の出所は
+//    competitionLevel/competitionIndex(Google Ads Keyword Planningの入札競合指標)
+//    であり、自然検索(SEO)の競合の強さそのものではない。自然検索の実際の競合状況を
+//    測るデータ源は現時点で未接続のため、このスコアは「広告入札競合の代理指標」で
+//    あることをフィールド名・reasons・レポート上で明示する。
 //
 // 注意: Google AdsのCPC(lowTopOfPageBid/highTopOfPageBid)はスコアに使わない
 // (購買意図の補助指標であり、自然検索SEO難易度そのものではないため)。
@@ -34,8 +46,10 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
   const w = config.scoreWeights;
   const reasons = [];
   let presentSoftFieldCount = 0;
+  let anyMissingSoftField = false;
 
-  // --- demand (対数正規化。欠損は0件として扱わず、信頼度を下げるだけに留める) ---
+  // --- demand (対数正規化。欠損は「実績ゼロ」と断定せず0点として計算し、reasons/confidence/
+  //     businessValidatedで欠損であることを明示する。中間点は使わない) ---
   let demand = 0;
   if (typeof observation.monthlySearches === "number") {
     const cap = config.demandNormalization.volumeCapForLog;
@@ -49,27 +63,34 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
     demand = Math.min(ratio, 1) * w.demand * 0.7;
     reasons.push(`demand: 月間検索数が欠損のため、Search Console表示回数${observation.impressions}で代替(信頼度を下げて計算)`);
   } else {
-    reasons.push("demand: 月間検索数・表示回数とも欠損のため0点として計算(実績ゼロと断定するものではない。信頼度LOW)");
+    demand = 0;
+    anyMissingSoftField = true;
+    reasons.push("demand: 月間検索数・表示回数とも欠損。仮点数は加算せず0点として計算(実績ゼロと断定するものではない。欠損として扱う)");
   }
 
   // --- purchaseIntent (意図分類ベース) ---
   const purchaseIntent = (INTENT_PURCHASE_SCORE_RATIO[intent] ?? 0) * w.purchaseIntent;
   reasons.push(`purchaseIntent: 意図=${intent} → ${purchaseIntent.toFixed(1)}点`);
 
-  // --- webCompetitionGap (競合の弱さ。CPCは使わない) ---
-  let webCompetitionGap;
+  // --- adsCompetitionGap (Google Ads入札競合の代理指標。自然検索SEO競合ではない。CPCは使わない) ---
+  let adsCompetitionGap;
   if (typeof observation.competitionIndex === "number") {
-    webCompetitionGap = ((100 - observation.competitionIndex) / 100) * w.webCompetitionGap;
-    reasons.push(`webCompetitionGap: competitionIndex=${observation.competitionIndex} → ${webCompetitionGap.toFixed(1)}点`);
+    adsCompetitionGap = ((100 - observation.competitionIndex) / 100) * w.adsCompetitionGap;
+    reasons.push(
+      `adsCompetitionGap(広告入札競合の代理指標): competitionIndex=${observation.competitionIndex} → ${adsCompetitionGap.toFixed(1)}点`
+    );
     presentSoftFieldCount++;
   } else if (observation.competitionLevel && observation.competitionLevel !== "UNKNOWN") {
-    const levelRatio = { LOW: 1, MEDIUM: 0.5, HIGH: 0.15 }[observation.competitionLevel] ?? 0.5;
-    webCompetitionGap = levelRatio * w.webCompetitionGap;
-    reasons.push(`webCompetitionGap: competitionLevel=${observation.competitionLevel} → ${webCompetitionGap.toFixed(1)}点`);
+    const levelRatio = { LOW: 1, MEDIUM: 0.5, HIGH: 0.15 }[observation.competitionLevel] ?? 0;
+    adsCompetitionGap = levelRatio * w.adsCompetitionGap;
+    reasons.push(
+      `adsCompetitionGap(広告入札競合の代理指標): competitionLevel=${observation.competitionLevel} → ${adsCompetitionGap.toFixed(1)}点`
+    );
     presentSoftFieldCount++;
   } else {
-    webCompetitionGap = 0.5 * w.webCompetitionGap;
-    reasons.push("webCompetitionGap: 競合指標が欠損のため中央値相当で計算(信頼度を下げる)");
+    adsCompetitionGap = 0;
+    anyMissingSoftField = true;
+    reasons.push("adsCompetitionGap: 競合指標が欠損。仮点数(中間点)は加算せず0点として計算");
   }
 
   // --- trendAndStability ---
@@ -79,11 +100,12 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
     reasons.push(`trendAndStability: trendIndex=${observation.trendIndex} → ${trendAndStability.toFixed(1)}点`);
     presentSoftFieldCount++;
   } else {
-    trendAndStability = 0.5 * w.trendAndStability;
-    reasons.push("trendAndStability: trendIndexが欠損のため中央値相当で計算(信頼度を下げる)");
+    trendAndStability = 0;
+    anyMissingSoftField = true;
+    reasons.push("trendAndStability: trendIndexが欠損。仮点数(中間点)は加算せず0点として計算");
   }
 
-  // --- rakutenSupplyFit (ELIGIBLE商品数。5件以上で満点) ---
+  // --- rakutenSupplyFit (ELIGIBLE商品数。5件以上で満点。楽天APIのcount(供給数)は使わない) ---
   const rakutenSupplyFit = Math.min(eligibleRakutenCount / 5, 1) * w.rakutenSupplyFit;
   reasons.push(`rakutenSupplyFit: 楽天ELIGIBLE商品${eligibleRakutenCount}件 → ${rakutenSupplyFit.toFixed(1)}点`);
 
@@ -91,7 +113,7 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
   const clusterFit = clusterResult.matched ? w.clusterFit : 0;
   reasons.push(`clusterFit: ${clusterResult.matched ? "6クラスターに一致" : "6クラスターに不一致"} → ${clusterFit}点`);
 
-  const total = Math.round(demand + purchaseIntent + webCompetitionGap + trendAndStability + rakutenSupplyFit + clusterFit);
+  const total = Math.round(demand + purchaseIntent + adsCompetitionGap + trendAndStability + rakutenSupplyFit + clusterFit);
 
   // --- confidence ---
   let confidence = "LOW";
@@ -101,16 +123,31 @@ export function computeWebKeywordScore(observation, intent, clusterResult, eligi
     reasons.push("楽天照合がfixtureフォールバック(認証未設定)で行われたため、信頼度をMEDIUM以下に制限");
     if (confidence === "HIGH") confidence = "MEDIUM";
   }
+  if (anyMissingSoftField && confidence === "HIGH") confidence = "MEDIUM"; // 念のための保険(通常はpresentSoftFieldCountで既に反映される)
+
+  // --- businessValidated: 実際の市場データ(fixtureでも欠損でもない)で裏付けられているか ---
+  const isObservationFixture = observation.source === "fixture" || dataQuality.usedFixtureFallback;
+  const businessValidated =
+    !isObservationFixture &&
+    !anyMissingSoftField &&
+    typeof observation.monthlySearches === "number";
+  if (isObservationFixture) {
+    reasons.push("businessValidated=false: この観測データはfixture(再現用の固定データ)であり、実際の市場需要を示すものではない");
+  } else if (!businessValidated) {
+    reasons.push("businessValidated=false: 一部の実データ(検索数・競合・トレンド)が欠損しているため、市場検証済みとは言えない");
+  }
 
   return {
     demand: round1(demand),
     purchaseIntent: round1(purchaseIntent),
-    webCompetitionGap: round1(webCompetitionGap),
+    adsCompetitionGap: round1(adsCompetitionGap),
     trendAndStability: round1(trendAndStability),
     rakutenSupplyFit: round1(rakutenSupplyFit),
     clusterFit,
     total,
     confidence,
+    businessValidated,
+    dataSource: observation.source ?? "unknown",
     reasons,
   };
 }

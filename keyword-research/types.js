@@ -38,12 +38,14 @@
  * @typedef {Object} KeywordScoreBreakdown
  * @property {number} demand
  * @property {number} purchaseIntent
- * @property {number} webCompetitionGap
+ * @property {number} adsCompetitionGap - Google Ads入札競合の代理指標(自然検索SEO競合ではない)
  * @property {number} trendAndStability
  * @property {number} rakutenSupplyFit
  * @property {number} clusterFit
  * @property {number} total
  * @property {'LOW'|'MEDIUM'|'HIGH'} confidence
+ * @property {boolean} businessValidated - 実データ(fixtureでも欠損でもない)で裏付けられているか
+ * @property {string} dataSource - 元観測データのsource('fixture'を含む)
  * @property {string[]} reasons
  */
 

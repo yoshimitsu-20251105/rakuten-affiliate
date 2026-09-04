@@ -87,10 +87,12 @@ export const INTENT_KEYWORDS = {
 };
 
 // ---- WebKeywordScoreの配点(合計100点) ----
+// adsCompetitionGap: Google Ads Keyword Planningの入札競合指標(competitionLevel/
+// competitionIndex)にもとづく代理指標。自然検索(SEO)の競合そのものではない点に注意。
 export const SCORE_WEIGHTS = {
   demand: 30,
   purchaseIntent: 25,
-  webCompetitionGap: 15,
+  adsCompetitionGap: 15,
   trendAndStability: 10,
   rakutenSupplyFit: 10,
   clusterFit: 10,

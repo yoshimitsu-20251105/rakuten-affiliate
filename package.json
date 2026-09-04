@@ -12,6 +12,7 @@
     "keywords:map-rakuten": "node --env-file-if-exists=.env keyword-research/cli/map-rakuten.js",
     "keywords:report": "node --env-file-if-exists=.env keyword-research/cli/report.js",
     "keywords:validate": "node --env-file-if-exists=.env keyword-research/cli/validate.js",
+    "keywords:export-approved": "node --env-file-if-exists=.env keyword-research/cli/export-approved.js",
     "keywords:publish": "node --env-file-if-exists=.env keyword-research/cli/publish.js",
     "keywords:dry-run": "node --env-file-if-exists=.env keyword-research/cli/dry-run.js"
   },

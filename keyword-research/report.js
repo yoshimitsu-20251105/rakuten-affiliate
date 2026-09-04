@@ -28,6 +28,8 @@ export async function writeReports(pipelineResult, runInfo) {
   const rejectedMatches = candidates.flatMap((c) => (c.rakuten.matches ?? []).filter((m) => m.status === "REJECTED"));
   const apiFallbacks = sourceMetas.filter((m) => m.fallbackUsed || !m.configured);
   const publishTargetCount = candidates.filter((c) => (c.publishBlockReasons ?? []).length === 0).length;
+  const businessValidatedCount = candidates.filter((c) => c.webKeywordScore?.businessValidated).length;
+  const fixtureBackedCount = candidates.filter((c) => c.webKeywordScore && !c.webKeywordScore.businessValidated).length;
 
   const summaryLines = [
     `# Webキーワードリサーチ ドライランレポート`,
@@ -47,8 +49,9 @@ export async function writeReports(pipelineResult, runInfo) {
     `10. 医療関連除外数: ${medicalExcluded}件(MEDICAL_REVIEW_REQUIRED、自動公開禁止)`,
     `11. API失敗・欠損・フォールバック: ${apiFallbacks.length}件`,
     ...apiFallbacks.map((m) => `   - ${m.source}: ${m.note}`),
-    `12. 公開対象件数(承認ゲート前の機械的な要件充足数、実際の公開にはkeywords:publishでの人間承認が別途必要): ${publishTargetCount}件`,
+    `12. 公開対象件数(承認ゲート前の機械的な要件充足数、実際の公開にはkeywords:export-approvedでの人間承認が別途必要。旧keywords:publishは非推奨エイリアス): ${publishTargetCount}件`,
     `13. 【重要】これはdry-runのため、公開ページ・本番状態(articles-data.json/selected-products.json等)・承認状態の変更、commit、pushは一切行っていません。`,
+    `14. 【重要・市場検証区分】businessValidated=true(実データで市場需要を検証済み): ${businessValidatedCount}件 / businessValidated=false(fixtureまたはデータ欠損があり実際の市場需要を示すものではない): ${fixtureBackedCount}件。fixture由来のスコアを実需要として扱わないこと(keyword-scores.csvのdataSource列を参照)。`,
     ``,
   ];
   await writeFile(`${runInfo.outDir}/summary.md`, summaryLines.join("\n"), "utf-8");
@@ -78,12 +81,14 @@ export async function writeReports(pipelineResult, runInfo) {
       canonicalKeyword: c.canonicalKeyword,
       demand: c.webKeywordScore.demand,
       purchaseIntent: c.webKeywordScore.purchaseIntent,
-      webCompetitionGap: c.webKeywordScore.webCompetitionGap,
+      adsCompetitionGap_notSeoCompetition: c.webKeywordScore.adsCompetitionGap,
       trendAndStability: c.webKeywordScore.trendAndStability,
       rakutenSupplyFit: c.webKeywordScore.rakutenSupplyFit,
       clusterFit: c.webKeywordScore.clusterFit,
       webKeywordScoreTotal: c.webKeywordScore.total,
       confidence: c.webKeywordScore.confidence,
+      businessValidated: c.webKeywordScore.businessValidated,
+      dataSource: c.webKeywordScore.dataSource,
       bestProductQualityScore: c.bestProductQualityScore,
       finalPriority: c.finalPriority,
       adoption: c.adoption,
