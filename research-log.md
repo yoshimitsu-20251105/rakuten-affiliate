@@ -653,3 +653,34 @@ Yahoo!ショッピングは技術的には楽天に近い形で自動化でき�
 - [OGPとは？SEOへの効果や設定・確認方法を解説 (Transcope)](https://transcope.io/column/ogp)
 - [OGPとは？設定すべき理由や適切な設定方法など徹底解説！ (ディーボ)](https://seolaboratory.jp/64252/)
 - [【2026年最新】X（旧Twitter）新アルゴリズムを徹底解剖 (m-pixel labo)](https://m-pixellabo.com/2026/05/18/202605-x-algorithm/)
+
+---
+
+## 2026-09-04（クラウド定期タスク: ランキングページへのFAQ構造化データ追加）
+
+**調査目的**: 今日の指示(X/note/ブログのAI自動化物販事例、Meta広告トレンド、SNSトレンドの調査)に沿って3方向で調査した上で、既存実装(2026-08-17〜09-02ログ参照)と重複しない改善を探した。AI自動化物販の個別事例調査(note記事等)は「稼げた」という体験談が中心でポジショントーク色が強く、本サイトの完全自動パイプラインにそのまま適用できる具体的な実装ヒントは見当たらなかった。Meta広告・SNSトレンド調査からも「リール比率拡大」「クリエイティブ疲労対策」等、広告出稿を前提とした知見が中心で、広告を出稿していない本サイトには直接適用できるものがなかった。一方、調査の過程で`generate-site.js`のランキングページ(`rankingPage`/`hubPage`)にFAQ構造化データ(FAQPage)が未実装であることに気づき、これが実装済み機能(2026-08-17のGEO/LLMO対策、2026-09-02のog:image)と重複しない具体的な改善候補と判断し、検証→反証のプロセスを踏んだ上で実装した。
+
+**支持する情報**:
+- GEO対策(AI検索最適化)の観点では、FAQ形式(Question→Answer)がAIの応答形式と一致するため引用されやすいとされ、構造化データ(FAQPage等)を実装するとAI Overviews等でのAI引用率が高まるとする記事が複数一致している
+- Googleは「使用されていない構造化データはSearchに問題を引き起こさない」と公式に明言しており、FAQPageスキーマ自体はSchema.orgの有効な型として存在し続け、Googleはマークアップを解析し続けページ理解やAI検索での参照に活用するとされる
+
+**反証・懐疑的な情報**:
+- Googleは2026年5月7日付でFAQリッチリザルト(検索結果に質問と回答が展開表示される機能)を**全サイト対象で終了済み**。つまり「検索結果の見た目が目立つようになる」という従来型のSEO効果は既に得られない
+- GEO対策の効果についても懐疑的な記事があり、「構造化データの実装は伝えやすくするだけの役割にとどまり、実装したからといって劇的に引用・参照されることはなく、実装しておいても損はない程度の施策」と評価されている。効果が出ない場合の原因の9割は「施策設計と効果測定のミス」であり、構造化データを入れれば自動的に効果が出るわけではないとも指摘されている
+- 類似の構造化データであるItemList(カルーセル)のリッチリザルトも調査したが、こちらはベータ機能で**欧州経済領域(EEA)・トルコ・南アフリカのみが対象**であり、日本(本サイトの対象国)では現時点で効果がないことが判明したため、今回はItemList追加は見送った
+
+**判断**: 「FAQPage構造化データを入れれば劇的に効果が出る」という主張は支持されなかった(反証により「損はしないが効果も未確定」という位置づけが妥当と判断)。ただし、①実装コストが低い、②ダウンサイドがない(未使用の構造化データはSearchに悪影響を与えないとGoogle公式が明言)、③捏造禁止ルールに反しない形で実装できる(新しい主張を作らず、既存のSCORE_DISCLOSURE_TEXTや既存のmicro-copy文言をQ&A形式に言い換えただけ)という3条件を満たすため、「様子見」ではなく実装する判断とした。効果自体はGA4等で今後検証が必要な未確定事項として扱う。
+
+**実装内容**: `generate-site.js`に`RANKING_FAQ`(3問: スコア算出方法/商品選定方法/価格在庫の鮮度、いずれも既存の実装ロジック・既存文言の言い換えのみで新しい主張は追加していない)と`faqBlock()`関数を追加し、`rankingPage()`(ジャンル別ランキング、15ページ)と`hubPage()`(SNS用統合ハブページ`all.html`)にFAQPage構造化データ(JSON-LD)と、`<details>/<summary>`によるアコーディオン式のFAQ表示(`docs/style.css`に`.faq-section`等を追加)を実装。全ランキングページで同一のFAQ文になる点は、ランキング表自体はページごとに異なるため許容範囲と判断した。`node generate-site.js`で全237記事・18ランキングページを再生成し、生成されたHTMLのFAQセクション・JSON-LDが正しく出力されていることを確認済み。記事ページ(`articlePage`)や商品選定ロジック(`select-products.js`)への変更は行っていない。
+
+出典:
+- [FAQリッチリザルトとは？2026年の廃止で何が変わったかと今の正しい対応 (株式会社一創)](https://www.issoh.co.jp/column/details/4874/)
+- [FAQ構造化データはもう不要？FAQPageを残す・削除する判断基準【2026年版】 (学べるブログ)](https://manabinoba.blog/faq-structured-data/)
+- [FAQリッチリザルト廃止｜構造化データは削除不要（Google公式）(codequest)](https://seo.codequest.work/ja/blog/faq-schema-deprecation-aio-report)
+- [GEO対策（AIO/LLMO）の最新トレンド【2026年版】(株式会社仁頼)](https://jinrai.co.jp/en/blog/2026/03/18/geo-taisaku-trend-2026/)
+- [GEO対策の効果が出ない時の原因5つと立て直し方 (株式会社仁頼)](https://jinrai.co.jp/blog/2026/04/28/geo-koka-denai-tatenaoshikata/)
+- [構造化マークアップとGEO対策の関係｜AI検索に引用されるサイトが実装していること (crevia-ts.com)](https://crevia-ts.com/archives/1239)
+- [Carousel (ItemList) Structured Data (Google Search Central公式)](https://developers.google.com/search/docs/appearance/structured-data/carousel)
+- [Carousels (Beta) Structured Data (Google Search Central公式)](https://developers.google.com/search/docs/appearance/structured-data/carousels-beta)
+- [Meta広告「獲得」新常識と2026年の勝ち筋 (MarkeZine)](https://markezine.jp/article/detail/50151)
+- [【毎週更新】SNS（X・Threads・LinkedIn）アルゴリズム完全解析 2026年版 (Zenn)](https://zenn.dev/7788/articles/a3afd95ff657a3)

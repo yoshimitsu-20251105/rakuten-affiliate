@@ -336,6 +336,30 @@ main {
   min-height: 36px;
   padding: 0.5rem 0.7rem;
 }
+.faq-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.faq-section h2 {
+  font-size: 1.1rem;
+}
+.faq-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.6rem;
+}
+.faq-item summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+.faq-item p {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
 footer {
   max-width: 800px;
   margin: 2rem auto;

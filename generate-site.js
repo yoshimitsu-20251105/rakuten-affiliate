@@ -327,6 +327,53 @@ const RANK_MEDALS = ["🥇", "🥈", "🥉", "④", "⑤", "⑥", "⑦", "⑧"];
 const SCORE_DISCLOSURE_TEXT =
   "当サイトのスコアは、楽天市場のレビュー評価・レビュー件数・リピート性(定期便等の表記)をもとにした独自の人気度指標であり、原材料・栄養成分・安全性を専門的に評価したものではありません。価格・在庫は変動する場合があるため、最新情報は各商品ページでご確認ください。";
 
+// 2026-09-04: ランキングページ向けFAQ。既存のSCORE_DISCLOSURE_TEXT等の実データに基づく説明文を
+// Q&A形式に再構成したもの(捏造禁止ルールに従い、新しい主張は追加せず既存の事実の言い換えのみ)。
+// GoogleのFAQリッチリザルト表示自体は2026-05-07に全サイト対象で終了済みだが、
+// FAQPage構造化データ自体は無効化されておらずページ理解・AI検索(GEO)での参照に使われ続けるとされる
+// (「実装して損はない」程度の位置づけであり、劇的な効果を断定する根拠は見つからなかった)。
+// 全ランキングページで同一のFAQ文になる点は、ランキング表自体がページごとに異なるため
+// テンプレート的な補助コンテンツとして許容範囲と判断した。
+const RANKING_FAQ = [
+  {
+    q: "このランキングのスコアはどうやって算出していますか？",
+    a: SCORE_DISCLOSURE_TEXT,
+  },
+  {
+    q: "掲載されている商品はどうやって選んでいますか？",
+    a: "楽天市場のレビュー評価・レビュー件数・リピート性(定期便等の表記)をもとに、毎日自動で商品を選定してこのランキングに反映しています。人による個別のおすすめ順の入れ替えは行っていません。",
+  },
+  {
+    q: "価格や在庫の情報は最新ですか？",
+    a: "掲載している価格・在庫は取得時点のものであり、その後変動する場合があります。購入前に各商品ページで最新情報をご確認ください。",
+  },
+];
+
+function faqBlock(entries) {
+  const html = `
+<section class="faq-section">
+<h2>よくある質問</h2>
+${entries
+  .map(
+    ({ q, a }) => `<details class="faq-item">
+<summary>${escapeHtml(q)}</summary>
+<p>${escapeHtml(a)}</p>
+</details>`
+  )
+  .join("\n")}
+</section>`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: entries.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+  return { html, structuredData };
+}
+
 // rankingPage()と統合ランキングページ(hubPage)の両方で使う行描画ロジックを共通化。
 // pathPrefixは記事へのリンクの相対階層を吸収する("../articles/" or "articles/")。
 // limitを指定すると上位N件だけに絞る(統合ページで各ジャンルを短く見せるため)。
@@ -362,6 +409,7 @@ function rankingPage(groupTitle, groupSlug, items) {
   const rows = rankingRows(items, "../articles/");
   const topItem = items.map((item) => ({ item, score: scoreItem(item) })).sort((a, b) => b.score - a.score)[0]?.item;
   const topImage = topItem ? imageUrls(topItem, 500, 1)[0] : undefined;
+  const faq = faqBlock(RANKING_FAQ);
   const body = `
 <h1>${escapeHtml(groupTitle)}おすすめランキング</h1>
 <p class="hook">レビュー評価・件数・リピート性をもとに100点満点でスコアリングし、総合点順にランキングしました。</p>
@@ -372,6 +420,7 @@ function rankingPage(groupTitle, groupSlug, items) {
 </table>
 </div>
 <p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
+${faq.html}
 <p><a href="all.html">← ジャンル別ランキングまとめ一覧に戻る</a></p>
 `;
   return pageShell({
@@ -379,6 +428,7 @@ function rankingPage(groupTitle, groupSlug, items) {
     body,
     description: `${groupTitle}の商品を、レビュー評価・件数・リピート性でスコアリングして比較したランキングです。`,
     canonicalPath: `rankings/${groupSlug}.html`,
+    structuredData: faq.structuredData,
     image: topImage,
   });
 }
@@ -412,12 +462,14 @@ ${hasMore ? `<p><a href="${g.slug}.html">「${escapeHtml(g.title)}」の全${g.i
     })
     .join("\n");
 
+  const faq = faqBlock(RANKING_FAQ);
   const body = `
 <h1 id="top">ジャンル別ランキングまとめ</h1>
 <p class="hook">気になるジャンルだけタップして見てください。レビュー評価・件数・リピート性をもとに100点満点でスコアリングしています。</p>
 <nav class="hub-toc"><ul>${toc}</ul></nav>
 ${sections}
 <p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
+${faq.html}
 `;
   const firstGroupTop = rankingGroups[0]?.items
     .map((item) => ({ item, score: scoreItem(item) }))
@@ -428,6 +480,7 @@ ${sections}
     body,
     description: "楽天市場の人気商品を、ジャンルごとにレビュー評価・件数・リピート性でスコアリングしたランキングを1ページにまとめました。",
     canonicalPath: "rankings/all.html",
+    structuredData: faq.structuredData,
     image: hubImage,
   });
 }
