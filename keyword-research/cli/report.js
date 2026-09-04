@@ -26,8 +26,14 @@ async function main() {
   );
 
   console.log(`[keywords:report] レポートを ${outDir}/ に出力しました`);
-  console.log(`  優先候補=${counts.priorityCount} テスト候補=${counts.testCount} 継続観測=${counts.observeCount} 除外=${counts.rejectCount}`);
-  console.log(`  医療関連除外=${counts.medicalExcluded} 公開要件充足(未承認)=${counts.publishTargetCount}`);
+  console.log(`  [スコア帯(simulation/test only)] 優先候補相当=${counts.priorityCount} テスト候補相当=${counts.testCount} 継続観測相当=${counts.observeCount} 除外相当=${counts.rejectCount}`);
+  console.log(
+    `  [実運用判定] businessValidated=true: ${counts.businessValidatedCount}件 / 実運用上の優先候補=${counts.operationalPriorityCount} / 承認可能件数=${counts.eligibleForApprovalCount} / 出力可能件数=${counts.eligibleForExportCount}`
+  );
+  if (counts.businessValidatedCount === 0) {
+    console.log(`  ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認可能候補・出力可能候補はすべて0件です。`);
+  }
+  console.log(`  医療関連除外=${counts.medicalExcluded}`);
   console.log(`  ${summaryPath}`);
 }
 

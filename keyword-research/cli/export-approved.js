@@ -50,6 +50,7 @@ async function main() {
         matchStatus: c.rakuten.eligibleCount > 0 ? "ELIGIBLE" : "REJECTED",
         intent: c.intent,
         hasQualityScore: c.bestProductQualityScore > 0,
+        businessValidated: c.businessValidated ?? false,
       },
       canonicalApprovedSet
     );
@@ -59,10 +60,11 @@ async function main() {
         cluster: c.cluster.clusterLabel,
         intent: c.intent,
         finalPriority: c.finalPriority,
-        adoption: c.adoption,
+        scoreBand: c.scoreBand,
+        decisionStatus: c.decisionStatus,
         eligibleItemCodes: (c.rakuten.matches ?? []).filter((m) => m.status === "ELIGIBLE").map((m) => m.itemCode),
         bestProductQualityScore: c.bestProductQualityScore,
-        businessValidated: c.webKeywordScore?.businessValidated ?? false,
+        businessValidated: c.businessValidated ?? false,
       });
     } else {
       blocked.push({ canonicalKeyword: c.canonicalKeyword, reasons: check.reasons });

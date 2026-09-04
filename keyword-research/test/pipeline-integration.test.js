@@ -30,7 +30,8 @@ test("fixture→正規化→intent→cluster→楽天mock→scoringの一連処�
   assert.equal(mapped.length, researchResult.candidates.length);
 
   for (const c of mapped) {
-    assert.ok(["PRIORITY", "TEST", "OBSERVE", "REJECT"].includes(c.adoption));
+    assert.ok(["PRIORITY", "TEST", "OBSERVE", "REJECT"].includes(c.scoreBand));
+    assert.ok(["PRIORITY", "TEST", "OBSERVE", "REJECT", "UNVALIDATED"].includes(c.decisionStatus));
     assert.ok(typeof c.finalPriority === "number");
   }
 });
@@ -40,7 +41,9 @@ test("医療関連キーワードは楽天照合をスキップし、常にREJEC
   const mapped = await runMapRakuten(researchResult, { searchFn: mockSearch });
   const medical = mapped.find((c) => c.intent === "MEDICAL_REVIEW_REQUIRED");
   assert.ok(medical, "fixtureに医療関連キーワードが含まれている前提");
-  assert.equal(medical.adoption, "REJECT");
+  assert.equal(medical.scoreBand, "REJECT");
+  assert.equal(medical.decisionStatus, "UNVALIDATED");
+  assert.equal(medical.eligibleForApproval, false);
   assert.equal(medical.rakuten.searchSource, "skipped");
 });
 
@@ -65,7 +68,8 @@ test("一部キーワードの楽天API呼び出しが失敗しても、他の�
   const succeeded = mapped.filter((c) => c.rakuten.searchSource === "mock");
   assert.ok(failed.length >= 1, "1件は失敗している想定");
   assert.ok(succeeded.length >= 1, "他のキーワードは成功している想定(部分成功)");
-  assert.equal(failed[0].adoption, "REJECT"); // 失敗したものを誤ってPRIORITY等にしない
+  assert.equal(failed[0].scoreBand, "REJECT"); // 失敗したものを誤ってPRIORITY等にしない
+  assert.equal(failed[0].decisionStatus, "UNVALIDATED");
 });
 
 test("レポート生成(summary.md + 5種CSV)が一時ディレクトリに出力される", async () => {
@@ -114,6 +118,7 @@ test("未承認のキーワードはpublish相当のフィルタを通過しな�
         matchStatus: c.rakuten.eligibleCount > 0 ? "ELIGIBLE" : "REJECTED",
         intent: c.intent,
         hasQualityScore: c.bestProductQualityScore > 0,
+        businessValidated: c.businessValidated,
       },
       canonicalApprovedSet
     );
