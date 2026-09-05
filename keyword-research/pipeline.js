@@ -139,6 +139,12 @@ export async function runMapRakuten(researchResult, options = {}) {
     // businessValidatedの算出はeligibleRakutenCountに依存しないため影響しない。
     const preScore = computeWebKeywordScore(candidate.observation, candidate.intent, candidate.cluster, 0, config, {});
     const businessValidated = preScore.businessValidated;
+    // scoreBandは需要・購入意図等から算出したスコア帯であり、楽天照合の実行可否では
+    // 書き換えない(2026-09-05 マージ前最終監査(2周目)対応)。楽天商品データが無い
+    // (未実行/エラー)時点ではbestProductQualityScoreは0として試算する(Rakuten側の
+    // 実際のQuality Scoreは未計算のまま)。
+    const preFinalPriority = computeFinalPriority(preScore.total, 0, config.finalPriorityWeights);
+    const preScoreBand = classifyScoreBand(preFinalPriority, config.adoptionThresholds);
 
     const shouldSkipRakuten =
       candidate.safetyStatus !== "SAFE" || candidate.queryQualityStatus === "MALFORMED" || !candidate.rakutenQuery;
@@ -147,7 +153,7 @@ export async function runMapRakuten(researchResult, options = {}) {
       const rakutenLookupStatus = "NOT_RUN";
       const decision = evaluateDecision({
         businessValidated,
-        scoreBand: "REJECT",
+        scoreBand: preScoreBand,
         intent: candidate.intent,
         eligibleRakutenCount: 0,
         bestProductQualityScore: 0,
@@ -170,8 +176,8 @@ export async function runMapRakuten(researchResult, options = {}) {
         businessValidated,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
-        finalPriority: 0,
-        scoreBand: "REJECT",
+        finalPriority: preFinalPriority,
+        scoreBand: preScoreBand,
         ...decision,
         publishBlockReasons: [...decision.validationFailureReasons, skipReason],
       });
@@ -183,10 +189,11 @@ export async function runMapRakuten(researchResult, options = {}) {
       searchResult = await search(candidate.rakutenQuery);
     } catch (e) {
       // 【重要】楽天APIが失敗しても、需要データ自体の検証結果(businessValidated)は
-      // 変更しない。楽天照合の失敗と需要データ未検証は別の状態として扱う。
+      // 変更しない。楽天照合の失敗と需要データ未検証は別の状態として扱う。scoreBandも
+      // 同様に、需要データから算出した値をそのまま保持する(REJECT固定にしない)。
       const decision = evaluateDecision({
         businessValidated,
-        scoreBand: "REJECT",
+        scoreBand: preScoreBand,
         intent: candidate.intent,
         eligibleRakutenCount: 0,
         bestProductQualityScore: 0,
@@ -203,8 +210,8 @@ export async function runMapRakuten(researchResult, options = {}) {
         businessValidated,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
-        finalPriority: 0,
-        scoreBand: "REJECT",
+        finalPriority: preFinalPriority,
+        scoreBand: preScoreBand,
         ...decision,
         publishBlockReasons: [...decision.validationFailureReasons, `楽天API呼び出し失敗: ${e.message}`],
       });

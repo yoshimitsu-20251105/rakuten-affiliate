@@ -54,8 +54,9 @@ export async function loadApprovalFile(filePath, config) {
  * 独立に再チェックする(多層防御。将来pipeline側の実装が変わっても、
  * このゲートだけで安全側に倒れるようにするため)。
  *
- * @param {{ canonicalKeyword: string, matchStatus: string, intent: string, hasQualityScore: boolean,
- *   businessValidated: boolean, safetyStatus?: string, queryQualityStatus?: string, rakutenLookupStatus?: string }} candidate
+ * @param {{ canonicalKeyword: string, matchStatus?: string, rakutenSupplyStatus?: string, scoreBand?: string,
+ *   intent: string, hasQualityScore: boolean, businessValidated: boolean, safetyStatus?: string,
+ *   queryQualityStatus?: string, rakutenLookupStatus?: string }} candidate
  * @param {Set<string>} canonicalApprovedSet
  */
 export function isPublishEligible(candidate, canonicalApprovedSet) {
@@ -70,9 +71,23 @@ export function isPublishEligible(candidate, canonicalApprovedSet) {
   if (candidate.rakutenLookupStatus === "NOT_RUN" && candidate.safetyStatus === "SAFE" && candidate.queryQualityStatus !== "MALFORMED") {
     reasons.push("INVALID_RAKUTEN_QUERY");
   }
+  // 【2026-09-05 マージ前最終監査(2周目)対応】rakutenSupplyStatusが渡された場合は、
+  // 楽天ELIGIBLE商品が最低基準(3件)以上あることを独立に再チェックする。
+  // 旧matchStatusは`eligibleCount > 0 ? "ELIGIBLE" : "REJECTED"`という単純な判定で、
+  // 1〜2件しかないINSUFFICIENT候補も"ELIGIBLE"として通過させてしまうバグがあったため、
+  // rakutenSupplyStatus(ELIGIBLE/INSUFFICIENT/NO_MATCH/NOT_EVALUATED)を優先して見る。
+  if (candidate.rakutenSupplyStatus !== undefined) {
+    if (candidate.rakutenSupplyStatus === "NO_MATCH") reasons.push("SUPPLY_NO_MATCH");
+    else if (candidate.rakutenSupplyStatus === "INSUFFICIENT") reasons.push("SUPPLY_INSUFFICIENT");
+    else if (candidate.rakutenSupplyStatus !== "ELIGIBLE") reasons.push("SUPPLY_NOT_EVALUATED");
+  } else if (candidate.matchStatus !== "ELIGIBLE") {
+    reasons.push(`楽天商品照合結果が${candidate.matchStatus}のため不可`);
+  }
+  // scoreBandが渡された場合は、REJECT帯の候補が承認ファイルに誤って含まれていても
+  // 独立に再ブロックする(多層防御)。
+  if (candidate.scoreBand === "REJECT") reasons.push("SCORE_BAND_REJECT");
   if (!canonicalApprovedSet.has(candidate.canonicalKeyword)) reasons.push("未承認(承認ファイルに含まれない)");
   if (candidate.intent === "MEDICAL_REVIEW_REQUIRED") reasons.push("医療関連のため自動公開禁止");
-  if (candidate.matchStatus !== "ELIGIBLE") reasons.push(`楽天商品照合結果が${candidate.matchStatus}のため不可`);
   if (!candidate.hasQualityScore) reasons.push("Quality Score未計算");
   return { eligible: reasons.length === 0, reasons };
 }

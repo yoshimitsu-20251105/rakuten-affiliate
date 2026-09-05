@@ -93,6 +93,7 @@ test("businessValidated=trueでもscoreBand=REJECTなら承認不可(スコア�
     intent: "CONDITION_PURCHASE",
     eligibleRakutenCount: 5,
     bestProductQualityScore: 80,
+    rakutenSupplyStatus: "ELIGIBLE", // 楽天ELIGIBLE商品が最低基準(3件)以上ある想定(REJECT帯のゲートだけを切り分けて確認する)
   });
   assert.equal(decision.decisionStatus, "REJECT");
   assert.equal(decision.eligibleForApproval, false);
@@ -144,6 +145,82 @@ test("businessValidated=0件のfixtureのみのレポートでは、実運用上
 
   const { rm } = await import("node:fs/promises");
   await rm(outDir, { recursive: true, force: true });
+});
+
+test("【2026-09-05 マージ前最終監査(2周目)対応】rakutenSupplyStatus=SUPPLY_NO_MATCH/SUPPLY_INSUFFICIENT相当の候補は、承認ファイルに含まれていてもexport-approvedのisPublishEligibleで拒否される", () => {
+  // 旧matchStatus(eligibleCount>0でELIGIBLE扱い)のバグでは、ELIGIBLE商品1件のみの
+  // INSUFFICIENT候補もexport-approved層を通過してしまっていた。rakutenSupplyStatusを
+  // 直接渡すことで、export-approved層でも最低3件基準を独立に再チェックする。
+  const canonicalApprovedSet = new Set(["国産 無添加 ドッグフード"]);
+
+  const noMatchCheck = isPublishEligible(
+    {
+      canonicalKeyword: "国産 無添加 ドッグフード",
+      rakutenSupplyStatus: "NO_MATCH",
+      scoreBand: "PRIORITY",
+      intent: "CONDITION_PURCHASE",
+      hasQualityScore: false,
+      businessValidated: true,
+      safetyStatus: "SAFE",
+      queryQualityStatus: "VALID",
+      rakutenLookupStatus: "SUCCESS",
+    },
+    canonicalApprovedSet
+  );
+  assert.equal(noMatchCheck.eligible, false);
+  assert.ok(noMatchCheck.reasons.includes("SUPPLY_NO_MATCH"));
+
+  const insufficientCheck = isPublishEligible(
+    {
+      canonicalKeyword: "国産 無添加 ドッグフード",
+      rakutenSupplyStatus: "INSUFFICIENT",
+      scoreBand: "PRIORITY",
+      intent: "CONDITION_PURCHASE",
+      hasQualityScore: true,
+      businessValidated: true,
+      safetyStatus: "SAFE",
+      queryQualityStatus: "VALID",
+      rakutenLookupStatus: "SUCCESS",
+    },
+    canonicalApprovedSet
+  );
+  assert.equal(insufficientCheck.eligible, false, "ELIGIBLE商品が1〜2件(最低3件未満)でも承認ファイルに含まれていれば通過してしまう旧バグの再発防止");
+  assert.ok(insufficientCheck.reasons.includes("SUPPLY_INSUFFICIENT"));
+
+  // scoreBand=REJECTの候補も、承認ファイルに(誤って)含まれていれば独立にブロックする
+  const rejectBandCheck = isPublishEligible(
+    {
+      canonicalKeyword: "国産 無添加 ドッグフード",
+      rakutenSupplyStatus: "ELIGIBLE",
+      scoreBand: "REJECT",
+      intent: "CONDITION_PURCHASE",
+      hasQualityScore: true,
+      businessValidated: true,
+      safetyStatus: "SAFE",
+      queryQualityStatus: "VALID",
+      rakutenLookupStatus: "SUCCESS",
+    },
+    canonicalApprovedSet
+  );
+  assert.equal(rejectBandCheck.eligible, false);
+  assert.ok(rejectBandCheck.reasons.includes("SCORE_BAND_REJECT"));
+
+  // rakutenSupplyStatus=ELIGIBLEかつscoreBand=PRIORITYなら通過する(正常系の確認)
+  const eligibleCheck = isPublishEligible(
+    {
+      canonicalKeyword: "国産 無添加 ドッグフード",
+      rakutenSupplyStatus: "ELIGIBLE",
+      scoreBand: "PRIORITY",
+      intent: "CONDITION_PURCHASE",
+      hasQualityScore: true,
+      businessValidated: true,
+      safetyStatus: "SAFE",
+      queryQualityStatus: "VALID",
+      rakutenLookupStatus: "SUCCESS",
+    },
+    canonicalApprovedSet
+  );
+  assert.equal(eligibleCheck.eligible, true);
 });
 
 test("旧keywords:publishシムは、export-approved.jsへ委譲するだけで独自の承認・出力ロジックを持たない(バイパス防止の構造的確認)", async () => {

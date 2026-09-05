@@ -17,10 +17,12 @@ Googleキーワードプランナーの実データ(1,324件)で検証した結�
 | `rakutenSupplyStatus` | `NOT_EVALUATED`/`ELIGIBLE`/`INSUFFICIENT`/`NO_MATCH` | 楽天側に条件一致商品が十分あるか |
 | `safetyStatus` | `SAFE`/`HEALTH_REVIEW_REQUIRED`/`MEDICAL_REVIEW_REQUIRED` | 医療・健康訴求語彙による安全ゲート |
 | `queryQualityStatus` | `VALID`/`REVIEW_REQUIRED`/`MALFORMED` | 検索語自体の品質(空・数字のみ等) |
-| `decisionStatus` | 上記すべてを踏まえた最終的な運用判定 | `PRIORITY`/`TEST`/`OBSERVE`/`REJECT`/`UNVALIDATED`/`MEDICAL_REVIEW_REQUIRED`/`HEALTH_REVIEW_REQUIRED`/`MALFORMED_KEYWORD`/`QUERY_REVIEW_REQUIRED`/`SUPPLY_LOOKUP_ERROR`/`INVALID_RAKUTEN_QUERY` |
+| `decisionStatus` | 上記すべてを踏まえた最終的な運用判定 | `PRIORITY`/`TEST`/`OBSERVE`/`REJECT`/`UNVALIDATED`/`MEDICAL_REVIEW_REQUIRED`/`HEALTH_REVIEW_REQUIRED`/`MALFORMED_KEYWORD`/`QUERY_REVIEW_REQUIRED`/`SUPPLY_NOT_EVALUATED`/`SUPPLY_LOOKUP_ERROR`/`SUPPLY_NO_MATCH`/`SUPPLY_INSUFFICIENT` |
 
 `decision.js`の判定優先順位: businessValidated=false → 医療 → 健康訴求 → 検索語品質 →
-楽天照合エラー/未実行 → (すべてクリアした場合のみ)scoreBandをそのまま採用。
+楽天照合未実行/エラー → 楽天商品供給(0件/1〜2件) → (rakutenSupplyStatus=ELIGIBLEの場合のみ)
+scoreBandをそのまま採用。`scoreBand`は需要・購入意図等から算出したスコア帯であり、
+楽天商品供給の有無によって書き換えられることはない(decisionStatusとは完全に分離した値)。
 `eligibleForApproval`/`eligibleForExport`/`eligibleForPublish`は、この優先順位のどこかで
 ブロックされた時点ですべてfalseになる。
 

@@ -47,7 +47,8 @@ async function main() {
     const check = isPublishEligible(
       {
         canonicalKeyword: c.canonicalKeyword,
-        matchStatus: c.rakuten.eligibleCount > 0 ? "ELIGIBLE" : "REJECTED",
+        rakutenSupplyStatus: c.rakutenSupplyStatus,
+        scoreBand: c.scoreBand,
         intent: c.intent,
         hasQualityScore: c.bestProductQualityScore > 0,
         businessValidated: c.businessValidated ?? false,

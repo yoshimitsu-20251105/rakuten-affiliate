@@ -35,11 +35,13 @@ export async function writeReports(pipelineResult, runInfo) {
   const scoreBandRejectCount = candidates.filter((c) => c.scoreBand === "REJECT").length;
 
   // --- 実運用判定(decisionStatus): businessValidated=trueの候補のみ ---
+  // 【2026-09-05 マージ前最終監査(2周目)対応】decisionStatus=PRIORITY/TEST/OBSERVEは、
+  // rakutenSupplyStatus=ELIGIBLE(楽天商品供給が十分)の場合にのみ付与されるようdecision.js
+  // 側を修正済み(NO_MATCH/INSUFFICIENTはSUPPLY_NO_MATCH/SUPPLY_INSUFFICIENTになる)。
+  // その上で「実運用上のPRIORITY件数」は、decisionStatus=PRIORITY かつ
+  // eligibleForApproval=true(Quality Score計算済み等の残りの要件も満たす)の件数のみとする。
   const businessValidatedCount = candidates.filter((c) => c.businessValidated === true).length;
   const unvalidatedCount = candidates.filter((c) => c.decisionStatus === "UNVALIDATED").length;
-  const operationalPriorityCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "PRIORITY").length;
-  const operationalTestCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "TEST").length;
-  const operationalObserveCount = candidates.filter((c) => c.businessValidated && c.decisionStatus === "OBSERVE").length;
   const eligibleForApprovalCount = candidates.filter((c) => c.eligibleForApproval === true).length;
   const eligibleForExportCount = candidates.filter((c) => c.eligibleForExport === true).length;
   const eligibleForPublishCount = candidates.filter((c) => c.eligibleForPublish === true).length;
@@ -50,6 +52,15 @@ export async function writeReports(pipelineResult, runInfo) {
     TEST: candidates.filter((c) => c.eligibleForApproval && c.decisionStatus === "TEST").length,
     OBSERVE: candidates.filter((c) => c.eligibleForApproval && c.decisionStatus === "OBSERVE").length,
   };
+  // 実運用上のPRIORITY件数 = decisionStatus=PRIORITY かつ eligibleForApproval=true の件数だけ
+  // (スコア上のPRIORITY件数=scoreBandPriorityCountとは明確に区別する)。
+  const operationalPriorityCount = approvalCandidateByBand.PRIORITY;
+  const operationalTestCount = approvalCandidateByBand.TEST;
+  const operationalObserveCount = approvalCandidateByBand.OBSERVE;
+  // 承認済み件数: このdry-runレポートは承認ファイル(approved-file)を一切参照しないため、
+  // 「承認候補(eligibleForApproval)」と「承認済み(人間が承認ファイルに含めて
+  // keywords:export-approvedを実行した結果)」は常に別物であり、ここでは常に0件を表示する。
+  const approvedCount = 0;
 
   // --- 楽天照合の実行結果(需要データ検証とは独立) ---
   const rakutenSuccessCount = candidates.filter((c) => c.rakutenLookupStatus === "SUCCESS").length;
@@ -57,6 +68,12 @@ export async function writeReports(pipelineResult, runInfo) {
   const rakutenNotRunCount = candidates.filter((c) => c.rakutenLookupStatus === "NOT_RUN").length;
   const rakutenInsufficientCount = candidates.filter((c) => c.rakutenSupplyStatus === "INSUFFICIENT").length;
   const rakutenNoMatchCount = candidates.filter((c) => c.rakutenSupplyStatus === "NO_MATCH").length;
+  // decisionStatusベースの供給不足系件数(rakutenSupplyStatusベースの上記2件と値は一致するはずだが、
+  // decision.jsの最終判定結果そのものとして別途明示する)。
+  const supplyNoMatchDecisionCount = candidates.filter((c) => c.decisionStatus === "SUPPLY_NO_MATCH").length;
+  const supplyInsufficientDecisionCount = candidates.filter((c) => c.decisionStatus === "SUPPLY_INSUFFICIENT").length;
+  const supplyNotEvaluatedDecisionCount = candidates.filter((c) => c.decisionStatus === "SUPPLY_NOT_EVALUATED").length;
+  const supplyLookupErrorDecisionCount = candidates.filter((c) => c.decisionStatus === "SUPPLY_LOOKUP_ERROR").length;
 
   // --- 安全ゲート・検索語品質(2026-09-05 GKP実データ監査対応) ---
   const medicalReviewCount = candidates.filter((c) => c.safetyStatus === "MEDICAL_REVIEW_REQUIRED").length;
@@ -85,21 +102,24 @@ export async function writeReports(pipelineResult, runInfo) {
     `7a. 【スコア帯(scoreBand) — simulation/test only、businessValidatedを問わない試算値】`,
     `    優先候補相当=${scoreBandPriorityCount} / テスト候補相当=${scoreBandTestCount} / 継続観測相当=${scoreBandObserveCount} / 除外相当=${scoreBandRejectCount}`,
     `    ※ここに表示される件数は「スコア計算のテスト結果」であり、fixtureや欠損データでも算出される。実運用可能な候補数ではない。`,
-    `7b. 【実運用判定(decisionStatus) — businessValidated=trueの候補のみ】`,
+    `7b. 【実運用判定(decisionStatus) — scoreBandとは完全に分離した最終判定】`,
     `    需要データ検証済み件数(businessValidated=true)=${businessValidatedCount}件 / businessValidated=false(UNVALIDATED)=${unvalidatedCount}件`,
-    `    実運用上の優先候補(PRIORITY)=${operationalPriorityCount} / 実運用上のテスト候補(TEST)=${operationalTestCount} / 実運用上の継続観測(OBSERVE)=${operationalObserveCount}`,
+    `    【重要】decisionStatus=PRIORITY/TEST/OBSERVEは、rakutenSupplyStatus=ELIGIBLE(楽天ELIGIBLE商品が最低基準3件以上)の場合にのみ付与される。楽天商品が0件(SUPPLY_NO_MATCH)・1〜2件(SUPPLY_INSUFFICIENT)の候補は、scoreBandが高くてもdecisionStatus=PRIORITY等にはならない。`,
+    `    スコア上のPRIORITY件数(scoreBand=PRIORITY、楽天供給状況を問わない試算値)=${scoreBandPriorityCount}件`,
+    `    実運用上のPRIORITY件数(decisionStatus=PRIORITY かつ eligibleForApproval=true)=${operationalPriorityCount}件 / 実運用上のTEST=${operationalTestCount}件 / 実運用上のOBSERVE=${operationalObserveCount}件`,
     `    【重要】eligibleForApproval等は「人間が承認する対象にできる」という意味であり、自動で承認・出力・掲載されるという意味ではない。`,
     `    承認候補件数(eligibleForApproval、人間による承認ファイルなしでは何も出力・掲載されない)=${eligibleForApprovalCount}件`,
     `      内訳: PRIORITY帯=${approvalCandidateByBand.PRIORITY} / TEST帯=${approvalCandidateByBand.TEST} / OBSERVE帯=${approvalCandidateByBand.OBSERVE}(合計${eligibleForApprovalCount}件。PRIORITY件数だけと比較しないこと)`,
     `    出力対象件数(eligibleForExport、keywords:export-approvedで人間の承認ファイルと突き合わせて初めて実際に出力される)=${eligibleForExportCount}件`,
+    `    承認済み件数(このdry-runレポートは承認ファイルを一切参照しないため常に0。実際の承認状況はkeywords:export-approvedの出力(approved-candidates.json)を参照)=${approvedCount}件`,
     `    掲載対象件数(eligibleForPublish、Phase3〈既存サイトへの接続〉が未実装のため常に0)=${eligibleForPublishCount}件`,
     businessValidatedCount === 0
       ? `    ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認候補・出力対象件数はすべて0件です(7aのスコア帯とは別物です)。`
       : ``,
     `7c. 【楽天照合の実行結果 — 需要データ検証とは独立(2026-09-05対応)】`,
-    `    楽天照合成功件数(rakutenLookupStatus=SUCCESS)=${rakutenSuccessCount} / 楽天APIエラー件数(API_ERROR)=${rakutenApiErrorCount} / 未実行(NOT_RUN、安全ゲート等でスキップ)=${rakutenNotRunCount}`,
-    `    楽天商品不足件数(rakutenSupplyStatus=INSUFFICIENT、最低基準3件未満のみ一致)=${rakutenInsufficientCount} / 商品0件(NO_MATCH)=${rakutenNoMatchCount}`,
-    `    【重要】楽天APIエラーはbusinessValidatedを変更しない(需要データの検証結果と楽天照合の成否は別の状態として扱う)。INSUFFICIENT/NO_MATCH/NOT_EVALUATED/API_ERROR/NOT_RUNのいずれも、スコアが高くても承認候補にはならない。`,
+    `    楽天照合成功件数(rakutenLookupStatus=SUCCESS)=${rakutenSuccessCount} / 楽天APIエラー件数(decisionStatus=SUPPLY_LOOKUP_ERROR)=${rakutenApiErrorCount}(${supplyLookupErrorDecisionCount}) / 未実行・安全ゲート等でスキップ(decisionStatus=SUPPLY_NOT_EVALUATED)=${rakutenNotRunCount}(${supplyNotEvaluatedDecisionCount})`,
+    `    楽天商品不足件数(decisionStatus=SUPPLY_INSUFFICIENT、最低基準3件未満のみ一致)=${supplyInsufficientDecisionCount}件 / 楽天商品なし件数(decisionStatus=SUPPLY_NO_MATCH、0件一致)=${supplyNoMatchDecisionCount}件`,
+    `    【重要】楽天APIエラーはbusinessValidatedを変更しない(需要データの検証結果と楽天照合の成否は別の状態として扱う)。SUPPLY_INSUFFICIENT/SUPPLY_NO_MATCH/SUPPLY_NOT_EVALUATED/SUPPLY_LOOKUP_ERRORのいずれも、scoreBandが高くても承認候補にはならない(decisionStatusがPRIORITY等を名乗ることもない)。`,
     `7d. 【安全ゲート・検索語品質】`,
     `    医療レビュー件数(safetyStatus=MEDICAL_REVIEW_REQUIRED)=${medicalReviewCount} / 健康訴求レビュー件数(HEALTH_REVIEW_REQUIRED)=${healthReviewCount}`,
     `    不自然な検索語件数: MALFORMED=${malformedCount} / REVIEW_REQUIRED(要確認、自動除外はしない)=${queryReviewRequiredCount}`,
@@ -255,12 +275,17 @@ export async function writeReports(pipelineResult, runInfo) {
       eligibleForApprovalCount,
       eligibleForExportCount,
       eligibleForPublishCount,
+      approvedCount,
       publishTargetCount: eligibleForExportCount,
       rakutenSuccessCount,
       rakutenApiErrorCount,
       rakutenNotRunCount,
       rakutenInsufficientCount,
       rakutenNoMatchCount,
+      supplyNoMatchDecisionCount,
+      supplyInsufficientDecisionCount,
+      supplyNotEvaluatedDecisionCount,
+      supplyLookupErrorDecisionCount,
       medicalReviewCount,
       healthReviewCount,
       malformedCount,
