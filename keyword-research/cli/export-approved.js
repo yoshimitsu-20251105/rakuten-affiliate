@@ -51,11 +51,15 @@ async function main() {
         intent: c.intent,
         hasQualityScore: c.bestProductQualityScore > 0,
         businessValidated: c.businessValidated ?? false,
+        safetyStatus: c.safetyStatus,
+        queryQualityStatus: c.queryQualityStatus,
+        rakutenLookupStatus: c.rakutenLookupStatus,
       },
       canonicalApprovedSet
     );
     if (check.eligible) {
       approved.push({
+        originalKeyword: c.originalKeyword,
         canonicalKeyword: c.canonicalKeyword,
         cluster: c.cluster.clusterLabel,
         intent: c.intent,

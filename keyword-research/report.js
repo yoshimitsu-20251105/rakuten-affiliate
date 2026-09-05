@@ -5,6 +5,11 @@
 // decisionStatus(businessValidatedを通過した実運用候補数)を明確に分離して表示する。
 // businessValidated=trueが0件なら、実運用上の優先候補・承認可能候補・出力可能候補は
 // すべて0件と表示する(スコア上のPRIORITY件数と混同しない)。
+//
+// 【2026-09-05 GKP実データ監査対応】需要データ検証(businessValidated)・楽天照合の
+// 実行結果(rakutenLookupStatus/rakutenSupplyStatus)・安全性(safetyStatus)・
+// 検索語品質(queryQualityStatus)を、それぞれ独立した集計として表示する。
+// originalKeyword/normalizedKeyword/rakutenQueryもCSVへ明示する。
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { toCsv } from "./csv.js";
@@ -39,6 +44,19 @@ export async function writeReports(pipelineResult, runInfo) {
   const eligibleForExportCount = candidates.filter((c) => c.eligibleForExport === true).length;
   const eligibleForPublishCount = candidates.filter((c) => c.eligibleForPublish === true).length;
 
+  // --- 楽天照合の実行結果(需要データ検証とは独立) ---
+  const rakutenSuccessCount = candidates.filter((c) => c.rakutenLookupStatus === "SUCCESS").length;
+  const rakutenApiErrorCount = candidates.filter((c) => c.rakutenLookupStatus === "API_ERROR").length;
+  const rakutenNotRunCount = candidates.filter((c) => c.rakutenLookupStatus === "NOT_RUN").length;
+  const rakutenInsufficientCount = candidates.filter((c) => c.rakutenSupplyStatus === "INSUFFICIENT").length;
+  const rakutenNoMatchCount = candidates.filter((c) => c.rakutenSupplyStatus === "NO_MATCH").length;
+
+  // --- 安全ゲート・検索語品質(2026-09-05 GKP実データ監査対応) ---
+  const medicalReviewCount = candidates.filter((c) => c.safetyStatus === "MEDICAL_REVIEW_REQUIRED").length;
+  const healthReviewCount = candidates.filter((c) => c.safetyStatus === "HEALTH_REVIEW_REQUIRED").length;
+  const malformedCount = candidates.filter((c) => c.queryQualityStatus === "MALFORMED").length;
+  const queryReviewRequiredCount = candidates.filter((c) => c.queryQualityStatus === "REVIEW_REQUIRED").length;
+
   const medicalExcluded = candidates.filter((c) => c.intent === "MEDICAL_REVIEW_REQUIRED").length;
   const rakutenMatchedCount = candidates.filter((c) => c.rakuten.eligibleCount > 0).length;
   const needsReview = candidates.flatMap((c) => (c.rakuten.matches ?? []).filter((m) => m.status === "NEEDS_MANUAL_REVIEW"));
@@ -56,20 +74,28 @@ export async function writeReports(pipelineResult, runInfo) {
     `5. クラスター別候補数:`,
     ...Object.entries(clusterCounts).map(([k, v]) => `   - ${k}: ${v}件`),
     `6. 取得件数: ${candidates.reduce((s, c) => s + c.variantCount, 0)}件(観測) → 正規化・重複統合後: ${candidates.length}件`,
-    `   重複統合数: ${candidates.filter((c) => c.variantCount > 1).length}件(語順違い等をcanonicalKeywordへ統合)`,
+    `   重複統合数: ${candidates.filter((c) => c.variantCount > 1).length}件(語順違い等をcanonicalKeywordへ統合。monthlySearchesは合算せず最大値を採用)`,
     `7a. 【スコア帯(scoreBand) — simulation/test only、businessValidatedを問わない試算値】`,
     `    優先候補相当=${scoreBandPriorityCount} / テスト候補相当=${scoreBandTestCount} / 継続観測相当=${scoreBandObserveCount} / 除外相当=${scoreBandRejectCount}`,
     `    ※ここに表示される件数は「スコア計算のテスト結果」であり、fixtureや欠損データでも算出される。実運用可能な候補数ではない。`,
     `7b. 【実運用判定(decisionStatus) — businessValidated=trueの候補のみ】`,
-    `    businessValidated=true: ${businessValidatedCount}件 / businessValidated=false(UNVALIDATED): ${unvalidatedCount}件`,
+    `    需要データ検証済み件数(businessValidated=true)=${businessValidatedCount}件 / businessValidated=false(UNVALIDATED)=${unvalidatedCount}件`,
     `    実運用上の優先候補=${operationalPriorityCount} / 実運用上のテスト候補=${operationalTestCount} / 実運用上の継続観測=${operationalObserveCount}`,
-    `    承認可能件数(eligibleForApproval)=${eligibleForApprovalCount} / 出力可能件数(eligibleForExport)=${eligibleForExportCount} / 公開可能件数(eligibleForPublish、Phase3未実装のため常に0)=${eligibleForPublishCount}`,
+    `    自動承認可能件数(eligibleForApproval)=${eligibleForApprovalCount} / 出力可能件数(eligibleForExport)=${eligibleForExportCount} / 公開可能件数(eligibleForPublish、Phase3未実装のため常に0)=${eligibleForPublishCount}`,
     businessValidatedCount === 0
       ? `    ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認可能候補・出力可能候補はすべて0件です(7aのスコア帯とは別物です)。`
       : ``,
+    `7c. 【楽天照合の実行結果 — 需要データ検証とは独立(2026-09-05対応)】`,
+    `    楽天照合成功件数(rakutenLookupStatus=SUCCESS)=${rakutenSuccessCount} / 楽天APIエラー件数(API_ERROR)=${rakutenApiErrorCount} / 未実行(NOT_RUN、安全ゲート等でスキップ)=${rakutenNotRunCount}`,
+    `    楽天商品不足件数(rakutenSupplyStatus=INSUFFICIENT、1〜2件のみ一致)=${rakutenInsufficientCount} / 商品0件(NO_MATCH)=${rakutenNoMatchCount}`,
+    `    【重要】楽天APIエラーはbusinessValidatedを変更しない(需要データの検証結果と楽天照合の成否は別の状態として扱う)。`,
+    `7d. 【安全ゲート・検索語品質】`,
+    `    医療レビュー件数(safetyStatus=MEDICAL_REVIEW_REQUIRED)=${medicalReviewCount} / 健康訴求レビュー件数(HEALTH_REVIEW_REQUIRED)=${healthReviewCount}`,
+    `    不自然な検索語件数: MALFORMED=${malformedCount} / REVIEW_REQUIRED(要確認、自動除外はしない)=${queryReviewRequiredCount}`,
+    `    医療・健康レビュー対象および不自然な検索語は、businessValidatedの値に関わらず自動承認・自動出力・自動掲載を禁止する。`,
     `8. 楽天商品一致数(ELIGIBLE≥1件のキーワード): ${rakutenMatchedCount}件`,
     `9. 手動確認件数: ${needsReview.length}件(NEEDS_MANUAL_REVIEW、理由はneeds-review.csv参照)`,
-    `10. 医療関連除外数: ${medicalExcluded}件(MEDICAL_REVIEW_REQUIRED、自動公開禁止)`,
+    `10. 医療関連除外数(intent=MEDICAL_REVIEW_REQUIRED): ${medicalExcluded}件(safetyStatusベースの医療レビュー件数は7d参照)`,
     `11. API失敗・欠損・フォールバック: ${apiFallbacks.length}件`,
     ...apiFallbacks.map((m) => `   - ${m.source}: ${m.note}`),
     `12. 出力可能件数(eligibleForExport、承認ゲート前の機械的な要件充足数): ${eligibleForExportCount}件。実際の出力にはkeywords:export-approvedでの人間承認と、対象候補のbusinessValidated=trueが必須(旧keywords:publishは非推奨エイリアスで同じ制限がかかる)。`,
@@ -80,10 +106,14 @@ export async function writeReports(pipelineResult, runInfo) {
   await writeFile(`${runInfo.outDir}/summary.md`, summaryLines.join("\n"), "utf-8");
 
   const candidateRows = candidates.map((c) => ({
-    canonicalKeyword: c.canonicalKeyword,
-    aliases: c.aliases.join(" | "),
+    originalKeyword: c.originalKeyword,
+    normalizedKeyword: c.normalizedKeyword,
+    rakutenQuery: c.rakutenQuery ?? "",
+    keywordVariants: (c.keywordVariants ?? []).join(" | "),
     cluster: c.cluster.clusterLabel ?? "",
     intent: c.intent,
+    safetyStatus: c.safetyStatus,
+    queryQualityStatus: c.queryQualityStatus,
     variantCount: c.variantCount,
     mergeReason: c.mergeReason,
     sourceProvider: c.observation.sourceProvider ?? "unknown",
@@ -91,6 +121,7 @@ export async function writeReports(pipelineResult, runInfo) {
     periodStart: c.observation.periodStart ?? "",
     periodEnd: c.observation.periodEnd ?? "",
     monthlySearches: c.observation.monthlySearches ?? "",
+    searchVolumeVariance: c.observation.searchVolumeVariance ? JSON.stringify(c.observation.searchVolumeVariance) : "",
     competitionLevel: c.observation.competitionLevel ?? "",
     trendIndex: c.observation.trendIndex ?? "",
     lowTopOfPageBid_monetizationOnly: c.observation.lowTopOfPageBid ?? "",
@@ -98,15 +129,21 @@ export async function writeReports(pipelineResult, runInfo) {
   }));
   await writeFile(
     `${runInfo.outDir}/keyword-candidates.csv`,
-    toCsv(Object.keys(candidateRows[0] ?? { canonicalKeyword: "" }), candidateRows),
+    toCsv(Object.keys(candidateRows[0] ?? { originalKeyword: "" }), candidateRows),
     "utf-8"
   );
 
   const scoreRows = candidates.map((c) => ({
-    canonicalKeyword: c.canonicalKeyword,
+    originalKeyword: c.originalKeyword,
+    normalizedKeyword: c.normalizedKeyword,
+    rakutenQuery: c.rakutenQuery ?? "",
     businessValidated: c.businessValidated,
     scoreBand_simulationOnly: c.scoreBand,
     decisionStatus: c.decisionStatus,
+    safetyStatus: c.safetyStatus,
+    queryQualityStatus: c.queryQualityStatus,
+    rakutenLookupStatus: c.rakutenLookupStatus,
+    rakutenSupplyStatus: c.rakutenSupplyStatus,
     eligibleForApproval: c.eligibleForApproval,
     eligibleForExport: c.eligibleForExport,
     eligibleForPublish: c.eligibleForPublish,
@@ -128,13 +165,15 @@ export async function writeReports(pipelineResult, runInfo) {
   }));
   await writeFile(
     `${runInfo.outDir}/keyword-scores.csv`,
-    toCsv(Object.keys(scoreRows[0] ?? { canonicalKeyword: "" }), scoreRows),
+    toCsv(Object.keys(scoreRows[0] ?? { originalKeyword: "" }), scoreRows),
     "utf-8"
   );
 
   const matchRows = candidates.flatMap((c) =>
     (c.rakuten.matches ?? []).map((m) => ({
-      canonicalKeyword: c.canonicalKeyword,
+      originalKeyword: c.originalKeyword,
+      normalizedKeyword: c.normalizedKeyword,
+      rakutenQuery: c.rakutenQuery ?? "",
       itemCode: m.itemCode,
       status: m.status,
       matchScore: m.matchScore,
@@ -148,7 +187,7 @@ export async function writeReports(pipelineResult, runInfo) {
   );
   await writeFile(
     `${runInfo.outDir}/rakuten-matches.csv`,
-    toCsv(Object.keys(matchRows[0] ?? { canonicalKeyword: "" }), matchRows),
+    toCsv(Object.keys(matchRows[0] ?? { originalKeyword: "" }), matchRows),
     "utf-8"
   );
 
@@ -172,9 +211,9 @@ export async function writeReports(pipelineResult, runInfo) {
       level: "product",
     })),
     ...candidates
-      .filter((c) => c.scoreBand === "REJECT" || c.decisionStatus === "UNVALIDATED")
+      .filter((c) => !c.eligibleForApproval)
       .map((c) => ({
-        canonicalKeyword: c.canonicalKeyword,
+        canonicalKeyword: c.originalKeyword,
         itemCode: "",
         reason:
           (c.publishBlockReasons ?? []).join(" / ") ||
@@ -206,6 +245,15 @@ export async function writeReports(pipelineResult, runInfo) {
       eligibleForExportCount,
       eligibleForPublishCount,
       publishTargetCount: eligibleForExportCount,
+      rakutenSuccessCount,
+      rakutenApiErrorCount,
+      rakutenNotRunCount,
+      rakutenInsufficientCount,
+      rakutenNoMatchCount,
+      medicalReviewCount,
+      healthReviewCount,
+      malformedCount,
+      queryReviewRequiredCount,
     },
   };
 }

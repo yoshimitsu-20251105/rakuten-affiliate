@@ -62,7 +62,7 @@ export const CLUSTERS = [
 export const SYNONYM_DICTIONARY = {
   "犬": ["ドッグ", "わんこ", "ワンちゃん"],
   "猫": ["キャット", "ねこ", "ニャンコ"],
-  "ドッグフード": ["犬 フード", "犬用フード", "犬フード"],
+  "ドッグフード": ["犬 フード", "犬用フード", "犬フード", "ドックフード"],
   "キャットフード": ["猫 フード", "猫用フード", "猫フード"],
   "おやつ": ["トリーツ", "スナック"],
   "無添加": ["添加物不使用", "無添加物"],
@@ -70,12 +70,46 @@ export const SYNONYM_DICTIONARY = {
   "シニア": ["高齢", "老犬", "老猫"],
 };
 
-// ---- 医療・疾病語彙(MEDICAL_REVIEW_REQUIREDの判定に使用。自動公開しない) ----
-export const MEDICAL_TERMS = [
-  "治る", "治療", "改善", "予防", "療法食", "薬", "サプリメント 効果",
-  "病気", "疾患", "アレルギー 完治", "腫瘍", "がん", "糖尿病", "腎臓病",
-  "皮膚病", "下痢 治療", "嘔吐 対処", "獣医", "診断",
+// ---- 複合語の分割語正規化(2026-09-05 GKP実データ監査対応) ----
+// Google Keyword Plannerの自動キーワード生成では「無添加」→「無 添加」のように
+// 複合語が2トークンへ分割されることがある。normalize.js側で、語順ソートより前に
+// このリストにある隣接トークンのペアだけを、限定的に1トークンへ統合する
+// (無関係な文字列まで結合しない。順序が入れ替わったケースも両方向で列挙する)。
+export const COMPOUND_TOKEN_MERGES = [
+  { tokens: ["無", "添加"], joined: "無添加" },
+  { tokens: ["添加", "無"], joined: "無添加" },
+  { tokens: ["グレイン", "フリー"], joined: "グレインフリー" },
+  { tokens: ["フリー", "グレイン"], joined: "グレインフリー" },
 ];
+
+// ---- 医療・疾病語彙(MEDICAL_REVIEW_REQUIREDの判定に使用。自動承認・自動出力・
+//      自動掲載のいずれも禁止)。単一トークンでの一致を基本とする(語順ソート後の
+//      canonicalKeywordに対してsubstring判定するため、複数語の連続一致を前提にした
+//      フレーズ登録は語順によって一致しなくなるリスクがあるため避ける) ----
+export const MEDICAL_TERMS = [
+  "治る", "治療", "改善", "予防", "療法食", "薬", "病気", "疾患", "腫瘍", "がん",
+  "糖尿病", "腎臓病", "腎臓", "肝臓", "尿路", "結石", "皮膚病", "獣医", "診断",
+  "処方", "アレルギー", "食物アレルギー",
+];
+
+// ---- 健康訴求語彙(HEALTH_REVIEW_REQUIREDの判定に使用。医療ほど重篤ではないが、
+//      健康上の効能を訴求する語は自動承認・自動出力・自動掲載を禁止する) ----
+export const HEALTH_TERMS = [
+  "低脂肪", "ダイエット", "体重管理", "肥満", "消化", "関節", "皮膚", "涙やけ",
+];
+
+// ---- 不自然なキーワードの品質判定しきい値 ----
+export const QUERY_QUALITY_RULES = {
+  // トークン数がこれを超えると、語順ソートで意味が読み取りにくくなるためREVIEW_REQUIRED
+  // (MALFORMEDにはしない。ブランド名を含む正当な長い商品名の可能性があるため)
+  reviewTokenCountThreshold: 6,
+};
+
+// ---- 楽天API専用クエリ(rakutenQuery)生成時にのみ除去する、独立した助詞トークン ----
+// (2026-09-05: 実際に「の」「に」を含むクエリが楽天APIから wrong_parameter で
+//  拒否されることを少数の検証クエリで確認済み。単語内の部分文字列としては除去しない
+//  — スペースで区切られた「独立したトークン」としてこの一覧に完全一致する場合のみ除去する)
+export const RAKUTEN_QUERY_PARTICLE_TOKENS = ["の", "に", "は", "を", "が", "へ", "と", "で", "や"];
 
 // ---- 検索意図分類の語彙(ルールベース。医療語彙が最優先で判定される) ----
 export const INTENT_KEYWORDS = {
@@ -135,7 +169,9 @@ export async function loadConfig(overridePath = new URL("./config.local.json", i
     region: DEFAULT_REGION,
     clusters: CLUSTERS,
     synonyms: SYNONYM_DICTIONARY,
+    compoundTokenMerges: COMPOUND_TOKEN_MERGES,
     medicalTerms: MEDICAL_TERMS,
+    healthTerms: HEALTH_TERMS,
     intentKeywords: INTENT_KEYWORDS,
     scoreWeights: SCORE_WEIGHTS,
     finalPriorityWeights: FINAL_PRIORITY_WEIGHTS,
@@ -143,6 +179,8 @@ export async function loadConfig(overridePath = new URL("./config.local.json", i
     matchingRules: MATCHING_RULES,
     demandNormalization: DEMAND_NORMALIZATION,
     trustedSourceProviders: TRUSTED_SOURCE_PROVIDERS,
+    queryQualityRules: QUERY_QUALITY_RULES,
+    rakutenQueryParticleTokens: RAKUTEN_QUERY_PARTICLE_TOKENS,
   };
   try {
     const raw = await readFile(overridePath, "utf-8");

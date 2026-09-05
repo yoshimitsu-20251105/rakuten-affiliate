@@ -6,6 +6,9 @@ import { loadConfig } from "./config.js";
 import { normalizeKeyword } from "./normalize.js";
 import { classifyIntent } from "./intent.js";
 import { classifyCluster } from "./cluster.js";
+import { classifySafety } from "./safety.js";
+import { classifyQueryQuality } from "./query-quality.js";
+import { buildRakutenQuery } from "./rakuten-query.js";
 import { extractAttributes } from "./attributes.js";
 import { groupByCanonicalKeyword } from "./dedupe.js";
 import { createRakutenSearchFn, matchKeywordToItems } from "./rakuten-match.js";
@@ -64,7 +67,8 @@ export async function collectObservations(options = {}) {
 }
 
 /**
- * research段階: 収集 → 正規化 → 意図分類 → クラスター分類 → 重複統合
+ * research段階: 収集 → 正規化 → 意図分類 → 6クラスター分類 → 安全ゲート → 検索語品質
+ * → 楽天専用クエリ生成 → 重複統合
  */
 export async function runResearch(options = {}) {
   const config = options.config ?? (await loadConfig());
@@ -80,16 +84,31 @@ export async function runResearch(options = {}) {
   const candidates = grouped.map((g) => {
     const intentResult = classifyIntent(g.canonicalKeyword, config);
     const clusterResult = classifyCluster(g.canonicalKeyword, config.clusters);
+    const safetyResult = classifySafety(g.canonicalKeyword, config);
+    const queryQualityResult = classifyQueryQuality(g.canonicalKeyword, config);
     const requiredAttributes = extractAttributes(g.canonicalKeyword);
+    const searchPhrase = g.aliases[0] ?? g.canonicalKeyword;
+    const rakutenQueryResult = buildRakutenQuery(searchPhrase, config);
     return {
+      // originalKeyword/normalizedKeyword/rakutenQuery/keywordVariants の分離
+      // (2026-09-05 GKP実データ監査対応)。originalKeywordは一切上書きしない。
+      originalKeyword: g.mergedObservation.keyword,
+      normalizedKeyword: g.canonicalKeyword,
+      keywordVariants: g.aliases,
+      rakutenQuery: rakutenQueryResult.valid ? rakutenQueryResult.rakutenQuery : null,
+      queryQualityStatus: queryQualityResult.queryQualityStatus,
+      queryQualityReasons: [...queryQualityResult.reasons, ...(!rakutenQueryResult.valid ? rakutenQueryResult.reasons : [])],
+
       canonicalKeyword: g.canonicalKeyword,
       aliases: g.aliases,
-      searchPhrase: g.aliases[0] ?? g.canonicalKeyword,
+      searchPhrase,
       variantCount: g.variantCount,
       mergeReason: g.mergeReason,
       observation: g.mergedObservation,
       intent: intentResult.intent,
       intentReasons: intentResult.reasons,
+      safetyStatus: safetyResult.safetyStatus,
+      safetyReasons: safetyResult.reasons,
       cluster: clusterResult,
       requiredAttributes,
     };
@@ -100,6 +119,12 @@ export async function runResearch(options = {}) {
 
 /**
  * map-rakuten段階: research結果を受け取り、楽天商品照合 + WebKeywordScore + FinalPriority を計算する。
+ *
+ * 【2026-09-05 GKP実データ監査対応】
+ * - businessValidatedは常にobservationの実データから計算し、楽天API照合の成否では
+ *   一切書き換えない(需要データの検証と楽天照合結果を混同しない)。
+ * - 安全ゲート(safetyStatus)・検索語品質(queryQualityStatus)・楽天クエリの有効性を
+ *   満たさない候補は、楽天APIを呼び出さずにスキップする(無駄なAPI呼び出しをしない)。
  */
 export async function runMapRakuten(researchResult, options = {}) {
   const { candidates, config } = researchResult;
@@ -109,52 +134,79 @@ export async function runMapRakuten(researchResult, options = {}) {
 
   const results = [];
   for (const candidate of candidates) {
-    // 医療関連キーワードは楽天照合をスキップ(自動公開しないため、無駄なAPI呼び出しをしない)
-    if (candidate.intent === "MEDICAL_REVIEW_REQUIRED") {
+    // businessValidatedは常に実データから計算する(楽天照合の成否とは独立)。
+    // eligibleRakutenCountはこの時点では未確定のため0を暫定値として渡すが、
+    // businessValidatedの算出はeligibleRakutenCountに依存しないため影響しない。
+    const preScore = computeWebKeywordScore(candidate.observation, candidate.intent, candidate.cluster, 0, config, {});
+    const businessValidated = preScore.businessValidated;
+
+    const shouldSkipRakuten =
+      candidate.safetyStatus !== "SAFE" || candidate.queryQualityStatus === "MALFORMED" || !candidate.rakutenQuery;
+
+    if (shouldSkipRakuten) {
+      const rakutenLookupStatus = "NOT_RUN";
       const decision = evaluateDecision({
-        businessValidated: false,
+        businessValidated,
         scoreBand: "REJECT",
         intent: candidate.intent,
         eligibleRakutenCount: 0,
         bestProductQualityScore: 0,
+        safetyStatus: candidate.safetyStatus,
+        queryQualityStatus: candidate.queryQualityStatus,
+        rakutenLookupStatus,
       });
+      const skipReason =
+        candidate.safetyStatus !== "SAFE"
+          ? `安全ゲート(${candidate.safetyStatus})のため楽天照合をスキップ`
+          : candidate.queryQualityStatus === "MALFORMED"
+            ? "検索語が不自然(MALFORMED)のため楽天照合をスキップ"
+            : "楽天専用クエリが無効なため楽天照合をスキップ";
       results.push({
         ...candidate,
-        rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "skipped" },
-        webKeywordScore: null,
-        businessValidated: false,
+        rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "skipped", note: skipReason },
+        rakutenLookupStatus,
+        rakutenSupplyStatus: "NOT_EVALUATED",
+        webKeywordScore: preScore,
+        businessValidated,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
         finalPriority: 0,
         scoreBand: "REJECT",
         ...decision,
-        publishBlockReasons: ["医療・疾病・治療関連のため自動公開禁止(MEDICAL_REVIEW_REQUIRED)", "BUSINESS_DATA_NOT_VALIDATED"],
+        publishBlockReasons: [...decision.validationFailureReasons, skipReason],
       });
       continue;
     }
 
     let searchResult;
     try {
-      searchResult = await search(candidate.searchPhrase);
+      searchResult = await search(candidate.rakutenQuery);
     } catch (e) {
+      // 【重要】楽天APIが失敗しても、需要データ自体の検証結果(businessValidated)は
+      // 変更しない。楽天照合の失敗と需要データ未検証は別の状態として扱う。
       const decision = evaluateDecision({
-        businessValidated: false,
+        businessValidated,
         scoreBand: "REJECT",
         intent: candidate.intent,
         eligibleRakutenCount: 0,
         bestProductQualityScore: 0,
+        safetyStatus: candidate.safetyStatus,
+        queryQualityStatus: candidate.queryQualityStatus,
+        rakutenLookupStatus: "API_ERROR",
       });
       results.push({
         ...candidate,
         rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "error", error: e.message },
-        webKeywordScore: null,
-        businessValidated: false,
+        rakutenLookupStatus: "API_ERROR",
+        rakutenSupplyStatus: "NOT_EVALUATED",
+        webKeywordScore: preScore,
+        businessValidated,
         bestProductQualityScore: 0,
         bestProductItemCode: null,
         finalPriority: 0,
         scoreBand: "REJECT",
         ...decision,
-        publishBlockReasons: [`楽天API呼び出し失敗: ${e.message}`, "BUSINESS_DATA_NOT_VALIDATED"],
+        publishBlockReasons: [...decision.validationFailureReasons, `楽天API呼び出し失敗: ${e.message}`],
       });
       continue;
     }
@@ -191,14 +243,22 @@ export async function runMapRakuten(researchResult, options = {}) {
     const finalPriority = computeFinalPriority(webKeywordScore.total, bestProductQualityScore, config.finalPriorityWeights);
     const scoreBand = classifyScoreBand(finalPriority, config.adoptionThresholds);
 
-    // 【2026-09-05監査対応】businessValidatedを承認・出力ゲートとして強制する。
-    // scoreBandがPRIORITYであっても、businessValidated=falseなら実運用上はUNVALIDATED。
+    const rakutenSupplyStatus =
+      eligibleCount >= config.matchingRules.minEligibleProductsForRankingPage
+        ? "ELIGIBLE"
+        : eligibleCount > 0
+          ? "INSUFFICIENT"
+          : "NO_MATCH";
+
     const decision = evaluateDecision({
       businessValidated: webKeywordScore.businessValidated,
       scoreBand,
       intent: candidate.intent,
       eligibleRakutenCount: eligibleCount,
       bestProductQualityScore,
+      safetyStatus: candidate.safetyStatus,
+      queryQualityStatus: candidate.queryQualityStatus,
+      rakutenLookupStatus: "SUCCESS",
     });
 
     const publishBlockReasons = [...decision.validationFailureReasons];
@@ -213,6 +273,8 @@ export async function runMapRakuten(researchResult, options = {}) {
     results.push({
       ...candidate,
       rakuten: { matches, eligibleCount, supplyCount, searchSource: searchResult.source },
+      rakutenLookupStatus: "SUCCESS",
+      rakutenSupplyStatus,
       webKeywordScore,
       businessValidated: webKeywordScore.businessValidated,
       bestProductQualityScore,

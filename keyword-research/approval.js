@@ -48,13 +48,28 @@ export async function loadApprovalFile(filePath, config) {
  * どれだけ高くても、常にブロックする(理由コード: BUSINESS_DATA_NOT_VALIDATED)。
  * fixture/synthetic/推定値をこのゲートで人間の承認手続きに乗せないための最終防御線。
  *
- * @param {{ canonicalKeyword: string, matchStatus: string, intent: string, hasQualityScore: boolean, businessValidated: boolean }} candidate
+ * 【2026-09-05 GKP実データ監査対応】安全ゲート(safetyStatus)・検索語品質
+ * (queryQualityStatus)・楽天照合の実行結果(rakutenLookupStatus)も、
+ * pipeline.js(decision.js)の判定結果を信頼せず、この承認ゲート自身でも
+ * 独立に再チェックする(多層防御。将来pipeline側の実装が変わっても、
+ * このゲートだけで安全側に倒れるようにするため)。
+ *
+ * @param {{ canonicalKeyword: string, matchStatus: string, intent: string, hasQualityScore: boolean,
+ *   businessValidated: boolean, safetyStatus?: string, queryQualityStatus?: string, rakutenLookupStatus?: string }} candidate
  * @param {Set<string>} canonicalApprovedSet
  */
 export function isPublishEligible(candidate, canonicalApprovedSet) {
   const reasons = [];
   // 最優先チェック: businessValidatedが無ければ他の条件を満たしていても即ブロック
   if (!candidate.businessValidated) reasons.push("BUSINESS_DATA_NOT_VALIDATED");
+  if (candidate.safetyStatus === "MEDICAL_REVIEW_REQUIRED") reasons.push("MEDICAL_REVIEW_REQUIRED");
+  if (candidate.safetyStatus === "HEALTH_REVIEW_REQUIRED") reasons.push("HEALTH_REVIEW_REQUIRED");
+  if (candidate.queryQualityStatus === "MALFORMED") reasons.push("MALFORMED_KEYWORD");
+  if (candidate.queryQualityStatus === "REVIEW_REQUIRED") reasons.push("QUERY_REVIEW_REQUIRED");
+  if (candidate.rakutenLookupStatus === "API_ERROR") reasons.push("RAKUTEN_LOOKUP_ERROR");
+  if (candidate.rakutenLookupStatus === "NOT_RUN" && candidate.safetyStatus === "SAFE" && candidate.queryQualityStatus !== "MALFORMED") {
+    reasons.push("INVALID_RAKUTEN_QUERY");
+  }
   if (!canonicalApprovedSet.has(candidate.canonicalKeyword)) reasons.push("未承認(承認ファイルに含まれない)");
   if (candidate.intent === "MEDICAL_REVIEW_REQUIRED") reasons.push("医療関連のため自動公開禁止");
   if (candidate.matchStatus !== "ELIGIBLE") reasons.push(`楽天商品照合結果が${candidate.matchStatus}のため不可`);

@@ -4,6 +4,31 @@ Web全体の商品検索需要を調査し、楽天商品へ照合する機能(P
 既存の商品選定・サイト生成パイプライン(`select-products.js` / `generate-site.js`)には
 一切変更を加えず、上流の調査〜照合〜レポート生成までを完結させる独立モジュール。
 
+## 状態の分離(2026-09-05 実データ監査対応)
+
+Googleキーワードプランナーの実データ(1,324件)で検証した結果、以下を独立した状態として
+分離した。1つの状態を他の状態の代わりに使わないこと(例: 楽天APIエラーは需要データの
+検証結果を変更しない)。
+
+| 状態 | 値 | 意味 |
+|---|---|---|
+| `businessValidated` | true/false | Google需要データ自体の出所・必須項目の検証結果 |
+| `rakutenLookupStatus` | `NOT_RUN`/`SUCCESS`/`API_ERROR` | 楽天API照合を実行できたか |
+| `rakutenSupplyStatus` | `NOT_EVALUATED`/`ELIGIBLE`/`INSUFFICIENT`/`NO_MATCH` | 楽天側に条件一致商品が十分あるか |
+| `safetyStatus` | `SAFE`/`HEALTH_REVIEW_REQUIRED`/`MEDICAL_REVIEW_REQUIRED` | 医療・健康訴求語彙による安全ゲート |
+| `queryQualityStatus` | `VALID`/`REVIEW_REQUIRED`/`MALFORMED` | 検索語自体の品質(空・数字のみ等) |
+| `decisionStatus` | 上記すべてを踏まえた最終的な運用判定 | `PRIORITY`/`TEST`/`OBSERVE`/`REJECT`/`UNVALIDATED`/`MEDICAL_REVIEW_REQUIRED`/`HEALTH_REVIEW_REQUIRED`/`MALFORMED_KEYWORD`/`QUERY_REVIEW_REQUIRED`/`SUPPLY_LOOKUP_ERROR`/`INVALID_RAKUTEN_QUERY` |
+
+`decision.js`の判定優先順位: businessValidated=false → 医療 → 健康訴求 → 検索語品質 →
+楽天照合エラー/未実行 → (すべてクリアした場合のみ)scoreBandをそのまま採用。
+`eligibleForApproval`/`eligibleForExport`/`eligibleForPublish`は、この優先順位のどこかで
+ブロックされた時点ですべてfalseになる。
+
+キーワードの表記も4つに分離している: `originalKeyword`(CSV原文、書き換えない)・
+`normalizedKeyword`(分類・重複判定用、複合語正規化と語順ソート済み)・
+`rakutenQuery`(楽天API専用、助詞除去等の加工を行うが需要データには影響しない)・
+`keywordVariants`(統合された原文一覧)。
+
 ## 実行方法
 
 ```bash
