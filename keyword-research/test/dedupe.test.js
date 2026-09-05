@@ -16,7 +16,57 @@ test("語順違いのキーワードは1グループに統合される(カニバ
   const groups = groupByCanonicalKeyword(entries);
   assert.equal(groups.length, 1);
   assert.equal(groups[0].variantCount, 2);
-  assert.equal(groups[0].mergedObservation.monthlySearches, 8700); // 検索数は合算
+  assert.equal(groups[0].mergedObservation.monthlySearches, 8000); // 【監査対応】合算ではなく最大値
+});
+
+// 【2026-09-05 GKP実データ監査対応】monthlySearchesの二重計上防止をテストで固定する。
+// Googleキーワードプランナーは近似語・語順違いに同一または重複した検索ボリュームを
+// 割り当てることがあるため、単純合算すると需要を過大評価する。
+
+test("【監査対応】語順違い統合時、monthlySearchesは合算せず最大値を採用する", () => {
+  const entries = [makeEntry("国産 無添加 ドッグフード", 500), makeEntry("ドッグフード 無添加 国産", 5000)];
+  const groups = groupByCanonicalKeyword(entries);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].mergedObservation.monthlySearches, 5000);
+  assert.notEqual(groups[0].mergedObservation.monthlySearches, 5500, "合算(500+5000)になっていないこと");
+});
+
+test("【監査対応】統合された値が異なる場合、searchVolumeVarianceに元の値を記録する", () => {
+  const entries = [makeEntry("国産 無添加 ドッグフード", 500), makeEntry("ドッグフード 無添加 国産", 5000)];
+  const groups = groupByCanonicalKeyword(entries);
+  const variance = groups[0].mergedObservation.searchVolumeVariance;
+  assert.ok(variance, "値が異なる場合はsearchVolumeVarianceが記録される");
+  assert.deepEqual([...variance.values].sort((a, b) => a - b), [500, 5000]);
+  assert.equal(variance.max, 5000);
+  assert.equal(variance.min, 500);
+});
+
+test("【監査対応】統合された値が同一の場合、searchVolumeVarianceは記録されない", () => {
+  const entries = [makeEntry("国産 無添加 ドッグフード", 500), makeEntry("ドッグフード 無添加 国産", 500)];
+  const groups = groupByCanonicalKeyword(entries);
+  assert.equal(groups[0].mergedObservation.monthlySearches, 500);
+  assert.equal(groups[0].mergedObservation.searchVolumeVariance, undefined);
+});
+
+test("【監査対応】3件以上の統合でも最大値のみが採用される(合算にならない)", () => {
+  const entries = [
+    makeEntry("国産 無添加 ドッグフード", 100),
+    makeEntry("ドッグフード 無添加 国産", 200),
+    makeEntry("無添加 国産 ドッグフード", 50),
+  ];
+  const groups = groupByCanonicalKeyword(entries);
+  assert.equal(groups[0].mergedObservation.monthlySearches, 200);
+});
+
+test("【監査対応】統合前の各観測(originalKeyword個別)がsourceObservationsに保持される", () => {
+  const entries = [makeEntry("国産 無添加 ドッグフード", 500), makeEntry("ドッグフード 無添加 国産", 5000)];
+  const groups = groupByCanonicalKeyword(entries);
+  const sourceObservations = groups[0].mergedObservation.sourceObservations;
+  assert.equal(sourceObservations.length, 2);
+  assert.deepEqual(
+    sourceObservations.map((o) => o.monthlySearches).sort((a, b) => a - b),
+    [500, 5000]
+  );
 });
 
 test("対象・条件が異なるキーワードは統合されない(シニア犬向けと子犬向けは別ページ)", () => {
