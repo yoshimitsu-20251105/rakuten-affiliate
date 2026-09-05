@@ -10,17 +10,40 @@
 // 実行結果(rakutenLookupStatus/rakutenSupplyStatus)・安全性(safetyStatus)・
 // 検索語品質(queryQualityStatus)を、それぞれ独立した集計として表示する。
 // originalKeyword/normalizedKeyword/rakutenQueryもCSVへ明示する。
+//
+// 【2026-09-05 マージ前最終監査(3周目)対応】異なる実行結果を正しく比較できるように、
+// run-metadata.jsonへ再現性情報(candidateSetHash・searchSourceCounts等)を出力する。
+// この監査で、.envを読み込まずに楽天照合スクリプトを実行してしまい、実際の楽天APIでは
+// なくテスト用fixture(9件のみ)へ静かにフォールバックしていたことに気づかないまま
+// 「楽天ELIGIBLE件数が90→47に激減した」と誤認する事故があった。searchSourceCounts
+// (live/fixtureの内訳)をレポートへ必ず明示することで、今後この種の誤認を防ぐ。
 
 import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { toCsv } from "./csv.js";
+
+function sha256(text) {
+  return createHash("sha256").update(text, "utf-8").digest("hex");
+}
 
 /**
  * @param {{ candidates: any[], sourceMetas: any[], config: any }} pipelineResult
- * @param {{ outDir: string, mode: string, runId: string }} runInfo
+ * @param {{ outDir: string, mode: string, runId: string, codeCommit?: string, inputFileHash?: string }} runInfo
  */
 export async function writeReports(pipelineResult, runInfo) {
-  const { candidates, sourceMetas } = pipelineResult;
+  const { candidates, sourceMetas, config } = pipelineResult;
   await mkdir(runInfo.outDir, { recursive: true });
+
+  // --- 再現性情報(2026-09-05 マージ前最終監査(3周目)対応) ---
+  const candidateSetHash = sha256(
+    candidates.map((c) => c.originalKeyword).sort().join("\n")
+  );
+  const mappingConfigHash = sha256(JSON.stringify(config ?? {}));
+  const searchSourceCounts = {};
+  for (const c of candidates) {
+    const key = c.rakuten?.searchSource ?? "(未実行)";
+    searchSourceCounts[key] = (searchSourceCounts[key] ?? 0) + 1;
+  }
 
   const clusterCounts = {};
   for (const c of candidates) {
@@ -94,6 +117,10 @@ export async function writeReports(pipelineResult, runInfo) {
     `2. 実行モード: ${runInfo.mode}`,
     `3. 使用データ源:`,
     ...sourceMetas.map((m) => `   - ${m.source}: configured=${m.configured} fallbackUsed=${m.fallbackUsed} — ${m.note}`),
+    `3b. 【楽天照合のデータソース内訳(searchSource)】 ${Object.entries(searchSourceCounts).map(([k, v]) => `${k}=${v}件`).join(" / ") || "(該当なし)"}`,
+    (searchSourceCounts.fixture ?? 0) > 0
+      ? `    ⚠【重要】fixture(テスト用の固定データ、実際の楽天在庫ではない)へのフォールバックが${searchSourceCounts.fixture}件発生しています。RAKUTEN_APP_ID/RAKUTEN_SECRETが未設定(.envを読み込まずに実行した等)の場合にこうなります。この実行結果を実データの楽天照合結果として扱わないでください。`
+      : `    fixtureへのフォールバックは0件です(すべて${searchSourceCounts.live ? "live(実際の楽天API)" : "設定された検索関数"}によるデータです)。`,
     `4. 対象期間: 実行時点の最新データ(ソースごとのperiodはCSV参照)`,
     `5. クラスター別候補数:`,
     ...Object.entries(clusterCounts).map(([k, v]) => `   - ${k}: ${v}件`),
@@ -135,6 +162,30 @@ export async function writeReports(pipelineResult, runInfo) {
     ``,
   ].filter((line) => line !== "");
   await writeFile(`${runInfo.outDir}/summary.md`, summaryLines.join("\n"), "utf-8");
+
+  // --- 再現性情報(2026-09-05 マージ前最終監査(3周目)対応) ---
+  // 異なる実行結果を正しく比較できるように、候補集合・設定・データソースの
+  // ハッシュ/内訳を記録する。シークレット(APIキー等)は一切含めない。
+  await writeFile(
+    `${runInfo.outDir}/run-metadata.json`,
+    JSON.stringify(
+      {
+        runId: runInfo.runId,
+        executedAt: new Date().toISOString(),
+        mode: runInfo.mode,
+        codeCommit: runInfo.codeCommit ?? null,
+        inputFileHash: runInfo.inputFileHash ?? null,
+        candidateCount: candidates.length,
+        candidateSetHash,
+        mappingConfigHash,
+        searchSourceCounts,
+        rakutenRequestParamsSummary: { endpoint: "IchibaItem/Search/20260701", hits: 30, sort: "-reviewCount", format: "json" },
+      },
+      null,
+      2
+    ),
+    "utf-8"
+  );
 
   const candidateRows = candidates.map((c) => ({
     originalKeyword: c.originalKeyword,
@@ -260,7 +311,10 @@ export async function writeReports(pipelineResult, runInfo) {
 
   return {
     summaryPath: `${runInfo.outDir}/summary.md`,
+    metadataPath: `${runInfo.outDir}/run-metadata.json`,
     counts: {
+      searchSourceCounts,
+      candidateSetHash,
       // 後方互換のためpriorityCount等はscoreBand相当の値を返すが、呼び出し側(CLI)には
       // 実運用件数(operational*)とscoreBand件数を区別してログ表示させる。
       priorityCount: scoreBandPriorityCount,

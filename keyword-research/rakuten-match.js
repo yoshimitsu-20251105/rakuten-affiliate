@@ -54,12 +54,40 @@ export async function searchRakutenItemsLive(keyword, { hits = 30 } = {}) {
     timeoutMs: 10000,
     maxRetries: 2,
   });
-  const data = await res.json();
+  // 【2026-09-05 マージ前最終監査(3周目)対応】以前はHTTPステータスを一切確認せず、
+  // レスポンスbodyに`error`/`errors`フィールドがあるかどうかだけで異常を判定していた。
+  // 429/5xx等がbackoff後もエラーステータスのまま返り、かつそのbodyが`error`/`errors`
+  // という名前のフィールドを持たない形(例: 空body、別形式のエラーオブジェクト、
+  // Itemsフィールドが欠損した200以外のレスポンス)だった場合、異常なHTTP応答が
+  // 「商品0件の正常なレスポンス」として誤ってNO_MATCH扱いされてしまう欠陥があった。
+  // res.okを最優先でチェックし、非2xxは(bodyの中身に関わらず)必ずAPI_ERRORとして
+  // 呼び出し元(pipeline.js)へ例外を投げる。
+  if (!res.ok) {
+    let bodyPreview = "";
+    try {
+      const text = await res.text();
+      bodyPreview = text.slice(0, 200); // レスポンス全文は保存・表示しない(先頭200文字のみ)
+    } catch {
+      // bodyの読み取り自体に失敗した場合は無視してステータスのみ報告する
+    }
+    throw new Error(`楽天APIエラー: HTTP ${res.status}${bodyPreview ? ` - ${bodyPreview}` : ""}`);
+  }
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    throw new Error(`楽天APIエラー: レスポンスのJSON解析に失敗(${e.message})`);
+  }
   if (data.error || data.errors) {
     const msg = data.error ? `${data.error} ${data.error_description ?? ""}` : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
     throw new Error(`楽天APIエラー: ${msg}`);
   }
-  return { items: (data.Items ?? []).map((w) => w.Item), count: data.count ?? 0, source: "live" };
+  if (!Array.isArray(data.Items)) {
+    // Itemsフィールドが配列でない(欠損・null等)場合は「商品0件」と「異常応答」を
+    // 区別できないため、安全側に倒してエラーとして扱う(黙って空配列にしない)。
+    throw new Error("楽天APIエラー: レスポンスにItemsフィールドが存在しない、または配列ではない");
+  }
+  return { items: data.Items.map((w) => w.Item), count: data.count ?? 0, source: "live" };
 }
 
 /**
@@ -100,6 +128,21 @@ export function createRakutenSearchFn() {
       usedFixtureFallback: false,
     };
   }
+  // 【2026-09-05 マージ前最終監査(3周目)対応】RAKUTEN_APP_ID/RAKUTEN_SECRETが
+  // 未設定(例: --env-file-if-exists=.envを付け忘れて実行した場合)だと、ここで
+  // 静かに9件のみのテスト用fixtureへフォールバックする。これに気づかず「実データの
+  // 楽天照合結果」として扱うと、実際の楽天在庫とは無関係な少数固定データを分析している
+  // ことになり、実行結果の解釈を誤る(2026-09-05のマージ前最終監査で実際に発生した事故:
+  // .envを読み込まずにこの関数を直接呼び出すスクリプトを実行し、fixtureフォールバック
+  // に気づかないまま「楽天ELIGIBLE件数が90→47に激減した」と誤認した)。
+  // このモジュールを直接呼び出すすべての呼び出し元(CLIに限らない)で必ず気づけるよう、
+  // ここで一度だけ警告を出す。
+  console.warn(
+    "[rakuten-match] 警告: RAKUTEN_APP_ID/RAKUTEN_SECRETが未設定のため、実際の楽天APIではなく" +
+      "keyword-research/fixtures/rakuten-items.fixture.json(テスト用の9件の固定データ)へ" +
+      "フォールバックしています。実データの楽天照合結果ではありません。" +
+      "`node --env-file-if-exists=.env ...`のように.envを読み込んで実行してください。"
+  );
   return {
     search: (keyword) => searchRakutenItemsFixture(keyword),
     usedFixtureFallback: true,
