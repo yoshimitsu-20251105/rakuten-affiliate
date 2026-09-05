@@ -43,6 +43,13 @@ export async function writeReports(pipelineResult, runInfo) {
   const eligibleForApprovalCount = candidates.filter((c) => c.eligibleForApproval === true).length;
   const eligibleForExportCount = candidates.filter((c) => c.eligibleForExport === true).length;
   const eligibleForPublishCount = candidates.filter((c) => c.eligibleForPublish === true).length;
+  // eligibleForApprovalはPRIORITY/TEST/OBSERVEのいずれの帯でもtrueになり得るため、
+  // 「PRIORITY件数」と「承認候補件数」を混同しないよう、帯ごとの内訳も別掲する。
+  const approvalCandidateByBand = {
+    PRIORITY: candidates.filter((c) => c.eligibleForApproval && c.decisionStatus === "PRIORITY").length,
+    TEST: candidates.filter((c) => c.eligibleForApproval && c.decisionStatus === "TEST").length,
+    OBSERVE: candidates.filter((c) => c.eligibleForApproval && c.decisionStatus === "OBSERVE").length,
+  };
 
   // --- 楽天照合の実行結果(需要データ検証とは独立) ---
   const rakutenSuccessCount = candidates.filter((c) => c.rakutenLookupStatus === "SUCCESS").length;
@@ -80,26 +87,30 @@ export async function writeReports(pipelineResult, runInfo) {
     `    ※ここに表示される件数は「スコア計算のテスト結果」であり、fixtureや欠損データでも算出される。実運用可能な候補数ではない。`,
     `7b. 【実運用判定(decisionStatus) — businessValidated=trueの候補のみ】`,
     `    需要データ検証済み件数(businessValidated=true)=${businessValidatedCount}件 / businessValidated=false(UNVALIDATED)=${unvalidatedCount}件`,
-    `    実運用上の優先候補=${operationalPriorityCount} / 実運用上のテスト候補=${operationalTestCount} / 実運用上の継続観測=${operationalObserveCount}`,
-    `    自動承認可能件数(eligibleForApproval)=${eligibleForApprovalCount} / 出力可能件数(eligibleForExport)=${eligibleForExportCount} / 公開可能件数(eligibleForPublish、Phase3未実装のため常に0)=${eligibleForPublishCount}`,
+    `    実運用上の優先候補(PRIORITY)=${operationalPriorityCount} / 実運用上のテスト候補(TEST)=${operationalTestCount} / 実運用上の継続観測(OBSERVE)=${operationalObserveCount}`,
+    `    【重要】eligibleForApproval等は「人間が承認する対象にできる」という意味であり、自動で承認・出力・掲載されるという意味ではない。`,
+    `    承認候補件数(eligibleForApproval、人間による承認ファイルなしでは何も出力・掲載されない)=${eligibleForApprovalCount}件`,
+    `      内訳: PRIORITY帯=${approvalCandidateByBand.PRIORITY} / TEST帯=${approvalCandidateByBand.TEST} / OBSERVE帯=${approvalCandidateByBand.OBSERVE}(合計${eligibleForApprovalCount}件。PRIORITY件数だけと比較しないこと)`,
+    `    出力対象件数(eligibleForExport、keywords:export-approvedで人間の承認ファイルと突き合わせて初めて実際に出力される)=${eligibleForExportCount}件`,
+    `    掲載対象件数(eligibleForPublish、Phase3〈既存サイトへの接続〉が未実装のため常に0)=${eligibleForPublishCount}件`,
     businessValidatedCount === 0
-      ? `    ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認可能候補・出力可能候補はすべて0件です(7aのスコア帯とは別物です)。`
+      ? `    ⚠ businessValidated=trueが0件のため、実運用上の優先候補・承認候補・出力対象件数はすべて0件です(7aのスコア帯とは別物です)。`
       : ``,
     `7c. 【楽天照合の実行結果 — 需要データ検証とは独立(2026-09-05対応)】`,
     `    楽天照合成功件数(rakutenLookupStatus=SUCCESS)=${rakutenSuccessCount} / 楽天APIエラー件数(API_ERROR)=${rakutenApiErrorCount} / 未実行(NOT_RUN、安全ゲート等でスキップ)=${rakutenNotRunCount}`,
-    `    楽天商品不足件数(rakutenSupplyStatus=INSUFFICIENT、1〜2件のみ一致)=${rakutenInsufficientCount} / 商品0件(NO_MATCH)=${rakutenNoMatchCount}`,
-    `    【重要】楽天APIエラーはbusinessValidatedを変更しない(需要データの検証結果と楽天照合の成否は別の状態として扱う)。`,
+    `    楽天商品不足件数(rakutenSupplyStatus=INSUFFICIENT、最低基準3件未満のみ一致)=${rakutenInsufficientCount} / 商品0件(NO_MATCH)=${rakutenNoMatchCount}`,
+    `    【重要】楽天APIエラーはbusinessValidatedを変更しない(需要データの検証結果と楽天照合の成否は別の状態として扱う)。INSUFFICIENT/NO_MATCH/NOT_EVALUATED/API_ERROR/NOT_RUNのいずれも、スコアが高くても承認候補にはならない。`,
     `7d. 【安全ゲート・検索語品質】`,
     `    医療レビュー件数(safetyStatus=MEDICAL_REVIEW_REQUIRED)=${medicalReviewCount} / 健康訴求レビュー件数(HEALTH_REVIEW_REQUIRED)=${healthReviewCount}`,
     `    不自然な検索語件数: MALFORMED=${malformedCount} / REVIEW_REQUIRED(要確認、自動除外はしない)=${queryReviewRequiredCount}`,
-    `    医療・健康レビュー対象および不自然な検索語は、businessValidatedの値に関わらず自動承認・自動出力・自動掲載を禁止する。`,
+    `    医療・健康レビュー対象および不自然な検索語は、businessValidatedの値に関わらず承認候補・出力対象・掲載対象のいずれにもしない。`,
     `8. 楽天商品一致数(ELIGIBLE≥1件のキーワード): ${rakutenMatchedCount}件`,
     `9. 手動確認件数: ${needsReview.length}件(NEEDS_MANUAL_REVIEW、理由はneeds-review.csv参照)`,
     `10. 医療関連除外数(intent=MEDICAL_REVIEW_REQUIRED): ${medicalExcluded}件(safetyStatusベースの医療レビュー件数は7d参照)`,
     `11. API失敗・欠損・フォールバック: ${apiFallbacks.length}件`,
     ...apiFallbacks.map((m) => `   - ${m.source}: ${m.note}`),
-    `12. 出力可能件数(eligibleForExport、承認ゲート前の機械的な要件充足数): ${eligibleForExportCount}件。実際の出力にはkeywords:export-approvedでの人間承認と、対象候補のbusinessValidated=trueが必須(旧keywords:publishは非推奨エイリアスで同じ制限がかかる)。`,
-    `13. 【重要】これはdry-runのため、公開ページ・本番状態(articles-data.json/selected-products.json等)・承認状態の変更、commit、pushは一切行っていません。`,
+    `12. 出力対象件数(eligibleForExport、あくまで機械的な要件充足数=「出力され得る候補」であって「承認済み」ではない): ${eligibleForExportCount}件。実際に出力されるには、人間が作成した承認ファイル(approved-file)を指定してkeywords:export-approvedを実行することが必須(旧keywords:publishは非推奨エイリアスで同じ制限がかかる)。承認ファイルが無ければ1件も出力されない。`,
+    `13. 【重要】これはdry-runのため、公開ページ・本番状態(articles-data.json/selected-products.json等)・承認状態の変更、commit、pushは一切行っていません。この機能は既存サイト生成(generate-site.js)・日次GitHub Actionsのいずれからも呼び出されていません。`,
     `14. 【重要・市場検証区分】businessValidated=true(実データで市場需要を検証済み): ${businessValidatedCount}件 / businessValidated=false(fixtureまたはデータ欠損があり実際の市場需要を示すものではない): ${candidates.length - businessValidatedCount}件。fixture由来のスコアを実需要・実運用候補として扱わないこと(keyword-scores.csvのbusinessValidated/dataSource/sourceProvider/isSynthetic列を参照)。`,
     ``,
   ].filter((line) => line !== "");

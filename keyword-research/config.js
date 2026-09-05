@@ -82,8 +82,8 @@ export const COMPOUND_TOKEN_MERGES = [
   { tokens: ["フリー", "グレイン"], joined: "グレインフリー" },
 ];
 
-// ---- 医療・疾病語彙(MEDICAL_REVIEW_REQUIREDの判定に使用。自動承認・自動出力・
-//      自動掲載のいずれも禁止)。単一トークンでの一致を基本とする(語順ソート後の
+// ---- 医療・疾病語彙(MEDICAL_REVIEW_REQUIREDの判定に使用。承認候補・出力対象・
+//      掲載対象のいずれにもしない)。単一トークンでの一致を基本とする(語順ソート後の
 //      canonicalKeywordに対してsubstring判定するため、複数語の連続一致を前提にした
 //      フレーズ登録は語順によって一致しなくなるリスクがあるため避ける) ----
 export const MEDICAL_TERMS = [
@@ -93,7 +93,7 @@ export const MEDICAL_TERMS = [
 ];
 
 // ---- 健康訴求語彙(HEALTH_REVIEW_REQUIREDの判定に使用。医療ほど重篤ではないが、
-//      健康上の効能を訴求する語は自動承認・自動出力・自動掲載を禁止する) ----
+//      健康上の効能を訴求する語は承認候補・出力対象・掲載対象のいずれにもしない) ----
 export const HEALTH_TERMS = [
   "低脂肪", "ダイエット", "体重管理", "肥満", "消化", "関節", "皮膚", "涙やけ",
 ];

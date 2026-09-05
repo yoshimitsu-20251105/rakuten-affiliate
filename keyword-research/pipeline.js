@@ -259,6 +259,7 @@ export async function runMapRakuten(researchResult, options = {}) {
       safetyStatus: candidate.safetyStatus,
       queryQualityStatus: candidate.queryQualityStatus,
       rakutenLookupStatus: "SUCCESS",
+      rakutenSupplyStatus,
     });
 
     const publishBlockReasons = [...decision.validationFailureReasons];

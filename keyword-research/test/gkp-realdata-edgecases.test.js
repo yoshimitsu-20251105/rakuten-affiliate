@@ -108,7 +108,7 @@ test("【監査対応】rakutenQueryの加工(助詞除去)が需要データ(bu
   );
 });
 
-test("【監査対応】医療語彙を含む候補は楽天照合をスキップし、businessValidated=trueでもMEDICAL_REVIEW_REQUIREDとして自動承認不可", async () => {
+test("【監査対応】医療語彙を含む候補は楽天照合をスキップし、businessValidated=trueでもMEDICAL_REVIEW_REQUIREDとして承認候補にならない", async () => {
   await withTempCsv([{ keyword: "シニア ドッグフード 腎臓", monthlySearches: 500 }], async (csvPath) => {
     const researchResult = await runResearch({ manualCsvPath: csvPath });
     const mapped = await runMapRakuten(researchResult, { searchFn: alwaysSucceedSearch });
@@ -120,7 +120,7 @@ test("【監査対応】医療語彙を含む候補は楽天照合をスキッ�
   });
 });
 
-test("【監査対応】健康訴求語彙を含む候補もbusinessValidated=trueで自動承認不可", async () => {
+test("【監査対応】健康訴求語彙を含む候補もbusinessValidated=trueで承認候補にならない", async () => {
   await withTempCsv([{ keyword: "シニア 犬 ダイエット フード", monthlySearches: 500 }], async (csvPath) => {
     const researchResult = await runResearch({ manualCsvPath: csvPath });
     const mapped = await runMapRakuten(researchResult, { searchFn: alwaysSucceedSearch });
@@ -165,6 +165,77 @@ test("正常系: businessValidated=true・safetyStatus=SAFE・queryQualityStatus
     assert.equal(mapped[0].safetyStatus, "SAFE");
     assert.equal(mapped[0].queryQualityStatus, "VALID");
     assert.equal(mapped[0].rakutenLookupStatus, "SUCCESS");
+    assert.equal(mapped[0].rakutenSupplyStatus, "ELIGIBLE");
+    assert.equal(mapped[0].eligibleForApproval, true);
+  });
+});
+
+// 【2026-09-05 マージ前最終監査対応】楽天商品供給ゲート(rakutenSupplyStatus)。
+// 実データで「ELIGIBLE商品が1件しかない(INSUFFICIENT)候補が、スコアが十分高いという
+// 理由だけでeligibleForApproval=trueになってしまう」バグが見つかったため、
+// rakutenSupplyStatusを明示的なゲートとして固定する。
+
+async function oneEligibleItemSearch() {
+  return { items: [ELIGIBLE_ITEM], count: 1, source: "mock" }; // ELIGIBLE商品1件 → INSUFFICIENT
+}
+
+async function zeroItemSearch() {
+  return { items: [], count: 0, source: "mock" }; // 商品0件 → NO_MATCH
+}
+
+test("【監査対応】rakutenSupplyStatus=INSUFFICIENT(ELIGIBLE商品1件、最低基準3件未満)は、スコアが高くてもeligibleForApproval=falseになる", async () => {
+  await withTempCsv([{ keyword: "国産 無添加 ドッグフード", monthlySearches: 5000, competitionLevel: "LOW" }], async (csvPath) => {
+    const researchResult = await runResearch({ manualCsvPath: csvPath });
+    const mapped = await runMapRakuten(researchResult, { searchFn: oneEligibleItemSearch });
+    assert.equal(mapped[0].rakutenSupplyStatus, "INSUFFICIENT");
+    assert.equal(mapped[0].businessValidated, true, "需要データは検証済みのまま");
+    // scoreBandが高得点(PRIORITY/TEST)であっても、供給不足なら承認候補にしない
+    assert.equal(mapped[0].eligibleForApproval, false);
+    assert.equal(mapped[0].eligibleForExport, false);
+    assert.equal(mapped[0].eligibleForPublish, false);
+    assert.ok(mapped[0].publishBlockReasons.some((r) => r.includes("INSUFFICIENT")));
+  });
+});
+
+test("【監査対応】rakutenSupplyStatus=NO_MATCH(商品0件)はeligibleForApproval=falseになる", async () => {
+  await withTempCsv([{ keyword: "国産 無添加 ドッグフード", monthlySearches: 5000, competitionLevel: "LOW" }], async (csvPath) => {
+    const researchResult = await runResearch({ manualCsvPath: csvPath });
+    const mapped = await runMapRakuten(researchResult, { searchFn: zeroItemSearch });
+    assert.equal(mapped[0].rakutenSupplyStatus, "NO_MATCH");
+    assert.equal(mapped[0].businessValidated, true);
+    assert.equal(mapped[0].eligibleForApproval, false);
+  });
+});
+
+test("【監査対応】rakutenLookupStatus=NOT_RUNの候補はrakutenSupplyStatus=NOT_EVALUATEDになり、eligibleForApproval=falseになる", async () => {
+  await withTempCsv([{ keyword: "シニア ドッグフード 腎臓", monthlySearches: 5000, competitionLevel: "LOW" }], async (csvPath) => {
+    const researchResult = await runResearch({ manualCsvPath: csvPath });
+    const mapped = await runMapRakuten(researchResult, { searchFn: alwaysSucceedSearch });
+    assert.equal(mapped[0].rakutenLookupStatus, "NOT_RUN");
+    assert.equal(mapped[0].rakutenSupplyStatus, "NOT_EVALUATED");
+    assert.equal(mapped[0].eligibleForApproval, false);
+  });
+});
+
+test("【監査対応】rakutenLookupStatus=API_ERRORの候補はrakutenSupplyStatus=NOT_EVALUATEDになり、businessValidated=trueを維持しつつeligibleForApproval=falseになる", async () => {
+  await withTempCsv([{ keyword: "国産 の キャットフード", monthlySearches: 1000 }], async (csvPath) => {
+    const researchResult = await runResearch({ manualCsvPath: csvPath });
+    const failingSearch = async () => {
+      throw new Error("楽天APIエラー: wrong_parameter keyword is not valid");
+    };
+    const mapped = await runMapRakuten(researchResult, { searchFn: failingSearch });
+    assert.equal(mapped[0].rakutenLookupStatus, "API_ERROR");
+    assert.equal(mapped[0].rakutenSupplyStatus, "NOT_EVALUATED");
+    assert.equal(mapped[0].businessValidated, true);
+    assert.equal(mapped[0].eligibleForApproval, false);
+  });
+});
+
+test("【監査対応】rakutenSupplyStatus=ELIGIBLE(最低3件以上)のみがeligibleForApproval=trueになり得る(3件ちょうどの境界値)", async () => {
+  await withTempCsv([{ keyword: "国産 無添加 ドッグフード", monthlySearches: 5000, competitionLevel: "LOW" }], async (csvPath) => {
+    const researchResult = await runResearch({ manualCsvPath: csvPath });
+    const threeItemsSearch = async () => ({ items: [ELIGIBLE_ITEM, ELIGIBLE_ITEM, ELIGIBLE_ITEM], count: 3, source: "mock" });
+    const mapped = await runMapRakuten(researchResult, { searchFn: threeItemsSearch });
     assert.equal(mapped[0].rakutenSupplyStatus, "ELIGIBLE");
     assert.equal(mapped[0].eligibleForApproval, true);
   });

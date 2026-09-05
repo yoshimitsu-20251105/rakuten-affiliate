@@ -77,6 +77,7 @@ test("businessValidated=trueの実データのみ承認可能(eligibleForApprova
     intent: "CONDITION_PURCHASE",
     eligibleRakutenCount: 5,
     bestProductQualityScore: 80,
+    rakutenSupplyStatus: "ELIGIBLE", // 楽天ELIGIBLE商品が最低基準(3件)以上ある想定
   });
   assert.equal(decision.decisionStatus, "PRIORITY");
   assert.equal(decision.eligibleForApproval, true);

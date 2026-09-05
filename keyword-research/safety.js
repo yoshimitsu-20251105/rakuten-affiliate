@@ -5,7 +5,7 @@
 // このモジュールが返すsafetyStatusを最優先で参照する。
 //
 // 医療語彙(MEDICAL_REVIEW_REQUIRED)が健康訴求語彙(HEALTH_REVIEW_REQUIRED)より
-// 常に優先される。両方とも自動承認・自動出力・自動掲載を禁止する対象であり、
+// 常に優先される。両方とも承認候補・出力対象・掲載対象のいずれにもしない対象であり、
 // この2つを区別する目的は「深刻度の違いをレポート上で見分けられるようにする」ため。
 
 /** @typedef {'SAFE'|'HEALTH_REVIEW_REQUIRED'|'MEDICAL_REVIEW_REQUIRED'} SafetyStatus */
@@ -20,7 +20,7 @@ export function classifySafety(canonicalKeyword, config) {
   if (medicalMatched.length > 0) {
     return {
       safetyStatus: "MEDICAL_REVIEW_REQUIRED",
-      reasons: [`医療関連語を検出: ${medicalMatched.join(", ")}(自動承認・自動出力・自動掲載を禁止)`],
+      reasons: [`医療関連語を検出: ${medicalMatched.join(", ")}(承認候補・出力対象・掲載対象のいずれにもしない)`],
     };
   }
 
@@ -28,7 +28,7 @@ export function classifySafety(canonicalKeyword, config) {
   if (healthMatched.length > 0) {
     return {
       safetyStatus: "HEALTH_REVIEW_REQUIRED",
-      reasons: [`健康訴求語を検出: ${healthMatched.join(", ")}(自動承認・自動出力・自動掲載を禁止)`],
+      reasons: [`健康訴求語を検出: ${healthMatched.join(", ")}(承認候補・出力対象・掲載対象のいずれにもしない)`],
     };
   }
 
