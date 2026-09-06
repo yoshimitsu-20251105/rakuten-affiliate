@@ -19,6 +19,7 @@ import {
   writeNormalizedKeywordsCsv,
   writeSelectedForRakutenCsv,
   writeExcludedKeywordsCsv,
+  writeRakutenItemsJson,
 } from "../gkp-report.js";
 import { importAndNormalizeGkp } from "../gkp-import.js";
 import { selectCandidatesForRakuten } from "../gkp-selection.js";
@@ -132,6 +133,7 @@ async function main() {
     await writeNormalizedKeywordsCsv(allCandidates, outDir);
     await writeSelectedForRakutenCsv(selected, outDir);
     await writeExcludedKeywordsCsv(excluded, outDir);
+    await writeRakutenItemsJson(mapped, outDir);
 
     const { counts } = await writeReports(
       { candidates: mapped, sourceMetas: result.researchResult.sourceMetas, config: result.researchResult.config },

@@ -75,6 +75,31 @@ npm run keywords:gkp-dry-run -- --dog-csv "<犬用CSV>" --cat-csv "<猫用CSV>" 
   同じrunIdの既存結果は上書きしない。`run-metadata.json`に再現性情報
   (candidateSetHash・mappingConfigHash・searchSourceCounts等、認証情報は含まない)を記録する。
 
+### Phase 3A: 非公開下書きページ生成(2026-09-07対応)
+
+```bash
+KEYWORD_RESEARCH_DRAFTS_ENABLED=true npm run keywords:build-pilot-drafts -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --approved-file <approval.json> \
+  --run-id <draftRunId>
+```
+
+- 既定では無効(`KEYWORD_RESEARCH_DRAFTS_ENABLED=true`を明示しない限り実行できない)な実験的機能。
+- 人間が作成した承認ファイル(`approval.json`: version/sourceRunId/candidateSetHash/approvedBy="human"/
+  approvedAt/keywords[](normalizedKeyword/title/slug/action="CREATE"のみ、最大10件))を必須とする。
+- source runは`rakutenSource=live`・`status=completed`・`searchSourceCounts`にfixtureを含まない・
+  API_ERROR=0・`candidateSetHash`が承認ファイルと一致、のすべてを満たす必要がある(1つでも
+  満たさなければ全件生成せず非ゼロ終了する)。
+- 候補ごとにbusinessValidated/decisionStatus=PRIORITY/eligibleForApproval/safetyStatus=SAFE/
+  queryQualityStatus=VALID/rakutenLookupStatus=SUCCESS/rakutenSupplyStatus=ELIGIBLE/楽天ELIGIBLE
+  商品3件以上を検証し、既存サイト(`docs/rankings/`)・既存パイプライン設定(`select-products.js`の
+  シードキーワード、同義語対応)とのslug重複・検索意図重複が無いことも確認する。
+- 出力は`keyword-research/output/pilot-drafts/<runId>/`(gitignore対象)へ、各候補のHTML
+  (noindex,nofollow・DRAFT表示・レスポンシブ対応)・`manifest.json`・`validation-report.md`・
+  `run-metadata.json`を保存する。既存サイト(`docs/`)・`generate-site.js`・`select-products.js`・
+  日次GitHub Actionsへの接続・公開は一切行わない。楽天/Google/Search Console APIも呼び出さない
+  (保存済みのsource runを読み取り専用で使うだけ)。
+
 ### Search Console実接続を使ったdry-runの正式な実行方法
 
 ```bash

@@ -16,7 +16,8 @@
     "keywords:publish": "node --env-file-if-exists=.env keyword-research/cli/publish.js",
     "keywords:dry-run": "node --env-file-if-exists=.env keyword-research/cli/dry-run.js",
     "keywords:import-gkp": "node --env-file-if-exists=.env keyword-research/cli/import-gkp.js",
-    "keywords:gkp-dry-run": "node --env-file-if-exists=.env keyword-research/cli/gkp-dry-run.js"
+    "keywords:gkp-dry-run": "node --env-file-if-exists=.env keyword-research/cli/gkp-dry-run.js",
+    "keywords:build-pilot-drafts": "node keyword-research/cli/build-pilot-drafts.js"
   },
   "repository": {
     "type": "git",
