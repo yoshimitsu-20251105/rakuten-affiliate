@@ -6,68 +6,45 @@
 // までを行う。楽天APIは一切呼び出さない(需要分析だけを行うコマンド)。
 // 公開ページ・本番状態・承認状態は一切変更しない。
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { mkdir } from "node:fs/promises";
 import { runMapRakuten } from "../pipeline.js";
 import { writeReports } from "../report.js";
 import { writeConvertedAllCsv, writeNormalizedKeywordsCsv } from "../gkp-report.js";
 import { importAndNormalizeGkp } from "../gkp-import.js";
 import { parseArgs, nowJstIso } from "./args.js";
+import { getCodeCommit, sanitizeRunId, createExclusiveRunDir, writeFailureMetadata } from "./gkp-cli-common.js";
 
-const OUTPUT_ROOT = new URL("../output/gkp-runs/", import.meta.url);
-
-function getCodeCommit() {
-  try {
-    return execSync("git rev-parse HEAD", { cwd: new URL("../../", import.meta.url), encoding: "utf-8" }).trim();
-  } catch {
-    return null;
-  }
-}
-
-function sanitizeRunId(id) {
-  return id.replace(/[^A-Za-z0-9_-]/g, "-");
-}
-
-async function writeFailureMetadata(outDirUrl, runId, commandMode, error) {
-  try {
-    await mkdir(outDirUrl, { recursive: true });
-    await writeFile(
-      new URL("run-metadata.json", outDirUrl),
-      JSON.stringify({ runId, executedAt: new Date().toISOString(), commandMode, status: "failed", error: error.message }, null, 2),
-      "utf-8"
-    );
-  } catch {
-    // メタデータ書き込み自体に失敗しても、元のエラーで終了することを優先する
-  }
-}
+const OUTPUT_ROOT_URL = new URL("../output/gkp-runs/", import.meta.url);
+const OUTPUT_ROOT = OUTPUT_ROOT_URL.pathname.replace(/^\/([A-Za-z]):/, "$1:");
+const LOG = "[keywords:import-gkp]";
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const runId = sanitizeRunId(args["run-id"] || nowJstIso());
-  const outDirUrl = new URL(`${runId}/`, OUTPUT_ROOT);
-  const outDir = outDirUrl.pathname.replace(/^\/([A-Za-z]):/, "$1:");
+  const outDir = `${OUTPUT_ROOT}${runId}/`;
 
-  if (existsSync(outDir)) {
-    console.error(`[keywords:import-gkp] 出力先が既に存在します(上書きしません): ${outDir}`);
+  try {
+    await createExclusiveRunDir(outDir, OUTPUT_ROOT);
+  } catch (e) {
+    console.error(`${LOG} ${e.message} 対処: --run-id で別の実行IDを指定するか、既存の出力先を確認してください。`);
     process.exitCode = 1;
     return;
   }
 
-  console.log(`[keywords:import-gkp] 入力ファイル(犬用): ${args["dog-csv"] ?? "(未指定)"}`);
-  console.log(`[keywords:import-gkp] 入力ファイル(猫用): ${args["cat-csv"] ?? "(未指定)"}`);
-  console.log(`[keywords:import-gkp] 実行モード: import-gkp(取込・需要分析のみ、楽天APIは呼び出しません)`);
-  console.log(`[keywords:import-gkp] 出力先: ${outDir}`);
+  console.log(`${LOG} 入力ファイル(犬用): ${args["dog-csv"] ?? "(未指定)"}`);
+  console.log(`${LOG} 入力ファイル(猫用): ${args["cat-csv"] ?? "(未指定)"}`);
+  console.log(`${LOG} 実行モード: import-gkp(取込・需要分析のみ、楽天APIは呼び出しません)`);
+  console.log(`${LOG} 出力先: ${outDir}`);
 
   try {
     const result = await importAndNormalizeGkp({
       dogCsvPath: args["dog-csv"],
       catCsvPath: args["cat-csv"],
       onFilesParsed: ({ dogMeta, catMeta, originalRowCount }) => {
-        console.log(`[keywords:import-gkp] 犬用CSV: encoding=${dogMeta.encoding} delimiter=${dogMeta.delimiter} 行数=${dogMeta.rowCount}`);
-        console.log(`[keywords:import-gkp] 猫用CSV: encoding=${catMeta.encoding} delimiter=${catMeta.delimiter} 行数=${catMeta.rowCount}`);
-        console.log(`[keywords:import-gkp] 対象期間: 犬=${dogMeta.periodStart}〜${dogMeta.periodEnd} / 猫=${catMeta.periodStart}〜${catMeta.periodEnd}`);
-        console.log(`[keywords:import-gkp] 元データ件数(結合後): ${originalRowCount}件`);
+        console.log(`${LOG} 犬用CSV: encoding=${dogMeta.encoding} delimiter=${dogMeta.delimiter} 行数=${dogMeta.rowCount}`);
+        console.log(`${LOG} 猫用CSV: encoding=${catMeta.encoding} delimiter=${catMeta.delimiter} 行数=${catMeta.rowCount}`);
+        console.log(`${LOG} 対象期間: 犬=${dogMeta.periodStart}〜${dogMeta.periodEnd} / 猫=${catMeta.periodStart}〜${catMeta.periodEnd}`);
+        console.log(`${LOG} 元データ件数(結合後): ${originalRowCount}件`);
       },
     });
 
@@ -86,9 +63,10 @@ async function main() {
         outDir,
         mode: "import-gkp(需要分析のみ、楽天APIは未実行)",
         runId,
+        status: "completed",
         commandMode: "import-gkp",
         rakutenSource: null,
-        codeCommit: getCodeCommit(),
+        codeCommit: getCodeCommit(new URL("../../", import.meta.url)),
         inputFiles: result.inputFiles,
         inputFileHashes: result.inputFileHashes,
         sourceProvider: "google_keyword_planner",
@@ -100,20 +78,21 @@ async function main() {
       }
     );
 
-    console.log(`[keywords:import-gkp] 完了`);
+    console.log(`${LOG} 完了(status=completed)`);
+    console.log(`  楽天データ源: (このコマンドは楽天APIを呼び出しません)`);
     console.log(`  businessValidated=true: ${counts.businessValidatedCount}件`);
     console.log(`  医療・健康除外: 医療=${counts.medicalReviewCount}件 / 健康訴求=${counts.healthReviewCount}件`);
     console.log(`  正規化後件数: ${mapped.length}件`);
     console.log(`  出力先: ${outDir}`);
     console.log(`(このコマンドは楽天APIを呼び出していません。公開ページ・本番状態・承認状態・commit・pushは一切行っていません)`);
   } catch (e) {
-    await writeFailureMetadata(outDirUrl, runId, "import-gkp", e);
-    console.error(`[keywords:import-gkp] エラー: ${e.message}`);
+    await writeFailureMetadata(outDir, runId, "import-gkp", e);
+    console.error(`${LOG} エラー: ${e.message}`);
     process.exitCode = 1;
   }
 }
 
 main().catch((e) => {
-  console.error(`[keywords:import-gkp] 予期しないエラー: ${e.message}`);
+  console.error(`${LOG} 予期しないエラー: ${e.message}`);
   process.exitCode = 1;
 });

@@ -14,10 +14,6 @@
 
 import { searchRakutenItemsLive, searchRakutenItemsFixture } from "./rakuten-match.js";
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function isRakutenConfigured() {
   return Boolean(process.env.RAKUTEN_APP_ID && process.env.RAKUTEN_SECRET);
 }
@@ -35,12 +31,10 @@ export function createStrictRakutenSearchFn(rakutenSource) {
           "fixtureへの自動フォールバックは行いません(fail closed)。"
       );
     }
+    // レート制限の待機(成功・失敗を問わず最低1.2秒)はsearchRakutenItemsLive自身が
+    // 行うため、ここで重ねてsleepしない(二重待機・待機漏れの両方を避ける)。
     return {
-      search: async (keyword) => {
-        const result = await searchRakutenItemsLive(keyword);
-        await sleep(1200); // 楽天APIのレート制限(1秒1回)を守る
-        return result;
-      },
+      search: (keyword) => searchRakutenItemsLive(keyword),
       usedFixtureFallback: false,
     };
   }

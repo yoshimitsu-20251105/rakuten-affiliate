@@ -111,15 +111,61 @@ test("fixture明示指定時は承認・出力・掲載ゲートがすべて強�
     const header = lines[0].split(",");
     const eligibleForApprovalIdx = header.indexOf("eligibleForApproval");
     const eligibleForExportIdx = header.indexOf("eligibleForExport");
+    const eligibleForPublishIdx = header.indexOf("eligibleForPublish");
     for (const line of lines.slice(1)) {
       const cells = line.split(",");
       assert.equal(cells[eligibleForApprovalIdx], "false", "fixture実行ではeligibleForApprovalは常にfalse");
       assert.equal(cells[eligibleForExportIdx], "false", "fixture実行ではeligibleForExportは常にfalse");
+      assert.equal(cells[eligibleForPublishIdx], "false", "fixture実行ではeligibleForPublishは常にfalse");
     }
     const summary = await readFile(join(GKP_RUNS_DIR, runId, "summary.md"), "utf-8");
     assert.match(summary, /テストデータ・実運用不可/);
+    const metadata = JSON.parse(await readFile(join(GKP_RUNS_DIR, runId, "run-metadata.json"), "utf-8"));
+    assert.equal(metadata.status, "completed");
   });
   await rmRunDir(runId);
+});
+
+test("--max-rakuten-keywords=100は成功する(絶対上限ちょうど)", async () => {
+  const runId = `test-max100-${Date.now()}`;
+  await withTempCsvPair(DOG_ROWS, CAT_ROWS, async ({ dogPath, catPath }) => {
+    const result = runCli(GKP_DRY_RUN_CLI, [
+      "--dog-csv",
+      dogPath,
+      "--cat-csv",
+      catPath,
+      "--rakuten-source",
+      "fixture",
+      "--max-rakuten-keywords",
+      "100",
+      "--run-id",
+      runId,
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+  });
+  await rmRunDir(runId);
+});
+
+test("--max-rakuten-keywords=101/小数/0/負数はいずれもエラーになり、出力先を作らない", async () => {
+  await withTempCsvPair(DOG_ROWS, CAT_ROWS, async ({ dogPath, catPath }) => {
+    for (const invalid of ["101", "10.5", "0", "-1"]) {
+      const runId = `test-maxinvalid-${invalid}-${Date.now()}`;
+      const result = runCli(GKP_DRY_RUN_CLI, [
+        "--dog-csv",
+        dogPath,
+        "--cat-csv",
+        catPath,
+        "--rakuten-source",
+        "fixture",
+        "--max-rakuten-keywords",
+        invalid,
+        "--run-id",
+        runId,
+      ]);
+      assert.notEqual(result.status, 0, `--max-rakuten-keywords=${invalid} はエラーになるはず`);
+      assert.equal(existsSync(join(GKP_RUNS_DIR, runId)), false, `--max-rakuten-keywords=${invalid} は出力先を作らないはず`);
+    }
+  });
 });
 
 test("出力先が既に存在する場合はエラーになり、上書きしない", async () => {

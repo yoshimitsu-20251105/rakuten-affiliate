@@ -10,6 +10,7 @@
 
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { parseCsv } from "../csv.js";
 
 /** @typedef {'UTF-16LE'|'UTF-8-BOM'|'UTF-8'} DetectedEncoding */
 
@@ -74,14 +75,18 @@ function normalizeCell(cell) {
 }
 
 /**
- * @param {string[]} lines
- * @param {'\t'|','} delimiter
+ * 【2026-09-06 PR#4監査対応】引用符付きセル(カンマ区切りCSVで"1,000"や引用符内カンマ・
+ * エスケープされた引用符を含む場合)を正しく扱うため、生の行を単純にdelimiterで
+ * split()するのではなく、事前にparseCsv()で引用符を解釈済みのトークン配列(rows)を
+ * 受け取る。タブ区切り・引用符を含まない既存のGKP実CSVでは、引用符処理は素通りする
+ * だけなので解析結果は変わらない。
+ * @param {string[][]} rows - parseCsv()済みの行×列配列
  * @returns {{ index: number, columns: string[] }}
  */
-export function findHeaderRow(lines, delimiter) {
-  const limit = Math.min(lines.length, MAX_HEADER_SEARCH_LINES);
+export function findHeaderRow(rows) {
+  const limit = Math.min(rows.length, MAX_HEADER_SEARCH_LINES);
   for (let i = 0; i < limit; i++) {
-    const columns = lines[i].split(delimiter).map((c) => c.trim());
+    const columns = rows[i].map((c) => c.trim());
     const normalized = columns.map(normalizeCell);
     if (normalized.some((c) => KEYWORD_COLUMN_ALIASES.includes(c))) {
       return { index: i, columns };
@@ -210,7 +215,12 @@ export async function parseGkpFile(filePath, { animalType }) {
   }
 
   const delimiter = detectDelimiter(lines.slice(0, MAX_HEADER_SEARCH_LINES));
-  const { index: headerRowIndex, columns } = findHeaderRow(lines, delimiter);
+  // 【2026-09-06 PR#4監査対応】引用符・引用符内区切り文字・エスケープされた引用符を
+  // 正しく扱うため、生テキストをparseCsv()で引用符解釈済みのトークン配列へ変換してから
+  // ヘッダー探索・データ抽出を行う(タイトル行・期間行の抽出には、引用符を含まない
+  // 前提でこれまで通りlinesを使う)。
+  const rows = parseCsv(text, delimiter);
+  const { index: headerRowIndex, columns } = findHeaderRow(rows);
   const columnIndexMap = buildColumnIndexMap(columns);
 
   const period = parsePeriodFromLines(lines.slice(0, headerRowIndex));
@@ -221,10 +231,9 @@ export async function parseGkpFile(filePath, { animalType }) {
   }
 
   const observedAt = new Date().toISOString();
-  const dataLines = lines.slice(headerRowIndex + 1);
+  const dataRows = rows.slice(headerRowIndex + 1);
   const observations = [];
-  for (const line of dataLines) {
-    const cells = line.split(delimiter);
+  for (const cells of dataRows) {
     const keyword = (cells[columnIndexMap.keyword] ?? "").trim();
     if (keyword === "") continue;
 

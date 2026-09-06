@@ -3,9 +3,11 @@
 
 /**
  * @param {string} text
+ * @param {string} [delimiter] - フィールド区切り文字(既定はカンマ)。タブ区切り(GKP CSV等)
+ *   にも対応するため2026-09-06に引数化した(既定値は既存呼び出し元との互換性のため維持)。
  * @returns {string[][]} 行×列の二次元配列(1行目もヘッダーとして含む、呼び出し側で処理)
  */
-export function parseCsv(text) {
+export function parseCsv(text, delimiter = ",") {
   const rows = [];
   let row = [];
   let field = "";
@@ -29,7 +31,7 @@ export function parseCsv(text) {
     }
     if (c === '"') {
       inQuotes = true;
-    } else if (c === ",") {
+    } else if (c === delimiter) {
       row.push(field);
       field = "";
     } else if (c === "\n") {

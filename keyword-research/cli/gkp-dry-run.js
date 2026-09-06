@@ -11,9 +11,7 @@
 // 自動フォールバックはしない)。--rakuten-source fixture は明示指定時のみ使用可能で、
 // 承認・出力・掲載ゲートはすべて強制的にfalseになる(テストデータを実運用候補にしない)。
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { runMapRakuten } from "../pipeline.js";
 import { writeReports } from "../report.js";
 import {
@@ -26,100 +24,89 @@ import { importAndNormalizeGkp } from "../gkp-import.js";
 import { selectCandidatesForRakuten } from "../gkp-selection.js";
 import { createStrictRakutenSearchFn } from "../gkp-rakuten-source.js";
 import { parseArgs, nowJstIso } from "./args.js";
+import {
+  getCodeCommit,
+  sanitizeRunId,
+  createExclusiveRunDir,
+  writeFailureMetadata,
+  validateMaxRakutenKeywords,
+  evaluateApiErrorRate,
+} from "./gkp-cli-common.js";
 
-const OUTPUT_ROOT = new URL("../output/gkp-runs/", import.meta.url);
+const OUTPUT_ROOT_URL = new URL("../output/gkp-runs/", import.meta.url);
+const OUTPUT_ROOT = OUTPUT_ROOT_URL.pathname.replace(/^\/([A-Za-z]):/, "$1:");
 const API_ERROR_RATE_THRESHOLD = 0.5; // これを超えたら非ゼロ終了(異常な実行状態として報告)
-
-function getCodeCommit() {
-  try {
-    return execSync("git rev-parse HEAD", { cwd: new URL("../../", import.meta.url), encoding: "utf-8" }).trim();
-  } catch {
-    return null;
-  }
-}
-
-function sanitizeRunId(id) {
-  return id.replace(/[^A-Za-z0-9_-]/g, "-");
-}
-
-async function writeFailureMetadata(outDirUrl, runId, commandMode, error) {
-  try {
-    await mkdir(outDirUrl, { recursive: true });
-    await writeFile(
-      new URL("run-metadata.json", outDirUrl),
-      JSON.stringify({ runId, executedAt: new Date().toISOString(), commandMode, status: "failed", error: error.message }, null, 2),
-      "utf-8"
-    );
-  } catch {
-    // メタデータ書き込み自体に失敗しても、元のエラーで終了することを優先する
-  }
-}
+const LOG = "[keywords:gkp-dry-run]";
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const runId = sanitizeRunId(args["run-id"] || nowJstIso());
-  const outDirUrl = new URL(`${runId}/`, OUTPUT_ROOT);
-  const outDir = outDirUrl.pathname.replace(/^\/([A-Za-z]):/, "$1:");
+  const outDir = `${OUTPUT_ROOT}${runId}/`;
   const rakutenSource = args["rakuten-source"];
-  const maxRakutenKeywords = Number(args["max-rakuten-keywords"] ?? 100);
 
-  // rakuten-source未指定は、重い処理に入る前に即座にエラーにする(安全側)。
+  // --- preflight検証(ファイル・ネットワークに一切触れる前に完結させる。
+  //     これらのエラーはメタデータを残さない仕様) ---
   if (rakutenSource !== "live" && rakutenSource !== "fixture") {
     console.error(
-      `[keywords:gkp-dry-run] --rakuten-source は "live" または "fixture" を明示的に指定してください` +
-        `(指定値: ${JSON.stringify(rakutenSource ?? null)})。未指定の完全dry-runは安全のためエラーにします。`
+      `${LOG} --rakuten-source は "live" または "fixture" を明示的に指定してください` +
+        `(指定値: ${JSON.stringify(rakutenSource ?? null)})。未指定の完全dry-runは安全のためエラーにします。` +
+        ` 対処: --rakuten-source live (実際の楽天APIを使う) または --rakuten-source fixture (テストデータのみ)を指定してください。`
     );
     process.exitCode = 1;
     return;
   }
-  if (!Number.isFinite(maxRakutenKeywords) || maxRakutenKeywords <= 0) {
-    console.error(`[keywords:gkp-dry-run] --max-rakuten-keywords は正の整数で指定してください(指定値: ${args["max-rakuten-keywords"]})`);
+  const maxRakutenKeywordsResult = validateMaxRakutenKeywords(args["max-rakuten-keywords"]);
+  if (!maxRakutenKeywordsResult.ok) {
+    console.error(`${LOG} ${maxRakutenKeywordsResult.message} 対処: 1〜100の整数を指定してください(例: --max-rakuten-keywords 100)。`);
     process.exitCode = 1;
     return;
   }
+  const maxRakutenKeywords = maxRakutenKeywordsResult.value;
 
   let searchFn;
   try {
     searchFn = createStrictRakutenSearchFn(rakutenSource); // live指定で認証情報が無ければここで即例外(API呼び出し0件)
   } catch (e) {
-    console.error(`[keywords:gkp-dry-run] エラー: ${e.message}`);
+    console.error(`${LOG} エラー: ${e.message}`);
     process.exitCode = 1;
     return;
   }
 
-  if (existsSync(outDir)) {
-    console.error(`[keywords:gkp-dry-run] 出力先が既に存在します(上書きしません): ${outDir}`);
+  try {
+    await createExclusiveRunDir(outDir, OUTPUT_ROOT);
+  } catch (e) {
+    console.error(`${LOG} ${e.message} 対処: --run-id で別の実行IDを指定するか、既存の出力先を確認してください。`);
     process.exitCode = 1;
     return;
   }
 
-  console.log(`[keywords:gkp-dry-run] 入力ファイル(犬用): ${args["dog-csv"] ?? "(未指定)"}`);
-  console.log(`[keywords:gkp-dry-run] 入力ファイル(猫用): ${args["cat-csv"] ?? "(未指定)"}`);
-  console.log(`[keywords:gkp-dry-run] 実行モード: gkp-dry-run(完全dry-run、楽天商品照合を含む)`);
+  console.log(`${LOG} 入力ファイル(犬用): ${args["dog-csv"] ?? "(未指定)"}`);
+  console.log(`${LOG} 入力ファイル(猫用): ${args["cat-csv"] ?? "(未指定)"}`);
+  console.log(`${LOG} 実行モード: gkp-dry-run(完全dry-run、楽天商品照合を含む)`);
   console.log(
     rakutenSource === "live"
-      ? `[keywords:gkp-dry-run] 【楽天データ源: LIVE(実際の楽天API、読み取り専用)】`
-      : `[keywords:gkp-dry-run] 【楽天データ源: FIXTURE(テストデータ・実運用不可)】`
+      ? `${LOG} 【楽天データ源: LIVE(実際の楽天API、読み取り専用)】`
+      : `${LOG} 【楽天データ源: FIXTURE(テストデータ・実運用不可)】`
   );
-  console.log(`[keywords:gkp-dry-run] 最大照合件数: ${maxRakutenKeywords}件`);
-  console.log(`[keywords:gkp-dry-run] 出力先: ${outDir}`);
+  console.log(`${LOG} 最大照合件数: ${maxRakutenKeywords}件`);
+  console.log(`${LOG} 出力先: ${outDir}`);
 
   try {
     const result = await importAndNormalizeGkp({
       dogCsvPath: args["dog-csv"],
       catCsvPath: args["cat-csv"],
       onFilesParsed: ({ dogMeta, catMeta, originalRowCount }) => {
-        console.log(`[keywords:gkp-dry-run] 犬用CSV: encoding=${dogMeta.encoding} delimiter=${dogMeta.delimiter} 行数=${dogMeta.rowCount}`);
-        console.log(`[keywords:gkp-dry-run] 猫用CSV: encoding=${catMeta.encoding} delimiter=${catMeta.delimiter} 行数=${catMeta.rowCount}`);
-        console.log(`[keywords:gkp-dry-run] 対象期間: 犬=${dogMeta.periodStart}〜${dogMeta.periodEnd} / 猫=${catMeta.periodStart}〜${catMeta.periodEnd}`);
-        console.log(`[keywords:gkp-dry-run] 元データ件数(結合後): ${originalRowCount}件`);
+        console.log(`${LOG} 犬用CSV: encoding=${dogMeta.encoding} delimiter=${dogMeta.delimiter} 行数=${dogMeta.rowCount}`);
+        console.log(`${LOG} 猫用CSV: encoding=${catMeta.encoding} delimiter=${catMeta.delimiter} 行数=${catMeta.rowCount}`);
+        console.log(`${LOG} 対象期間: 犬=${dogMeta.periodStart}〜${dogMeta.periodEnd} / 猫=${catMeta.periodStart}〜${catMeta.periodEnd}`);
+        console.log(`${LOG} 元データ件数(結合後): ${originalRowCount}件`);
       },
     });
 
     const allCandidates = result.researchResult.candidates;
     const { selected, excluded, poolStats } = selectCandidatesForRakuten(allCandidates, { maxKeywords: maxRakutenKeywords });
     console.log(
-      `[keywords:gkp-dry-run] 安全な候補選出: プール${poolStats.eligiblePoolCount}件(犬${poolStats.dogPoolCount}/猫${poolStats.catPoolCount}) → 選出${selected.length}件(犬${poolStats.selectedDogCount}/猫${poolStats.selectedCatCount})`
+      `${LOG} 安全な候補選出: プール${poolStats.eligiblePoolCount}件(犬${poolStats.dogPoolCount}/猫${poolStats.catPoolCount}) → 選出${selected.length}件(犬${poolStats.selectedDogCount}/猫${poolStats.selectedCatCount})`
     );
 
     const selectedResearchResult = { candidates: selected, config: result.researchResult.config };
@@ -134,9 +121,11 @@ async function main() {
       mapped = mapped.map((c) => ({ ...c, eligibleForApproval: false, eligibleForExport: false, eligibleForPublish: false }));
     }
 
-    const apiErrorCount = mapped.filter((c) => c.rakutenLookupStatus === "API_ERROR").length;
-    const attemptedCount = mapped.filter((c) => c.rakutenLookupStatus !== "NOT_RUN").length;
-    const apiErrorRate = attemptedCount > 0 ? apiErrorCount / attemptedCount : 0;
+    const { apiErrorCount, attemptedCount, apiErrorRate, exceeded: apiErrorRateExceeded } = evaluateApiErrorRate(
+      mapped,
+      API_ERROR_RATE_THRESHOLD
+    );
+    const finalStatus = apiErrorRateExceeded ? "failed" : "completed";
 
     await mkdir(outDir, { recursive: true });
     await writeConvertedAllCsv(result.observations, outDir);
@@ -153,9 +142,10 @@ async function main() {
             ? "gkp-dry-run【テストデータ・実運用不可】(--rakuten-source fixture明示指定)"
             : "gkp-dry-run(--rakuten-source live)",
         runId,
+        status: finalStatus,
         commandMode: "gkp-dry-run",
         rakutenSource,
-        codeCommit: getCodeCommit(),
+        codeCommit: getCodeCommit(new URL("../../", import.meta.url)),
         inputFiles: result.inputFiles,
         inputFileHashes: result.inputFileHashes,
         sourceProvider: "google_keyword_planner",
@@ -170,7 +160,6 @@ async function main() {
 
     if (rakutenSource === "fixture") {
       // summary.mdの先頭に目立つ警告を追記する(spec: テストデータ・実運用不可)
-      const { readFile } = await import("node:fs/promises");
       const existing = await readFile(`${outDir}/summary.md`, "utf-8");
       const banner =
         "# ⚠ テストデータ・実運用不可 ⚠\n" +
@@ -179,14 +168,15 @@ async function main() {
       await writeFile(`${outDir}/summary.md`, banner + existing, "utf-8");
     }
 
-    console.log(`[keywords:gkp-dry-run] 完了`);
+    console.log(`${LOG} 完了(status=${finalStatus})`);
+    console.log(`  楽天データ源: ${rakutenSource}`);
     console.log(`  businessValidated=true: ${counts.businessValidatedCount}件`);
     console.log(`  医療・健康除外: 医療=${counts.medicalReviewCount}件 / 健康訴求=${counts.healthReviewCount}件`);
     console.log(`  正規化後件数: ${allCandidates.length}件`);
     console.log(`  楽天照合件数: ${selected.length}件`);
     console.log(`  PRIORITY=${counts.priorityCount} / TEST=${counts.testCount} / OBSERVE=${counts.observeCount} / REJECT=${counts.rejectCount}`);
     console.log(
-      `  SUPPLY_NO_MATCH=${counts.supplyNoMatchDecisionCount} / SUPPLY_INSUFFICIENT=${counts.supplyInsufficientDecisionCount} / API_ERROR=${apiErrorCount}`
+      `  SUPPLY_NO_MATCH=${counts.supplyNoMatchDecisionCount} / SUPPLY_INSUFFICIENT=${counts.supplyInsufficientDecisionCount} / API_ERROR=${apiErrorCount}件(異常率${(apiErrorRate * 100).toFixed(1)}%)`
     );
     console.log(`  人間レビュー対象件数(要確認): ${mapped.flatMap((c) => c.rakuten.matches ?? []).filter((m) => m.status === "NEEDS_MANUAL_REVIEW").length}件`);
     console.log(`  承認候補件数: ${counts.eligibleForApprovalCount}件`);
@@ -194,21 +184,22 @@ async function main() {
     console.log(`  出力先: ${outDir}`);
     console.log(`(公開ページ・本番状態・承認状態・commit・pushは一切行っていません)`);
 
-    if (apiErrorRate > API_ERROR_RATE_THRESHOLD) {
+    if (apiErrorRateExceeded) {
       console.error(
-        `[keywords:gkp-dry-run] エラー: 楽天API異常率が基準(${Math.round(API_ERROR_RATE_THRESHOLD * 100)}%)を超えました` +
-          `(${apiErrorCount}/${attemptedCount}件)。実行結果は出力済みですが、異常な実行として扱ってください。`
+        `${LOG} エラー: 楽天API異常率が基準(${Math.round(API_ERROR_RATE_THRESHOLD * 100)}%)を超えました` +
+          `(${apiErrorCount}/${attemptedCount}件)。run-metadata.jsonのstatusはfailedです。` +
+          ` 対処: 楽天APIの認証情報・ネットワーク状態を確認し、時間を置いて再実行してください。`
       );
       process.exitCode = 1;
     }
   } catch (e) {
-    await writeFailureMetadata(outDirUrl, runId, "gkp-dry-run", e);
-    console.error(`[keywords:gkp-dry-run] エラー: ${e.message}`);
+    await writeFailureMetadata(outDir, runId, "gkp-dry-run", e);
+    console.error(`${LOG} エラー: ${e.message}`);
     process.exitCode = 1;
   }
 }
 
 main().catch((e) => {
-  console.error(`[keywords:gkp-dry-run] 予期しないエラー: ${e.message}`);
+  console.error(`${LOG} 予期しないエラー: ${e.message}`);
   process.exitCode = 1;
 });

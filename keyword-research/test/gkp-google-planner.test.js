@@ -78,6 +78,59 @@ test("UTF-8(BOMあり)・カンマ区切りを正しく読み込む", async () =
   });
 });
 
+test("カンマ区切りCSVで、引用符内のカンマは列区切りとして扱わない(列がずれない)", async () => {
+  const header = ["Keyword", "Avg. monthly searches", "Competition"].join(",");
+  // キーワード自体に読点的なカンマを含むケースを引用符で囲む
+  const row = `"シニア,犬用 ドッグフード",5000,高`;
+  const text = buildGkpText({ header, rows: [row] });
+
+  await withTempFile(Buffer.from(text, "utf-8"), async (filePath) => {
+    const result = await parseGkpFile(filePath, { animalType: "dog" });
+    assert.equal(result.observations.length, 1);
+    assert.equal(result.observations[0].keyword, "シニア,犬用 ドッグフード");
+    assert.equal(result.observations[0].monthlySearches, 5000);
+    assert.equal(result.observations[0].competitionLevel, "HIGH");
+  });
+});
+
+test('カンマ区切りCSVで、引用符付きの桁区切り数値("1,000")を正しく解析する', async () => {
+  const header = ["Keyword", "Avg. monthly searches"].join(",");
+  const row = `ドッグフード,"1,000"`;
+  const text = buildGkpText({ header, rows: [row] });
+
+  await withTempFile(Buffer.from(text, "utf-8"), async (filePath) => {
+    const result = await parseGkpFile(filePath, { animalType: "dog" });
+    assert.equal(result.observations[0].monthlySearches, 1000);
+  });
+});
+
+test("カンマ区切りCSVで、エスケープされた引用符(\"\")を正しく解析する", async () => {
+  const header = ["Keyword", "Avg. monthly searches"].join(",");
+  // CSVのエスケープ規則: フィールドを""で囲み、内部の"は""で表現する
+  const row = `"国産 ""プレミアム"" ドッグフード",500`;
+  const text = buildGkpText({ header, rows: [row] });
+
+  await withTempFile(Buffer.from(text, "utf-8"), async (filePath) => {
+    const result = await parseGkpFile(filePath, { animalType: "dog" });
+    assert.equal(result.observations[0].keyword, '国産 "プレミアム" ドッグフード');
+    assert.equal(result.observations[0].monthlySearches, 500);
+  });
+});
+
+test("タブ区切りで引用符を含まない既存実CSVの解析結果は、引用符対応の追加後も変わらない", async () => {
+  const header = ["Keyword", "Avg. monthly searches", "Competition"].join("\t");
+  const row = ["国産 無添加 ドッグフード", "5000", "高"].join("\t");
+  const text = buildGkpText({ header, rows: [row] });
+
+  await withTempFile(Buffer.from(text, "utf-8"), async (filePath) => {
+    const result = await parseGkpFile(filePath, { animalType: "dog" });
+    assert.equal(result.meta.delimiter, "TAB");
+    assert.equal(result.observations[0].keyword, "国産 無添加 ドッグフード");
+    assert.equal(result.observations[0].monthlySearches, 5000);
+    assert.equal(result.observations[0].competitionLevel, "HIGH");
+  });
+});
+
 test("日本語ヘッダー(キーワード/月間平均検索ボリューム/競合性)を正しくマッピングする", async () => {
   const header = ["キーワード", "月間平均検索ボリューム", "競合性", "競合性(インデックス値)"].join("\t");
   const row = ["国産 無添加 ドッグフード", "500", "低", "10"].join("\t");
@@ -136,8 +189,14 @@ test("タイトル行・期間行を含むGoogle公式形式(1行目タイトル
 });
 
 test("ヘッダー行の位置が変わっても(行番号を固定せず)キーワード列を含む行を探索して見つける", () => {
-  const lines = ["何かのタイトル行", "余分な空白行的な説明", "2025年8月1日 - 2026年7月31日", "Keyword\tAvg. monthly searches", "犬\t100"];
-  const { index, columns } = findHeaderRow(lines, "\t");
+  const rows = [
+    ["何かのタイトル行"],
+    ["余分な空白行的な説明"],
+    ["2025年8月1日 - 2026年7月31日"],
+    ["Keyword", "Avg. monthly searches"],
+    ["犬", "100"],
+  ];
+  const { index, columns } = findHeaderRow(rows);
   assert.equal(index, 3);
   assert.deepEqual(columns, ["Keyword", "Avg. monthly searches"]);
 });

@@ -173,6 +173,10 @@ export async function writeReports(pipelineResult, runInfo) {
         runId: runInfo.runId,
         executedAt: new Date().toISOString(),
         mode: runInfo.mode,
+        // 【2026-09-06 PR#4監査対応】正常終了はcompleted、API異常率超過等で
+        // 呼び出し側がstatusを明示した場合はfailedにする(終了状態をmetadataだけで
+        // 判別できるようにするため)。
+        status: runInfo.status ?? "completed",
         // 【2026-09-06 正式CLI(keywords:import-gkp/keywords:gkp-dry-run)対応】
         // 呼び出し側が持つ追加の実行条件情報を、あれば含める(無ければnull)。
         // 認証情報・APIレスポンス全文は含めない。
