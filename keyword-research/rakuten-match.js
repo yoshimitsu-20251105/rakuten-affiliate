@@ -26,68 +26,83 @@ function isRakutenConfigured() {
   return Boolean(process.env.RAKUTEN_APP_ID && process.env.RAKUTEN_SECRET);
 }
 
+// 楽天APIのレート制限(1秒1回)を守るための最低間隔。
+// 【2026-09-06 PR#4監査対応】以前は成功時のみ呼び出し元(gkp-rakuten-source.js等)が
+// 外側でsleep(1200)していたため、401/403/429/5xx/タイムアウト/JSON異常等の
+// 失敗時にはこの待機が発生せず、失敗が続くと楽天APIを間隔なしで連続呼び出しして
+// しまう欠陥があった。searchRakutenItemsLive自身がtry/finallyで必ず待機するように
+// 変更し、呼び出し元(createRakutenSearchFn/gkp-rakuten-source.js)側の外側sleepは
+// 廃止した(二重待機を避けるため)。
+export const RAKUTEN_RATE_LIMIT_MS = 1200;
+
 /**
  * 実際の楽天商品検索API呼び出し(select-products.jsと同じ認証方式: Referer+Origin)。
+ * 成功・失敗を問わず、戻る前に必ずRAKUTEN_RATE_LIMIT_MS(既定1.2秒)だけ待機する。
  * @param {string} keyword
+ * @param {{ hits?: number, rateLimitMs?: number, timeoutMs?: number }} [options] -
+ *   rateLimitMs/timeoutMsはテスト専用のオーバーライド(既定値はそれぞれ
+ *   RAKUTEN_RATE_LIMIT_MS/10000)。本番コードからは指定しないこと。
  * @returns {Promise<{ items: any[], count: number, source: 'live' }>}
  */
-export async function searchRakutenItemsLive(keyword, { hits = 30 } = {}) {
-  const appId = process.env.RAKUTEN_APP_ID;
-  const accessKey = process.env.RAKUTEN_SECRET;
-  const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
-  const APP_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate/";
-  const APP_ORIGIN = "https://yoshimitsu-20251105.github.io";
-
-  const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701");
-  url.searchParams.set("applicationId", appId);
-  url.searchParams.set("accessKey", accessKey);
-  if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
-  url.searchParams.set("keyword", keyword);
-  url.searchParams.set("hits", String(hits));
-  url.searchParams.set("sort", "-reviewCount");
-  url.searchParams.set("format", "json");
-
-  const res = await fetchWithRetry(url, {
-    headers: { accessKey, Authorization: `Bearer ${accessKey}`, Origin: APP_ORIGIN },
-    referrer: APP_URL,
-    referrerPolicy: "no-referrer-when-downgrade",
-    timeoutMs: 10000,
-    maxRetries: 2,
-  });
-  // 【2026-09-05 マージ前最終監査(3周目)対応】以前はHTTPステータスを一切確認せず、
-  // レスポンスbodyに`error`/`errors`フィールドがあるかどうかだけで異常を判定していた。
-  // 429/5xx等がbackoff後もエラーステータスのまま返り、かつそのbodyが`error`/`errors`
-  // という名前のフィールドを持たない形(例: 空body、別形式のエラーオブジェクト、
-  // Itemsフィールドが欠損した200以外のレスポンス)だった場合、異常なHTTP応答が
-  // 「商品0件の正常なレスポンス」として誤ってNO_MATCH扱いされてしまう欠陥があった。
-  // res.okを最優先でチェックし、非2xxは(bodyの中身に関わらず)必ずAPI_ERRORとして
-  // 呼び出し元(pipeline.js)へ例外を投げる。
-  if (!res.ok) {
-    let bodyPreview = "";
-    try {
-      const text = await res.text();
-      bodyPreview = text.slice(0, 200); // レスポンス全文は保存・表示しない(先頭200文字のみ)
-    } catch {
-      // bodyの読み取り自体に失敗した場合は無視してステータスのみ報告する
-    }
-    throw new Error(`楽天APIエラー: HTTP ${res.status}${bodyPreview ? ` - ${bodyPreview}` : ""}`);
-  }
-  let data;
+export async function searchRakutenItemsLive(keyword, { hits = 30, rateLimitMs = RAKUTEN_RATE_LIMIT_MS, timeoutMs = 10000 } = {}) {
   try {
-    data = await res.json();
-  } catch (e) {
-    throw new Error(`楽天APIエラー: レスポンスのJSON解析に失敗(${e.message})`);
+    const appId = process.env.RAKUTEN_APP_ID;
+    const accessKey = process.env.RAKUTEN_SECRET;
+    const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
+    const APP_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate/";
+    const APP_ORIGIN = "https://yoshimitsu-20251105.github.io";
+
+    const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701");
+    url.searchParams.set("applicationId", appId);
+    url.searchParams.set("accessKey", accessKey);
+    if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
+    url.searchParams.set("keyword", keyword);
+    url.searchParams.set("hits", String(hits));
+    url.searchParams.set("sort", "-reviewCount");
+    url.searchParams.set("format", "json");
+
+    const res = await fetchWithRetry(url, {
+      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Origin: APP_ORIGIN },
+      referrer: APP_URL,
+      referrerPolicy: "no-referrer-when-downgrade",
+      timeoutMs,
+      maxRetries: 2,
+      minRetryIntervalMs: rateLimitMs,
+    });
+    // 【2026-09-05 マージ前最終監査(3周目)対応】以前はHTTPステータスを一切確認せず、
+    // レスポンスbodyに`error`/`errors`フィールドがあるかどうかだけで異常を判定していた。
+    // 429/5xx等がbackoff後もエラーステータスのまま返り、かつそのbodyが`error`/`errors`
+    // という名前のフィールドを持たない形(例: 空body、別形式のエラーオブジェクト、
+    // Itemsフィールドが欠損した200以外のレスポンス)だった場合、異常なHTTP応答が
+    // 「商品0件の正常なレスポンス」として誤ってNO_MATCH扱いされてしまう欠陥があった。
+    // res.okを最優先でチェックし、非2xxは(bodyの中身に関わらず)必ずAPI_ERRORとして
+    // 呼び出し元(pipeline.js)へ例外を投げる。
+    // 【2026-09-06 PR#4監査対応】エラー本文(bodyPreview)は保存・表示しない
+    // (ステータスコードのみを理由として記録する)。
+    if (!res.ok) {
+      throw new Error(`楽天APIエラー: HTTP ${res.status}`);
+    }
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error(`楽天APIエラー: レスポンスのJSON解析に失敗(${e.message})`);
+    }
+    if (data.error || data.errors) {
+      const msg = data.error ? `${data.error} ${data.error_description ?? ""}` : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
+      throw new Error(`楽天APIエラー: ${msg}`);
+    }
+    if (!Array.isArray(data.Items)) {
+      // Itemsフィールドが配列でない(欠損・null等)場合は「商品0件」と「異常応答」を
+      // 区別できないため、安全側に倒してエラーとして扱う(黙って空配列にしない)。
+      throw new Error("楽天APIエラー: レスポンスにItemsフィールドが存在しない、または配列ではない");
+    }
+    return { items: data.Items.map((w) => w.Item), count: data.count ?? 0, source: "live" };
+  } finally {
+    // 成功・失敗(401/403/429/5xx/タイムアウト/JSON異常)を問わず、次の呼び出しまで
+    // 必ず最低rateLimitMsだけ間隔を空ける。
+    await sleep(rateLimitMs);
   }
-  if (data.error || data.errors) {
-    const msg = data.error ? `${data.error} ${data.error_description ?? ""}` : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
-    throw new Error(`楽天APIエラー: ${msg}`);
-  }
-  if (!Array.isArray(data.Items)) {
-    // Itemsフィールドが配列でない(欠損・null等)場合は「商品0件」と「異常応答」を
-    // 区別できないため、安全側に倒してエラーとして扱う(黙って空配列にしない)。
-    throw new Error("楽天APIエラー: レスポンスにItemsフィールドが存在しない、または配列ではない");
-  }
-  return { items: data.Items.map((w) => w.Item), count: data.count ?? 0, source: "live" };
 }
 
 /**
@@ -119,12 +134,10 @@ function normalizeText(s) {
  */
 export function createRakutenSearchFn() {
   if (isRakutenConfigured()) {
+    // レート制限の待機はsearchRakutenItemsLive自身が成功・失敗を問わず行うため、
+    // ここで重ねてsleepしない(二重待機を避ける)。
     return {
-      search: async (keyword) => {
-        const result = await searchRakutenItemsLive(keyword);
-        await sleep(1200); // 楽天APIのレート制限(1秒1回)を守る
-        return result;
-      },
+      search: (keyword) => searchRakutenItemsLive(keyword),
       usedFixtureFallback: false,
     };
   }

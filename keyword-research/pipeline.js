@@ -24,11 +24,19 @@ import { fetchFromSearchConsole } from "./sources/search-console.js";
 import { fetchFromGoogleTrends } from "./sources/google-trends.js";
 
 /**
- * @param {{ manualCsvPath?: string, useGoogleAds?: boolean, useSearchConsole?: boolean, useGoogleTrends?: boolean, seedKeywords?: string[] }} options
+ * @param {{ manualCsvPath?: string, observations?: import('./types.js').KeywordObservation[], sourceMetas?: object[], useGoogleAds?: boolean, useSearchConsole?: boolean, useGoogleTrends?: boolean, seedKeywords?: string[] }} options
  */
 export async function collectObservations(options = {}) {
   const sourceMetas = [];
   let observations = [];
+
+  // 【2026-09-06 GKP正式CLI対応】呼び出し側(import-gkp/gkp-dry-run CLI)で既に
+  // 変換・検証済みの観測データを直接渡せるようにする(ファイル経由の再パースを
+  // 挟まないことで、animalType/inputFileHash等の付加情報を失わない)。
+  // manualCsvPath等の既存経路とは併用しない(observationsが渡されたら他は無視)。
+  if (options.observations) {
+    return { observations: options.observations, sourceMetas: options.sourceMetas ?? [] };
+  }
 
   if (options.manualCsvPath) {
     const result = await fetchFromManualCsv(options.manualCsvPath);
@@ -128,9 +136,13 @@ export async function runResearch(options = {}) {
  */
 export async function runMapRakuten(researchResult, options = {}) {
   const { candidates, config } = researchResult;
-  const { search, usedFixtureFallback } = options.searchFn
-    ? { search: options.searchFn, usedFixtureFallback: options.usedFixtureFallback ?? false }
-    : createRakutenSearchFn();
+  // skipRakuten時はcreateRakutenSearchFn()すら呼ばない(認証情報の有無を問わず、
+  // 楽天関連の副作用(fixtureフォールバック警告等)を一切発生させないため)。
+  const { search, usedFixtureFallback } = options.skipRakuten
+    ? { search: null, usedFixtureFallback: false }
+    : options.searchFn
+      ? { search: options.searchFn, usedFixtureFallback: options.usedFixtureFallback ?? false }
+      : createRakutenSearchFn();
 
   const results = [];
   for (const candidate of candidates) {
@@ -146,8 +158,14 @@ export async function runMapRakuten(researchResult, options = {}) {
     const preFinalPriority = computeFinalPriority(preScore.total, 0, config.finalPriorityWeights);
     const preScoreBand = classifyScoreBand(preFinalPriority, config.adoptionThresholds);
 
+    // 【2026-09-06 正式CLI対応】options.skipRakutenがtrueの場合、候補の状態に関わらず
+    // 全件で楽天照合そのものを行わない(keywords:import-gkpのように、需要分析だけを
+    // 行い楽天APIには一切触れないコマンドのための明示的なグローバルスキップ)。
     const shouldSkipRakuten =
-      candidate.safetyStatus !== "SAFE" || candidate.queryQualityStatus === "MALFORMED" || !candidate.rakutenQuery;
+      options.skipRakuten ||
+      candidate.safetyStatus !== "SAFE" ||
+      candidate.queryQualityStatus === "MALFORMED" ||
+      !candidate.rakutenQuery;
 
     if (shouldSkipRakuten) {
       const rakutenLookupStatus = "NOT_RUN";
@@ -161,8 +179,9 @@ export async function runMapRakuten(researchResult, options = {}) {
         queryQualityStatus: candidate.queryQualityStatus,
         rakutenLookupStatus,
       });
-      const skipReason =
-        candidate.safetyStatus !== "SAFE"
+      const skipReason = options.skipRakuten
+        ? "このコマンドは需要分析のみを行い、楽天APIを呼び出さない"
+        : candidate.safetyStatus !== "SAFE"
           ? `安全ゲート(${candidate.safetyStatus})のため楽天照合をスキップ`
           : candidate.queryQualityStatus === "MALFORMED"
             ? "検索語が不自然(MALFORMED)のため楽天照合をスキップ"
