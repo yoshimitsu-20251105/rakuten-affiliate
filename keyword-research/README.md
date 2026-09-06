@@ -54,6 +54,27 @@ commit・push)は一切行わない。`npm run keywords:export-approved` も例�
 回避できない**(`publish.js`は`export-approved.js`へ処理を委譲するだけで、独自の承認・
 出力ロジックを持たないため)。
 
+### Googleキーワードプランナー実CSVの取込(2026-09-06対応)
+
+```bash
+# 1. 取込・需要分析だけ(楽天APIは呼ばない)
+npm run keywords:import-gkp -- --dog-csv "<犬用CSV>" --cat-csv "<猫用CSV>"
+
+# 2. 楽天照合を含む完全dry-run(--rakuten-sourceは必須)
+npm run keywords:gkp-dry-run -- --dog-csv "<犬用CSV>" --cat-csv "<猫用CSV>" --rakuten-source live --max-rakuten-keywords 100
+```
+
+- 文字コード(UTF-16LE/UTF-8 BOMあり・なし)・区切り文字(タブ/カンマ)・ヘッダー行位置を
+  自動判定する(Google公式エクスポート形式のタイトル行・期間行を含む形式に対応)。
+- Windowsネイティブ・Git Bash(`/c/...`)・WSL(`/mnt/c/...`)いずれのパス表記でも入力できる。
+- `--rakuten-source live` は`RAKUTEN_APP_ID`/`RAKUTEN_SECRET`が無ければAPIを1件も呼ばず
+  非ゼロ終了する(fixtureへの自動フォールバックはしない、fail closed)。
+- `--rakuten-source fixture` は明示指定時のみ使用可能で、承認・出力・掲載ゲートは
+  すべて強制的にfalseになる(テストデータを実運用候補にしない)。
+- 出力は`keyword-research/output/gkp-runs/<runId>/`(gitignore対象)へ保存され、
+  同じrunIdの既存結果は上書きしない。`run-metadata.json`に再現性情報
+  (candidateSetHash・mappingConfigHash・searchSourceCounts等、認証情報は含まない)を記録する。
+
 ### Search Console実接続を使ったdry-runの正式な実行方法
 
 ```bash

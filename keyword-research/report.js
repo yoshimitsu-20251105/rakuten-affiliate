@@ -173,13 +173,27 @@ export async function writeReports(pipelineResult, runInfo) {
         runId: runInfo.runId,
         executedAt: new Date().toISOString(),
         mode: runInfo.mode,
+        // 【2026-09-06 正式CLI(keywords:import-gkp/keywords:gkp-dry-run)対応】
+        // 呼び出し側が持つ追加の実行条件情報を、あれば含める(無ければnull)。
+        // 認証情報・APIレスポンス全文は含めない。
         codeCommit: runInfo.codeCommit ?? null,
+        commandMode: runInfo.commandMode ?? null,
+        rakutenSource: runInfo.rakutenSource ?? null,
+        inputFiles: runInfo.inputFiles ?? null,
         inputFileHash: runInfo.inputFileHash ?? null,
+        inputFileHashes: runInfo.inputFileHashes ?? null,
+        sourceProvider: runInfo.sourceProvider ?? null,
+        periodStart: runInfo.periodStart ?? null,
+        periodEnd: runInfo.periodEnd ?? null,
+        originalRowCount: runInfo.originalRowCount ?? null,
+        normalizedCount: runInfo.normalizedCount ?? candidates.length,
+        selectedCount: runInfo.selectedCount ?? null,
         candidateCount: candidates.length,
         candidateSetHash,
         mappingConfigHash,
         searchSourceCounts,
         rakutenRequestParamsSummary: { endpoint: "IchibaItem/Search/20260701", hits: 30, sort: "-reviewCount", format: "json" },
+        resultCounts: runInfo.resultCounts ?? null,
       },
       null,
       2

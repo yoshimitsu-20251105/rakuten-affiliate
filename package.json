@@ -14,7 +14,9 @@
     "keywords:validate": "node --env-file-if-exists=.env keyword-research/cli/validate.js",
     "keywords:export-approved": "node --env-file-if-exists=.env keyword-research/cli/export-approved.js",
     "keywords:publish": "node --env-file-if-exists=.env keyword-research/cli/publish.js",
-    "keywords:dry-run": "node --env-file-if-exists=.env keyword-research/cli/dry-run.js"
+    "keywords:dry-run": "node --env-file-if-exists=.env keyword-research/cli/dry-run.js",
+    "keywords:import-gkp": "node --env-file-if-exists=.env keyword-research/cli/import-gkp.js",
+    "keywords:gkp-dry-run": "node --env-file-if-exists=.env keyword-research/cli/gkp-dry-run.js"
   },
   "repository": {
     "type": "git",
