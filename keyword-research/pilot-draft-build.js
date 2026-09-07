@@ -13,12 +13,20 @@
 //   - 表示商品の数値フィールド(qualityScore/itemPrice/reviewAverage/reviewCount)を
 //     型検証し、不正値があればsource run不整合として拒否する。
 //   - 承認ファイルのapprovedAtがsource runのexecutedAt以後であることを確認する。
+//
+// 【2026-09-07 PR#6対応】商品関連性ゲート(pilot-draft-item-relevance.js)を追加した。
+//   猫用ランキングへ犬用商品(SEOキーワード詰め込みでitemNameに両方の動物種を含む)が
+//   混入した実例(「キャットフード グレインフリー」で犬用おやつが1位表示)を受け、
+//   医療・健康安全確認の後、pageReadyItems確定の前に、保存済み商品データへ独立に
+//   関連性判定を再適用する(旧source runが旧rakuten-match.jsでELIGIBLEにしていても
+//   下書きへ混入させないための多層防御。楽天API再実行は不要)。
 
 import { loadConfig } from "./config.js";
 import { loadApprovalFile } from "./pilot-draft-approval.js";
 import { loadSourceRun, MIN_ELIGIBLE_ITEMS } from "./pilot-draft-source-run.js";
 import { extractExistingSeedKeywords, listExistingRankingSlugs, findConflicts } from "./pilot-draft-conflict-check.js";
 import { filterSafeItems } from "./pilot-draft-item-safety.js";
+import { filterRelevantItems } from "./pilot-draft-item-relevance.js";
 import { validateItemsNumericFields } from "./pilot-draft-item-validation.js";
 import { renderPilotDraftHtml } from "./pilot-draft-template.js";
 
@@ -71,15 +79,19 @@ function validateCandidateGates(candidate) {
 
 /**
  * 候補1件の表示商品を処理する: 数値フィールド検証 → 商品単位の安全フィルタ →
- * ページ掲載可能商品(pageReadyItems)の決定。
+ * 商品単位の関連性フィルタ(2026-09-07 PR#6対応) → ページ掲載可能商品(pageReadyItems)の決定。
  * @param {any} candidate
  * @param {any} safetyConfig
- * @returns {{ errors: string[], pageReadyItems: any[], excludedUnsafeItems: Array<{itemCode:string, reasonCode:string}> }}
+ * @returns {{
+ *   errors: string[], pageReadyItems: any[],
+ *   excludedUnsafeItems: Array<{itemCode:string, reasonCode:string}>,
+ *   excludedIrrelevantItems: Array<{itemCode:string, reasonCodes:string[]}>,
+ * }}
  */
 function processCandidateItems(candidate, safetyConfig) {
   const numericErrors = validateItemsNumericFields(candidate.eligibleItems);
   if (numericErrors.length > 0) {
-    return { errors: numericErrors, pageReadyItems: [], excludedUnsafeItems: [] };
+    return { errors: numericErrors, pageReadyItems: [], excludedUnsafeItems: [], excludedIrrelevantItems: [] };
   }
 
   const { safeItems, excludedUnsafeItems } = filterSafeItems(candidate.eligibleItems, safetyConfig);
@@ -91,11 +103,27 @@ function processCandidateItems(candidate, safetyConfig) {
       ],
       pageReadyItems: [],
       excludedUnsafeItems,
+      excludedIrrelevantItems: [],
     };
   }
 
-  const pageReadyItems = [...safeItems].sort((a, b) => b.qualityScore - a.qualityScore).slice(0, MAX_DISPLAY_ITEMS);
-  return { errors: [], pageReadyItems, excludedUnsafeItems };
+  // 【2026-09-07 PR#6対応】商品関連性ゲート。医療・健康安全確認を通過した商品に対し、
+  // itemName優先の関連性判定(product-relevance.js)を独立に再適用する。
+  const { relevantItems, excludedIrrelevantItems } = filterRelevantItems(safeItems, candidate.requiredAttributes);
+  if (relevantItems.length < MIN_ELIGIBLE_ITEMS) {
+    return {
+      errors: [
+        `商品関連性確認(動物種・主食/おやつの矛盾検査)で${excludedIrrelevantItems.length}件を除外した結果、` +
+          `残り${relevantItems.length}件となり最低基準(${MIN_ELIGIBLE_ITEMS}件)未満です`,
+      ],
+      pageReadyItems: [],
+      excludedUnsafeItems,
+      excludedIrrelevantItems,
+    };
+  }
+
+  const pageReadyItems = [...relevantItems].sort((a, b) => b.qualityScore - a.qualityScore).slice(0, MAX_DISPLAY_ITEMS);
+  return { errors: [], pageReadyItems, excludedUnsafeItems, excludedIrrelevantItems };
 }
 
 /**
@@ -171,15 +199,23 @@ export async function buildPilotDrafts({ sourceRunDir, approvedFilePath, project
   //     (1件でも失敗すれば全件拒否) ---
   const perCandidateResults = [];
   let totalExcludedUnsafeCount = 0;
+  const relevanceReasonCodeCounts = {};
+  let totalExcludedIrrelevantCount = 0;
   for (const kw of approval.keywords) {
     const candidate = candidatesByKeyword.get(kw.normalizedKeyword);
     const gateErrors = validateCandidateGates(candidate);
-    let itemResult = { errors: [], pageReadyItems: [], excludedUnsafeItems: [] };
+    let itemResult = { errors: [], pageReadyItems: [], excludedUnsafeItems: [], excludedIrrelevantItems: [] };
     if (gateErrors.length === 0) {
       itemResult = processCandidateItems(candidate, safetyConfig);
     }
     const conflicts = findConflicts({ normalizedKeyword: kw.normalizedKeyword, slug: kw.slug }, { existingSlugs, existingSeedKeywords, batchSlugs });
     totalExcludedUnsafeCount += itemResult.excludedUnsafeItems.length;
+    totalExcludedIrrelevantCount += itemResult.excludedIrrelevantItems.length;
+    for (const excluded of itemResult.excludedIrrelevantItems) {
+      for (const code of excluded.reasonCodes) {
+        relevanceReasonCodeCounts[code] = (relevanceReasonCodeCounts[code] ?? 0) + 1;
+      }
+    }
     perCandidateResults.push({ kw, candidate, gateErrors, itemErrors: itemResult.errors, pageReadyItems: itemResult.pageReadyItems, conflicts });
     for (const e of gateErrors) errors.push(`[${kw.normalizedKeyword}] ${e}`);
     for (const e of itemResult.errors) errors.push(`[${kw.normalizedKeyword}] ${e}`);
@@ -187,6 +223,11 @@ export async function buildPilotDrafts({ sourceRunDir, approvedFilePath, project
   }
 
   validationReportLines.push(`商品単位の安全確認: 合計${totalExcludedUnsafeCount}件を除外(itemCodeと理由コードのみ記録、seller文言は記録しない)`);
+  validationReportLines.push(
+    `商品単位の関連性確認: 合計${totalExcludedIrrelevantCount}件を除外` +
+      `(内訳: ${Object.keys(relevanceReasonCodeCounts).length === 0 ? "なし" : Object.entries(relevanceReasonCodeCounts).map(([code, count]) => `${code}=${count}件`).join(", ")}` +
+      `。itemCodeと理由コードのみ記録、seller文言は記録しない)`
+  );
   validationReportLines.push(...perCandidateResults.map((r) => {
     const allIssues = [...r.gateErrors, ...r.itemErrors, ...r.conflicts];
     const status = allIssues.length === 0 ? "OK" : "NG";
