@@ -28,6 +28,10 @@ import { extractAttributes } from "./attributes.js";
 const SPECIES_TAGS = ["species:dog", "species:cat"];
 const STAPLE_TAG = "productType:staple";
 const TREAT_TAG = "productType:treat";
+// 【2026-09-07 Phase 3B対応】公開ページの必須主原料(例: 豚肉ドッグフードページの
+// ingredient:pork)。動物種と同じく「itemNameで確認できるか」を最優先根拠とする
+// (catchcopyだけに書かれている場合は自動採用せず要確認扱いにする)。
+const TITLE_REQUIRED_INGREDIENT_TAGS = ["ingredient:pork"];
 
 // 「犬猫用」「犬猫兼用」「犬・猫用」等、明示的に両方の動物種を対象とする商品の表記。
 // 専用ランキング(猫専用・犬専用)では、この種の商品を自動採用しない。
@@ -153,6 +157,22 @@ export function evaluateProductRelevance({ requiredAttributes, itemName, catchco
   } else if (requiresTreat && hasStapleInTitle && !hasTreatInTitle) {
     pushReasonCode(reasonCodes, "STAPLE_PRODUCT_FOR_TREAT_QUERY");
     status = "REJECTED";
+  }
+
+  // --- C. 必須主原料の確認(itemName優先、2026-09-07 Phase 3B対応) ---
+  // 「豚肉」等の主原料訴求は、catchcopyだけに書かれている場合は自動採用しない
+  // (seller文言のSEO詰め込みで根拠にしない)。itemNameで確認できない場合、
+  // catchcopy/itemCaptionで確認できればREVIEW_REQUIRED、どこにも無ければREJECTED。
+  for (const requiredTag of required) {
+    if (!TITLE_REQUIRED_INGREDIENT_TAGS.includes(requiredTag)) continue;
+    if (titleTagSet.has(requiredTag)) continue; // itemNameで確認済み、問題なし。
+    if (fullTextTagSet.has(requiredTag)) {
+      pushReasonCode(reasonCodes, "INGREDIENT_NOT_CONFIRMED_IN_TITLE");
+      if (status !== "REJECTED") status = "REVIEW_REQUIRED";
+    } else {
+      pushReasonCode(reasonCodes, "INGREDIENT_NOT_CONFIRMED");
+      status = "REJECTED";
+    }
   }
 
   return { status, reasonCodes, detectedTitleAttributes, detectedFullTextAttributes };
