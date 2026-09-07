@@ -179,3 +179,88 @@ test("detectedTitleAttributes/detectedFullTextAttributesが両方とも返され
   assert.ok(Array.isArray(result.detectedFullTextAttributes));
   assert.ok(result.detectedTitleAttributes.includes("species:dog"));
 });
+
+// =====================================================================
+// 2026-09-07 PR#6追加監査対応: 主食語・おやつ語の両方が商品名にある場合の判定
+// =====================================================================
+// 修正前は「反対語だけが商品名にあり、required語が無い」場合しかREJECTEDにしていな
+// かったため、商品名に主食語・おやつ語の両方がSEO目的で併記されている場合(例:
+// 「猫用 おやつ ジャーキー キャットフード」、required=productType:staple)に、
+// staple語(キャットフード)もtreat語(おやつ・ジャーキー)も両方検出されて既存条件
+// (「treat検出かつstaple未検出」)に該当せず通過してしまっていた。
+
+test("【追加監査1】cat+staple必須で「猫用 おやつ ジャーキー キャットフード」がREJECTED(AMBIGUOUS_PRODUCT_TYPE)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:cat", "productType:staple"],
+    itemName: "猫用 おやつ ジャーキー キャットフード",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.ok(result.reasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+});
+
+test("【追加監査2】dog+staple必須で「犬用 ジャーキー ドッグフード」がREJECTED(AMBIGUOUS_PRODUCT_TYPE)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "productType:staple"],
+    itemName: "犬用 ジャーキー ドッグフード",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.ok(result.reasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+});
+
+test("【追加監査3】cat+staple必須で通常の「猫用 キャットフード」はRELEVANT", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:cat", "productType:staple"],
+    itemName: "猫用 キャットフード 1kg",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "RELEVANT");
+  assert.deepEqual(result.reasonCodes, []);
+});
+
+test("【追加監査4】dog+treat必須で通常の「犬用 ジャーキー」はRELEVANT", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "productType:treat"],
+    itemName: "犬用 ジャーキー 100g",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "RELEVANT");
+  assert.deepEqual(result.reasonCodes, []);
+});
+
+test("【追加監査5】dog+treat必須で「犬用 おやつ ドッグフード」がREJECTED(AMBIGUOUS_PRODUCT_TYPE)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "productType:treat"],
+    itemName: "犬用 おやつ ドッグフード",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.ok(result.reasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+});
+
+test("【追加監査6】両種別(staple/treat)がitemNameに検出された場合は必ずAMBIGUOUS_PRODUCT_TYPEが含まれる", () => {
+  const stapleRequired = evaluateProductRelevance({ requiredAttributes: ["productType:staple"], itemName: "おやつ 主食 フード" });
+  const treatRequired = evaluateProductRelevance({ requiredAttributes: ["productType:treat"], itemName: "おやつ 主食 フード" });
+  assert.ok(stapleRequired.reasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+  assert.ok(treatRequired.reasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+});
+
+test("【追加監査7】reasonCodesに重複が無い(動物種矛盾と商品種別矛盾が同時発生しても各コード1回のみ)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:cat", "productType:staple"],
+    itemName: "犬用 おやつ ジャーキー キャットフード 猫",
+  });
+  const unique = new Set(result.reasonCodes);
+  assert.equal(unique.size, result.reasonCodes.length, `reasonCodesに重複がある: ${JSON.stringify(result.reasonCodes)}`);
+});
+
+test("【追加監査・異常ケース】requiredAttributes自体にstaple/treatが同時に含まれる場合は安全側でREJECTED(REQUIRED_PRODUCT_TYPE_CONFLICT)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "productType:staple", "productType:treat"],
+    itemName: "犬用 ドッグフード",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.ok(result.reasonCodes.includes("REQUIRED_PRODUCT_TYPE_CONFLICT"));
+});

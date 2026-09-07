@@ -212,11 +212,31 @@ export async function buildPilotDrafts({ sourceRunDir, approvedFilePath, project
     totalExcludedUnsafeCount += itemResult.excludedUnsafeItems.length;
     totalExcludedIrrelevantCount += itemResult.excludedIrrelevantItems.length;
     for (const excluded of itemResult.excludedIrrelevantItems) {
-      for (const code of excluded.reasonCodes) {
+      // 【2026-09-07 PR#6追加監査対応】理由コード無しでの除外は許さない(fail closed)。
+      // filterRelevantItemsは非RELEVANT判定に必ずreasonCodesを付与する設計だが、
+      // 万一空になった場合はバグとして扱い、静かに握りつぶさず全件拒否する。
+      if (!excluded.reasonCodes || excluded.reasonCodes.length === 0) {
+        errors.push(`[${kw.normalizedKeyword}] 内部エラー: itemCode「${excluded.itemCode}」が理由コード無しで関連性除外されました(fail closed)`);
+      }
+      for (const code of excluded.reasonCodes ?? []) {
         relevanceReasonCodeCounts[code] = (relevanceReasonCodeCounts[code] ?? 0) + 1;
       }
     }
-    perCandidateResults.push({ kw, candidate, gateErrors, itemErrors: itemResult.errors, pageReadyItems: itemResult.pageReadyItems, conflicts });
+    for (const excluded of itemResult.excludedUnsafeItems) {
+      if (!excluded.reasonCode) {
+        errors.push(`[${kw.normalizedKeyword}] 内部エラー: itemCode「${excluded.itemCode}」が理由コード無しで安全除外されました(fail closed)`);
+      }
+    }
+    perCandidateResults.push({
+      kw,
+      candidate,
+      gateErrors,
+      itemErrors: itemResult.errors,
+      pageReadyItems: itemResult.pageReadyItems,
+      conflicts,
+      excludedUnsafeItems: itemResult.excludedUnsafeItems,
+      excludedIrrelevantItems: itemResult.excludedIrrelevantItems,
+    });
     for (const e of gateErrors) errors.push(`[${kw.normalizedKeyword}] ${e}`);
     for (const e of itemResult.errors) errors.push(`[${kw.normalizedKeyword}] ${e}`);
     for (const c of conflicts) errors.push(`[${kw.normalizedKeyword}] ${c}`);
@@ -233,6 +253,18 @@ export async function buildPilotDrafts({ sourceRunDir, approvedFilePath, project
     const status = allIssues.length === 0 ? "OK" : "NG";
     return `候補「${r.kw.normalizedKeyword}」(slug=${r.kw.slug}): ${status}${allIssues.length > 0 ? " — " + allIssues.join(" / ") : ""}`;
   }));
+
+  // 【2026-09-07 PR#6追加監査対応】除外商品をitemCode単位で個別に監査可能にする。
+  // 記録するのはnormalizedKeyword・itemCode・理由コード・除外区分のみ。
+  // itemName・catchcopy・itemCaption・店舗名・seller文言は一切記録しない。
+  for (const r of perCandidateResults) {
+    for (const item of r.excludedUnsafeItems) {
+      validationReportLines.push(`商品安全除外: keyword=${r.kw.normalizedKeyword}, itemCode=${item.itemCode}, reasonCode=${item.reasonCode}`);
+    }
+    for (const item of r.excludedIrrelevantItems) {
+      validationReportLines.push(`商品関連性除外: keyword=${r.kw.normalizedKeyword}, itemCode=${item.itemCode}, reasonCodes=${(item.reasonCodes ?? []).join(",")}`);
+    }
+  }
 
   if (errors.length > 0) {
     return {

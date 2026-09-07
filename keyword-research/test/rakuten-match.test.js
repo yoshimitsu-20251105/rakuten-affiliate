@@ -106,3 +106,16 @@ test("商品関連性ゲートを通過した正常な商品はmatchOneItem由�
   assert.equal(matches[0].status, "ELIGIBLE");
   assert.equal(matches[0].productRelevanceStatus, "RELEVANT");
 });
+
+// --- 2026-09-07 PR#6追加監査対応: 主食語・おやつ語の両方が商品名にある場合 ---
+
+test("【追加監査8】itemNameに主食語・おやつ語の両方があると、既存判定がNEEDS_MANUAL_REVIEWになる場合でもREJECTEDへ格上げされる", () => {
+  const keyword = "国産 無添加 ドッグフード"; // species:dog, feature:domestic, feature:additive-free, productType:staple が必須
+  const required = extractAttributes(keyword);
+  // 国産・無添加の記載が無いため、商品関連性ゲートが無ければmatched.length>0でNEEDS_MANUAL_REVIEWになるはずの商品。
+  const items = [{ itemCode: "e:1", itemName: "犬用 おやつ ジャーキー ドッグフード", catchcopy: "", itemCaption: "" }];
+  const { matches } = matchKeywordToItems(keyword, required, items, matchingRules);
+  assert.equal(matches[0].status, "REJECTED", "NEEDS_MANUAL_REVIEWのまま残さず、商品関連性ゲートによりREJECTEDへ格上げされること");
+  assert.equal(matches[0].productRelevanceStatus, "REJECTED");
+  assert.ok(matches[0].productRelevanceReasonCodes.includes("AMBIGUOUS_PRODUCT_TYPE"));
+});
