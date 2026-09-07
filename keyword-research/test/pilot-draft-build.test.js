@@ -1,0 +1,430 @@
+// 【2026-09-07 Phase 3A対応 / PR#5監査対応で全面改訂】オーケストレーション層(buildPilotDrafts)のテスト。
+// 条件を1つでも満たさない候補が1件でもあれば、全件生成せず失敗として扱うことを検証する。
+//
+// artifactHashes/candidateSetHashは実ファイルから再計算されるため、フィクスチャは
+// 実際に書き込んだファイル内容から算出したハッシュを使う(pilot-draft-source-run.test.jsと同じ方針)。
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { buildPilotDrafts } from "../pilot-draft-build.js";
+import { sha256File, computeCandidateSetHash } from "../hash-utils.js";
+
+const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url)).replace(/[\\/]$/, "");
+const ARTIFACT_FILENAMES = ["keyword-scores.csv", "keyword-candidates.csv", "rakuten-matches.csv", "rakuten-items.json"];
+const KEYWORD = "シニア 犬 豚肉";
+const REQUIRED_ATTRS = "species:dog | feature:domestic";
+
+function scoreRow(overrides = {}) {
+  return {
+    originalKeyword: KEYWORD,
+    normalizedKeyword: KEYWORD,
+    businessValidated: "true",
+    decisionStatus: "PRIORITY",
+    scoreBand_simulationOnly: "PRIORITY",
+    eligibleForApproval: "true",
+    safetyStatus: "SAFE",
+    queryQualityStatus: "VALID",
+    rakutenLookupStatus: "SUCCESS",
+    rakutenSupplyStatus: "ELIGIBLE",
+    finalPriority: "77",
+    webKeywordScoreTotal: "74",
+    bestProductQualityScore: "80",
+    ...overrides,
+  };
+}
+
+function eligibleMatchRow(keyword, itemCode, overrides = {}) {
+  return {
+    originalKeyword: keyword,
+    normalizedKeyword: keyword,
+    itemCode,
+    status: "ELIGIBLE",
+    matchScore: "100",
+    requiredAttributes: REQUIRED_ATTRS,
+    matchedAttributes: REQUIRED_ATTRS,
+    missingAttributes: "",
+    conflictingAttributes: "",
+    ...overrides,
+  };
+}
+
+function safeItem(itemCode, overrides = {}) {
+  return {
+    itemCode,
+    itemName: `テスト商品${itemCode}`,
+    catchcopy: "国産原料使用の人気商品です",
+    itemPrice: 1000,
+    reviewAverage: 4.5,
+    reviewCount: 100,
+    qualityScore: 80,
+    ...overrides,
+  };
+}
+
+async function writeCsv(dir, filename, header, rows) {
+  const lines = rows.map((r) => header.split(",").map((h) => r[h] ?? "").join(","));
+  await writeFile(join(dir, filename), [header, ...lines].join("\n") + "\n", "utf-8");
+}
+
+/**
+ * source run一式(4成果物ファイル + run-metadata.json)を実際に書き込み、
+ * artifactHashes/candidateSetHashを実ファイルから計算して埋め込む。
+ * @returns {Promise<{ dir: string, runId: string, executedAt: string, candidateSetHash: string }>}
+ */
+async function buildSourceRunDir({
+  scoresRows = [scoreRow()],
+  candidatesRows,
+  matchesRows,
+  itemsByKeyword,
+  metadataOverrides = {},
+  runId = "live-2026-09-07",
+  executedAt = "2026-09-01T00:00:00.000Z",
+} = {}) {
+  const dir = await mkdtemp(join(tmpdir(), "pilot-build-sourcerun-"));
+
+  const resolvedCandidatesRows =
+    candidatesRows ?? scoresRows.map((r) => ({ originalKeyword: r.originalKeyword, normalizedKeyword: r.normalizedKeyword, cluster: "シニア犬フード", monthlySearches: "500" }));
+  const resolvedMatchesRows = matchesRows ?? [
+    eligibleMatchRow(KEYWORD, "shop:1"),
+    eligibleMatchRow(KEYWORD, "shop:2"),
+    eligibleMatchRow(KEYWORD, "shop:3"),
+  ];
+  const resolvedItemsByKeyword = itemsByKeyword ?? { [KEYWORD]: [safeItem("shop:1"), safeItem("shop:2"), safeItem("shop:3")] };
+
+  await writeCsv(
+    dir,
+    "keyword-scores.csv",
+    "originalKeyword,normalizedKeyword,rakutenQuery,businessValidated,scoreBand_simulationOnly,decisionStatus,safetyStatus,queryQualityStatus,rakutenLookupStatus,rakutenSupplyStatus,eligibleForApproval,eligibleForExport,eligibleForPublish,validationFailureReasons,dataSource,sourceProvider,isSynthetic,demand,purchaseIntent,adsCompetitionGap_notSeoCompetition,trendAndStability,rakutenSupplyFit,clusterFit,webKeywordScoreTotal,confidence,bestProductQualityScore,finalPriority,reasons",
+    scoresRows
+  );
+  await writeCsv(
+    dir,
+    "keyword-candidates.csv",
+    "originalKeyword,normalizedKeyword,rakutenQuery,keywordVariants,cluster,intent,safetyStatus,queryQualityStatus,variantCount,mergeReason,sourceProvider,isSynthetic,periodStart,periodEnd,monthlySearches,searchVolumeVariance,competitionLevel,trendIndex,lowTopOfPageBid_monetizationOnly,highTopOfPageBid_monetizationOnly",
+    resolvedCandidatesRows
+  );
+  await writeCsv(
+    dir,
+    "rakuten-matches.csv",
+    "originalKeyword,normalizedKeyword,rakutenQuery,itemCode,status,matchScore,requiredAttributes,matchedAttributes,missingAttributes,conflictingAttributes,dataSource,reasons",
+    resolvedMatchesRows
+  );
+  await writeFile(join(dir, "rakuten-items.json"), JSON.stringify(resolvedItemsByKeyword), "utf-8");
+
+  const artifactHashes = {};
+  for (const filename of ARTIFACT_FILENAMES) {
+    artifactHashes[filename] = await sha256File(join(dir, filename));
+  }
+  const candidateSetHash = computeCandidateSetHash(scoresRows.map((r) => ({ originalKeyword: r.originalKeyword })));
+
+  const metadata = {
+    runId,
+    status: "completed",
+    commandMode: "gkp-dry-run",
+    rakutenSource: "live",
+    sourceProvider: "google_keyword_planner",
+    executedAt,
+    searchSourceCounts: { live: scoresRows.length },
+    resultCounts: { apiErrorCount: 0, apiErrorRate: 0, attemptedCount: scoresRows.length },
+    selectedCount: scoresRows.length,
+    candidateCount: scoresRows.length,
+    candidateSetHash,
+    artifactHashes,
+    ...metadataOverrides,
+  };
+  await writeFile(join(dir, "run-metadata.json"), JSON.stringify(metadata), "utf-8");
+
+  return { dir, runId, executedAt, candidateSetHash };
+}
+
+async function writeApprovalFile(dir, sourceRun, overrides = {}) {
+  const approval = {
+    version: 1,
+    sourceRunId: sourceRun.runId,
+    candidateSetHash: sourceRun.candidateSetHash,
+    approvedBy: "human",
+    approvedAt: new Date(Date.now() - 60_000).toISOString(), // 常に「現在より過去」かつsource run実行後になるよう実行時刻基準にする
+    keywords: [{ normalizedKeyword: KEYWORD, title: "テストタイトル", slug: "test-slug-unique-xyz", action: "CREATE" }],
+    ...overrides,
+  };
+  const filePath = join(dir, "approval.json");
+  await writeFile(filePath, JSON.stringify(approval), "utf-8");
+  return filePath;
+}
+
+async function withDirs(sourceRunOptions, approvalOverrides, fn) {
+  const sourceRun = await buildSourceRunDir(sourceRunOptions);
+  const approvalDir = await mkdtemp(join(tmpdir(), "pilot-build-approval-"));
+  try {
+    const approvedFilePath = await writeApprovalFile(approvalDir, sourceRun, approvalOverrides);
+    return await fn({ sourceRunDir: sourceRun.dir, approvedFilePath });
+  } finally {
+    await rm(sourceRun.dir, { recursive: true, force: true });
+    await rm(approvalDir, { recursive: true, force: true });
+  }
+}
+
+test("すべてのゲートを満たす場合は生成に成功する", async () => {
+  await withDirs({}, {}, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.equal(result.drafts.length, 1);
+    assert.equal(result.drafts[0].slug, "test-slug-unique-xyz");
+    assert.match(result.drafts[0].html, /DRAFT/);
+  });
+});
+
+test("candidateSetHashが一致しない場合は全件拒否する", async () => {
+  await withDirs({}, { candidateSetHash: "wrong-hash" }, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /candidateSetHash/);
+    assert.equal(result.drafts, undefined);
+  });
+});
+
+test("source runのstatusがfailedの場合は全件拒否する", async () => {
+  await withDirs({ metadataOverrides: { status: "failed" } }, {}, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+  });
+});
+
+test("楽天ELIGIBLE商品が3件未満(供給不足)の場合は全件拒否する", async () => {
+  await withDirs(
+    {
+      matchesRows: [eligibleMatchRow(KEYWORD, "shop:1")],
+      itemsByKeyword: { [KEYWORD]: [safeItem("shop:1")] },
+    },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /最低基準/);
+    }
+  );
+});
+
+test("safetyStatusがSAFEでない場合は全件拒否する", async () => {
+  await withDirs({ scoresRows: [scoreRow({ safetyStatus: "MEDICAL_REVIEW_REQUIRED" })] }, {}, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /SAFE/);
+  });
+});
+
+test("decisionStatusがPRIORITYでない場合は全件拒否する", async () => {
+  await withDirs({ scoresRows: [scoreRow({ decisionStatus: "TEST" })] }, {}, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /PRIORITY/);
+  });
+});
+
+test("既存パイプライン設定と検索意図が重複する候補は全件拒否する(実データでの重複検出)", async () => {
+  const keyword = "シニア 犬 フード";
+  await withDirs(
+    {
+      scoresRows: [scoreRow({ originalKeyword: keyword, normalizedKeyword: keyword })],
+      matchesRows: [eligibleMatchRow(keyword, "shop:1"), eligibleMatchRow(keyword, "shop:2"), eligibleMatchRow(keyword, "shop:3")],
+      itemsByKeyword: { [keyword]: [safeItem("shop:1"), safeItem("shop:2"), safeItem("shop:3")] },
+    },
+    { keywords: [{ normalizedKeyword: keyword, title: "テスト", slug: "senior-dog-food-test", action: "CREATE" }] },
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /検索意図が既存の設定済みキーワード/);
+    }
+  );
+});
+
+test("承認ファイルに存在するがsource runに存在しないキーワードは全件拒否する", async () => {
+  await withDirs(
+    {},
+    { keywords: [{ normalizedKeyword: "存在しないキーワード", title: "テスト", slug: "nonexistent-test", action: "CREATE" }] },
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /見つかりません/);
+    }
+  );
+});
+
+test("2件承認し、1件だけがゲート違反の場合でも全件拒否する(部分生成しない)", async () => {
+  const otherKeyword = "キャットフード グレインフリー";
+  await withDirs(
+    { scoresRows: [scoreRow(), scoreRow({ originalKeyword: otherKeyword, normalizedKeyword: otherKeyword, decisionStatus: "TEST" })] },
+    {
+      keywords: [
+        { normalizedKeyword: KEYWORD, title: "OK候補", slug: "ok-candidate-test", action: "CREATE" },
+        { normalizedKeyword: otherKeyword, title: "NG候補", slug: "ng-candidate-test", action: "CREATE" },
+      ],
+    },
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false, "1件でも違反があれば全体を失敗にする");
+      assert.equal(result.drafts, undefined, "部分的にdraftsを返さない");
+    }
+  );
+});
+
+// --- 2026-09-07 PR#5監査対応: データ整合性・商品安全・数値検証・承認時刻の新規ゲート ---
+
+test("【監査対応】ELIGIBLE照合と商品表示データのitemCodeが不一致の場合は全件拒否する", async () => {
+  await withDirs(
+    {
+      matchesRows: [eligibleMatchRow(KEYWORD, "shop:1"), eligibleMatchRow(KEYWORD, "shop:2"), eligibleMatchRow(KEYWORD, "shop:3")],
+      itemsByKeyword: { [KEYWORD]: [safeItem("shop:1")] }, // 表示商品は1件だけ(不整合)
+    },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /データ整合性|itemCodeが一致しません/);
+    }
+  );
+});
+
+test("【監査対応・回帰テスト13】医療・健康表現を含む商品は表示候補から除外される(除外後も3件以上残れば生成成功)", async () => {
+  await withDirs(
+    {
+      matchesRows: [
+        eligibleMatchRow(KEYWORD, "shop:1"),
+        eligibleMatchRow(KEYWORD, "shop:2"),
+        eligibleMatchRow(KEYWORD, "shop:3"),
+        eligibleMatchRow(KEYWORD, "shop:4"),
+      ],
+      itemsByKeyword: {
+        [KEYWORD]: [
+          safeItem("shop:1"),
+          safeItem("shop:2"),
+          safeItem("shop:3"),
+          safeItem("shop:4", { itemName: "食べれば病気が治るフード", catchcopy: "" }), // MEDICAL_TERMS「治る」「病気」を含む
+        ],
+      },
+    },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, true, JSON.stringify(result.errors));
+      assert.equal(result.drafts.length, 1);
+      assert.doesNotMatch(result.drafts[0].html, /食べれば病気が治る/);
+      assert.match(result.validationReportLines.join("\n"), /安全確認.*1件を除外/);
+    }
+  );
+});
+
+test("【監査対応・回帰テスト14】安全確認で除外した結果3件未満になる場合は全件拒否する", async () => {
+  await withDirs(
+    {
+      matchesRows: [eligibleMatchRow(KEYWORD, "shop:1"), eligibleMatchRow(KEYWORD, "shop:2"), eligibleMatchRow(KEYWORD, "shop:3")],
+      itemsByKeyword: {
+        [KEYWORD]: [
+          safeItem("shop:1"),
+          safeItem("shop:2", { itemName: "食べれば病気が治るフード" }), // 医療表現で除外される
+          safeItem("shop:3", { itemName: "関節の健康にダイエット効果", catchcopy: "" }), // 健康訴求語で除外される
+        ],
+      },
+    },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /最低基準/);
+    }
+  );
+});
+
+test("【監査対応・回帰テスト15】seller由来のcatchcopyは生成されたHTMLへ一切出力されない", async () => {
+  const secretCatchcopy = "これは絶対に表示してはいけない販売者コピーXYZ123";
+  await withDirs(
+    { itemsByKeyword: { [KEYWORD]: [safeItem("shop:1", { catchcopy: secretCatchcopy }), safeItem("shop:2"), safeItem("shop:3")] } },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, true, JSON.stringify(result.errors));
+      assert.doesNotMatch(result.drafts[0].html, /XYZ123/);
+    }
+  );
+});
+
+test("【監査対応・回帰テスト16】qualityScoreが不正な値(範囲外)の場合は全件拒否する", async () => {
+  await withDirs(
+    { itemsByKeyword: { [KEYWORD]: [safeItem("shop:1", { qualityScore: 999 }), safeItem("shop:2"), safeItem("shop:3")] } },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /qualityScoreが不正/);
+    }
+  );
+});
+
+test("【監査対応】itemPriceが負数(不正値)の場合は全件拒否する", async () => {
+  await withDirs(
+    { itemsByKeyword: { [KEYWORD]: [safeItem("shop:1", { itemPrice: -500 }), safeItem("shop:2"), safeItem("shop:3")] } },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, false);
+      assert.match(result.errors.join(""), /itemPriceが不正/);
+    }
+  );
+});
+
+test("【監査対応】承認ファイルのapprovedAtがsource runのexecutedAtより前の場合は全件拒否する", async () => {
+  const sourceRun = await buildSourceRunDir({ executedAt: new Date().toISOString() });
+  const approvalDir = await mkdtemp(join(tmpdir(), "pilot-build-approval-"));
+  try {
+    const beforeExecutedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // 1時間前(source run実行より前)
+    const approvedFilePath = await writeApprovalFile(approvalDir, sourceRun, { approvedAt: beforeExecutedAt });
+    const result = await buildPilotDrafts({ sourceRunDir: sourceRun.dir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /executedAt/);
+  } finally {
+    await rm(sourceRun.dir, { recursive: true, force: true });
+    await rm(approvalDir, { recursive: true, force: true });
+  }
+});
+
+test("【監査対応】docs/rankingsが存在しないprojectRootの場合は全件拒否する(重複検出フェイルクローズ)", async () => {
+  await withDirs({}, {}, async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: "/definitely/does/not/exist" });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /重複検出|見つかりません/);
+  });
+});
+
+test("【監査対応】表示される商品はpageReadyItems(Quality Score降順・最大5件)である", async () => {
+  await withDirs(
+    {
+      matchesRows: [
+        eligibleMatchRow(KEYWORD, "shop:1"),
+        eligibleMatchRow(KEYWORD, "shop:2"),
+        eligibleMatchRow(KEYWORD, "shop:3"),
+        eligibleMatchRow(KEYWORD, "shop:4"),
+      ],
+      itemsByKeyword: {
+        [KEYWORD]: [
+          safeItem("shop:1", { qualityScore: 60 }),
+          safeItem("shop:2", { qualityScore: 90 }),
+          safeItem("shop:3", { qualityScore: 75 }),
+          safeItem("shop:4", { qualityScore: 85 }),
+        ],
+      },
+    },
+    {},
+    async ({ sourceRunDir, approvedFilePath }) => {
+      const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+      assert.equal(result.ok, true, JSON.stringify(result.errors));
+      const html = result.drafts[0].html;
+      // itemCode自体はHTMLへ出力しないため、順序はqualityScore値の出現順で確認する
+      const scoreOrder = [...html.matchAll(/(\d+)<span class="score-max">/g)].map((m) => Number(m[1]));
+      assert.deepEqual(scoreOrder, [90, 85, 75, 60]);
+    }
+  );
+});

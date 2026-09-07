@@ -19,12 +19,8 @@
 // (live/fixtureの内訳)をレポートへ必ず明示することで、今後この種の誤認を防ぐ。
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
 import { toCsv } from "./csv.js";
-
-function sha256(text) {
-  return createHash("sha256").update(text, "utf-8").digest("hex");
-}
+import { sha256Text, computeCandidateSetHash } from "./hash-utils.js";
 
 /**
  * @param {{ candidates: any[], sourceMetas: any[], config: any }} pipelineResult
@@ -35,10 +31,10 @@ export async function writeReports(pipelineResult, runInfo) {
   await mkdir(runInfo.outDir, { recursive: true });
 
   // --- 再現性情報(2026-09-05 マージ前最終監査(3周目)対応) ---
-  const candidateSetHash = sha256(
-    candidates.map((c) => c.originalKeyword).sort().join("\n")
-  );
-  const mappingConfigHash = sha256(JSON.stringify(config ?? {}));
+  // 【2026-09-07 PR#5監査対応】candidateSetHashのアルゴリズムはhash-utils.jsへ集約し、
+  // pilot-draft-source-run.jsの検証側と同一の実装を共有する(二重実装を避ける)。
+  const candidateSetHash = computeCandidateSetHash(candidates);
+  const mappingConfigHash = sha256Text(JSON.stringify(config ?? {}));
   const searchSourceCounts = {};
   for (const c of candidates) {
     const key = c.rakuten?.searchSource ?? "(未実行)";

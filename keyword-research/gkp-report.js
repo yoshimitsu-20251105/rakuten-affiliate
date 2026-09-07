@@ -5,6 +5,8 @@
 //   - normalized-keywords.csv: 正規化・重複統合後の候補一覧(楽天照合前)
 //   - selected-for-rakuten.csv: 楽天照合へ渡した候補(安全な選出条件を通過したもの)
 //   - excluded-keywords.csv: 楽天照合へ渡さなかった候補と理由
+//   - rakuten-items.json: ELIGIBLE商品の表示用フィールドのみ(2026-09-07 Phase 3A対応。
+//     商品名・価格・レビュー・URL等の公開情報のみで、APIレスポンス全文ではない)
 
 import { writeFile } from "node:fs/promises";
 import { toCsv } from "./csv.js";
@@ -98,4 +100,22 @@ export async function writeExcludedKeywordsCsv(excluded, outDir) {
     toCsv(Object.keys(rows[0] ?? { originalKeyword: "" }), rows),
     "utf-8"
   );
+}
+
+/**
+ * ELIGIBLE商品の表示用フィールドのみを、normalizedKeyword単位でJSONへ保存する
+ * (2026-09-07 Phase 3A: 非公開下書きページ生成対応)。商品名・価格・レビュー・URL等の
+ * 公開情報のみを保持し、APIレスポンス全文・内部フィールドは含めない。新規API呼び出しは
+ * 発生しない(runMapRakuten実行時に既にメモリ上にある結果を書き出すだけ)。
+ * @param {any[]} mappedCandidates - runMapRakuten()の戻り値(eligibleItemSummariesを含む)
+ * @param {string} outDir
+ */
+export async function writeRakutenItemsJson(mappedCandidates, outDir) {
+  const byKeyword = {};
+  for (const c of mappedCandidates) {
+    if (c.eligibleItemSummaries && c.eligibleItemSummaries.length > 0) {
+      byKeyword[c.normalizedKeyword] = c.eligibleItemSummaries;
+    }
+  }
+  await writeFile(`${outDir}/rakuten-items.json`, JSON.stringify(byKeyword, null, 2), "utf-8");
 }

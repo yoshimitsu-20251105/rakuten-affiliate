@@ -191,6 +191,7 @@ export async function runMapRakuten(researchResult, options = {}) {
         rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "skipped", note: skipReason },
         rakutenLookupStatus,
         rakutenSupplyStatus: "NOT_EVALUATED",
+        eligibleItemSummaries: [],
         webKeywordScore: preScore,
         businessValidated,
         bestProductQualityScore: 0,
@@ -225,6 +226,7 @@ export async function runMapRakuten(researchResult, options = {}) {
         rakuten: { matches: [], eligibleCount: 0, supplyCount: 0, searchSource: "error", error: e.message },
         rakutenLookupStatus: "API_ERROR",
         rakutenSupplyStatus: "NOT_EVALUATED",
+        eligibleItemSummaries: [],
         webKeywordScore: preScore,
         businessValidated,
         bestProductQualityScore: 0,
@@ -249,13 +251,31 @@ export async function runMapRakuten(researchResult, options = {}) {
     );
     let bestProductQualityScore = 0;
     let bestProductItemCode = null;
+    // 【2026-09-07 Phase 3A(非公開下書きページ生成)対応】ELIGIBLE商品の表示用に必要な
+    // 最小限のフィールド(商品名・価格・レビュー・URL等、既にitemオブジェクトへ含まれている
+    // 公開情報)だけを保持する。APIレスポンス全文(内部フィールド・生キャプション全文等)は
+    // 保持しない。新規APIコールは発生しない(既にこの時点でメモリ上にある検索結果を使うだけ)。
+    const eligibleItemSummaries = [];
     for (const item of eligibleItems) {
       const q = computeProductQualityScore(item);
       if (q > bestProductQualityScore) {
         bestProductQualityScore = q;
         bestProductItemCode = item.itemCode;
       }
+      eligibleItemSummaries.push({
+        itemCode: item.itemCode,
+        itemName: item.itemName ?? null,
+        catchcopy: item.catchcopy ?? null,
+        itemPrice: typeof item.itemPrice === "number" ? item.itemPrice : null,
+        reviewAverage: typeof item.reviewAverage === "number" ? item.reviewAverage : null,
+        reviewCount: typeof item.reviewCount === "number" ? item.reviewCount : null,
+        itemUrl: item.itemUrl ?? null,
+        affiliateUrl: item.affiliateUrl ?? null,
+        shopName: item.shopName ?? null,
+        qualityScore: q,
+      });
     }
+    eligibleItemSummaries.sort((a, b) => b.qualityScore - a.qualityScore);
 
     const webKeywordScore = computeWebKeywordScore(
       candidate.observation,
@@ -302,6 +322,7 @@ export async function runMapRakuten(researchResult, options = {}) {
       rakuten: { matches, eligibleCount, supplyCount, searchSource: searchResult.source },
       rakutenLookupStatus: "SUCCESS",
       rakutenSupplyStatus,
+      eligibleItemSummaries,
       webKeywordScore,
       businessValidated: webKeywordScore.businessValidated,
       bestProductQualityScore,
