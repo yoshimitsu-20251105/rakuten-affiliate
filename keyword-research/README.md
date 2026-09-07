@@ -100,6 +100,24 @@ KEYWORD_RESEARCH_DRAFTS_ENABLED=true npm run keywords:build-pilot-drafts -- \
   日次GitHub Actionsへの接続・公開は一切行わない。楽天/Google/Search Console APIも呼び出さない
   (保存済みのsource runを読み取り専用で使うだけ)。
 
+#### 【重要・2026-09-07判明】商品関連性ゲート(PR#6)と旧下書きrunの扱い
+
+`keyword-research/output/pilot-drafts/phase3a-pilot-drafts-2026-09-07-01/`は、
+候補「キャットフード グレインフリー」で犬用おやつ(itemNameに「キャットフード」「猫」を
+SEOキーワードとして併記した商品)が誤ってQuality Score 1位表示された**INVALID・公開禁止**の
+下書きrunである。原因は、rakuten-match.jsの必須属性一致判定が商品テキスト全体
+(itemName+catchcopy+itemCaption)から属性を抽出しており、必須属性(species:cat)と反対属性
+(species:dog)が同時に存在する場合に矛盾を検出できなかったため。
+
+この下書きrunファイル自体は削除・変更せず、監査証跡としてそのまま保持する
+(gitignore対象のため元々commit対象ではない)。PR#6でrakuten-match.js・
+pilot-draft-source-run.js/pilot-draft-build.jsの両方へ、商品名(itemName)を最優先根拠とする
+商品関連性ゲート(`product-relevance.js`)を追加した(詳細は`product-relevance.js`の
+コメントを参照)。**PR#6のレビュー・マージ後、`phase3a-live-2026-09-07-01`のsource runは
+変更せず(楽天API再実行なし)、新しいdraft runId(例:
+`phase3a-pilot-drafts-2026-09-07-02`)で下書きを再生成すること。**
+上記の旧runIdのディレクトリは再利用・上書きしない。
+
 ### Search Console実接続を使ったdry-runの正式な実行方法
 
 ```bash

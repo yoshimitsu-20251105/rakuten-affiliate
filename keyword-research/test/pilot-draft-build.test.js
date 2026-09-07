@@ -55,7 +55,9 @@ function eligibleMatchRow(keyword, itemCode, overrides = {}) {
 function safeItem(itemCode, overrides = {}) {
   return {
     itemCode,
-    itemName: `テスト商品${itemCode}`,
+    // 【2026-09-07 PR#6対応】商品関連性ゲート(itemName優先)がKEYWORDのspecies:dogを
+    // itemNameから確認できることを要求するため、既定のitemNameに「犬用」を含める。
+    itemName: `犬用テスト商品${itemCode}`,
     catchcopy: "国産原料使用の人気商品です",
     itemPrice: 1000,
     reviewAverage: 4.5,
@@ -427,4 +429,157 @@ test("【監査対応】表示される商品はpageReadyItems(Quality Score降�
       assert.deepEqual(scoreOrder, [90, 85, 75, 60]);
     }
   );
+});
+
+// =====================================================================
+// 2026-09-07 PR#6対応: 商品関連性ゲート(猫用ランキングへの犬用商品混入防止)
+// =====================================================================
+// 2026-09-07にPhase 3A下書き「キャットフード グレインフリー」で、犬用おやつが
+// Quality Score 98で1位表示される誤判定が実際に発生した実例をもとにした回帰テスト。
+
+const CAT_KEYWORD = "キャットフード グレインフリー";
+const CAT_REQUIRED_ATTRS = "species:cat | productType:staple | feature:grain-free";
+
+// 2026-09-07 live source run(phase3a-live-2026-09-07-01)で実際に検出された商品
+// (itemCode: firstact:10000037)。itemNameに「犬」「おやつ」「ジャーキー」等の
+// 犬用おやつを示す語と、SEOキーワードとして「キャットフード」「猫」が併記されている。
+const REAL_MISCLASSIFIED_ITEM = {
+  itemCode: "firstact:10000037",
+  itemName:
+    "【累計7万袋突破】選べる5個セット | 送料無料 犬 おやつ 無添加 どっぐふーどる 国産 さつまいも ジャーキー 詰め合わせ ドッグフード 犬のおやつ ドックフード 犬おやつ 犬用 小分け オヤツ キャットフード 猫 犬のオヤツ ペットフード",
+  catchcopy: "新おやつ追加 小粒 小分け 野菜 プレゼント どっぐふーどる 犬用 おやつ 食べきりサイズ よりどり選べる5種 ペットフード グルテンフリー グレインフリー 詰め合わせ ギフト",
+  itemPrice: 2780,
+  reviewAverage: 4.81,
+  reviewCount: 1814,
+  qualityScore: 98,
+};
+
+function catSourceRunOptions(catItems) {
+  return {
+    scoresRows: [scoreRow({ originalKeyword: CAT_KEYWORD, normalizedKeyword: CAT_KEYWORD })],
+    matchesRows: catItems.map((item) => eligibleMatchRow(CAT_KEYWORD, item.itemCode, { requiredAttributes: CAT_REQUIRED_ATTRS, matchedAttributes: CAT_REQUIRED_ATTRS })),
+    itemsByKeyword: { [CAT_KEYWORD]: catItems },
+  };
+}
+
+function catApprovalOverrides() {
+  return { keywords: [{ normalizedKeyword: CAT_KEYWORD, title: "猫用グレインフリーキャットフードおすすめランキング比較", slug: "grain-free-cat-food", action: "CREATE" }] };
+}
+
+function catItem(itemCode, overrides = {}) {
+  return { itemCode, itemName: `猫用グレインフリーキャットフード${itemCode}`, catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, qualityScore: 80, ...overrides };
+}
+
+test("【回帰テスト・実例/テスト10,12】2026-09-07に実際に混入した犬用おやつはpageReadyItemsから除外され、残り3件で生成成功する", async () => {
+  const catItems = [REAL_MISCLASSIFIED_ITEM, catItem("shop:1"), catItem("shop:2"), catItem("shop:3")];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.equal(result.drafts.length, 1);
+    const html = result.drafts[0].html;
+    assert.doesNotMatch(html, /ジャーキー|どっぐふーどる|犬のおやつ/, "犬用おやつが表示に含まれていないこと");
+    assert.match(
+      result.validationReportLines.join("\n"),
+      /商品単位の関連性確認: 合計1件を除外/,
+      "関連性ゲートによる除外がvalidation-reportへ記録されること"
+    );
+  });
+});
+
+test("【回帰テスト・テスト11】商品関連性確認による除外後2件になる場合は全件拒否する", async () => {
+  // 犬用商品2件+猫用商品2件 → 犬用2件が除外され、残り2件(最低基準3件未満)で拒否される
+  const catItems = [
+    { ...REAL_MISCLASSIFIED_ITEM },
+    { ...REAL_MISCLASSIFIED_ITEM, itemCode: "firstact:10000038" },
+    catItem("shop:1"),
+    catItem("shop:2"),
+  ];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /商品関連性確認.*最低基準/);
+  });
+});
+
+test("【回帰テスト・テスト13】Quality Score 98でも商品関連性ゲートに矛盾する商品は採用されない", async () => {
+  // REAL_MISCLASSIFIED_ITEMはqualityScore=98で他の猫用商品(80)より高いが、
+  // 関連性ゲートで除外されるため、生成されたHTMLには一切現れない。
+  const catItems = [REAL_MISCLASSIFIED_ITEM, catItem("shop:1", { qualityScore: 70 }), catItem("shop:2", { qualityScore: 75 }), catItem("shop:3", { qualityScore: 60 })];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts[0].html;
+    assert.doesNotMatch(html, />98<span class="score-max">/, "Quality Score 98(矛盾商品)がHTMLに出力されていないこと");
+  });
+});
+
+test("【回帰テスト・テスト14】validation-reportにseller文言全文(itemName)が含まれない", async () => {
+  const catItems = [REAL_MISCLASSIFIED_ITEM, catItem("shop:1"), catItem("shop:2"), catItem("shop:3")];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const report = result.validationReportLines.join("\n");
+    assert.doesNotMatch(report, /どっぐふーどる|ジャーキー|累計7万袋突破/, "seller由来の商品名全文がvalidation-reportへ記録されていないこと");
+  });
+});
+
+// =====================================================================
+// 2026-09-07 PR#6追加監査対応: 主食語・おやつ語併記商品の除外、validation-reportの個別記録
+// =====================================================================
+
+function ambiguousProductTypeItem(itemCode, overrides = {}) {
+  // 主食語(キャットフード)・おやつ語(おやつ・ジャーキー)の両方をitemNameに含む猫用商品
+  // (動物種は矛盾しないが、商品種別がSEOキーワード詰め込みで曖昧な実例パターン)。
+  return { itemCode, itemName: `猫用 おやつ ジャーキー キャットフード ${itemCode}`, catchcopy: "", itemPrice: 2500, reviewAverage: 4.2, reviewCount: 50, qualityScore: 95, ...overrides };
+}
+
+test("【追加監査9】Phase 3A層でも主食語・おやつ語併記商品(AMBIGUOUS_PRODUCT_TYPE)が除外される", async () => {
+  const catItems = [ambiguousProductTypeItem("shop:amb"), catItem("shop:1"), catItem("shop:2"), catItem("shop:3")];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts[0].html;
+    assert.doesNotMatch(html, />95<span class="score-max">/, "AMBIGUOUS_PRODUCT_TYPE商品(Quality Score 95)がHTMLに出力されていないこと");
+    assert.match(result.validationReportLines.join("\n"), /AMBIGUOUS_PRODUCT_TYPE/);
+  });
+});
+
+test("【追加監査10】validation-reportにitemCodeと理由コードが個別行として記録される", async () => {
+  const catItems = [REAL_MISCLASSIFIED_ITEM, catItem("shop:1"), catItem("shop:2"), catItem("shop:3")];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const report = result.validationReportLines.join("\n");
+    assert.match(
+      report,
+      /商品関連性除外: keyword=キャットフード グレインフリー, itemCode=firstact:10000037, reasonCodes=.*AMBIGUOUS_SPECIES.*AMBIGUOUS_PRODUCT_TYPE|商品関連性除外: keyword=キャットフード グレインフリー, itemCode=firstact:10000037, reasonCodes=.*AMBIGUOUS_PRODUCT_TYPE.*AMBIGUOUS_SPECIES/,
+      "itemCodeと理由コードが個別行として記録されること"
+    );
+  });
+});
+
+test("【追加監査11】validation-reportにitemName・catchcopy・店舗名が一切含まれない(除外区分の個別記録を含めて)", async () => {
+  const catItems = [
+    REAL_MISCLASSIFIED_ITEM,
+    catItem("shop:1", { itemName: "治療効果のある猫用フードXYZSECRET1" }), // 安全除外対象(医療語彙「治療」を含む)
+    catItem("shop:2"),
+    catItem("shop:3"),
+    catItem("shop:4"),
+  ];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const report = result.validationReportLines.join("\n");
+    assert.doesNotMatch(report, /XYZSECRET1|どっぐふーどる|雑貨とペット用品/, "seller文言・店舗名が記録されていないこと");
+    assert.match(report, /商品安全除外: keyword=.*itemCode=shop:1/, "安全除外もitemCode単位で個別記録されること");
+  });
+});
+
+test("【追加監査12】商品関連性確認(AMBIGUOUS_PRODUCT_TYPE)による除外後2件になる場合は全件拒否する", async () => {
+  const catItems = [ambiguousProductTypeItem("shop:amb1"), ambiguousProductTypeItem("shop:amb2"), catItem("shop:1"), catItem("shop:2")];
+  await withDirs(catSourceRunOptions(catItems), catApprovalOverrides(), async ({ sourceRunDir, approvedFilePath }) => {
+    const result = await buildPilotDrafts({ sourceRunDir, approvedFilePath, projectRoot: PROJECT_ROOT });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /商品関連性確認.*最低基準/);
+  });
 });

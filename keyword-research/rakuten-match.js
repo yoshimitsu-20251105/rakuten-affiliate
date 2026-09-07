@@ -8,6 +8,7 @@
 // - キーワードの必須属性と矛盾する商品(例: 猫用キーワードに対し明確に犬用と書かれた商品)は除外する。
 
 import { extractAttributes } from "./attributes.js";
+import { evaluateProductRelevance } from "./product-relevance.js";
 import { fetchWithRetry } from "./http.js";
 import { readFile } from "node:fs/promises";
 
@@ -222,6 +223,27 @@ function matchOneItem(canonicalKeyword, requiredAttributes, item) {
     reasons.push("必須属性がいずれも商品データに明記されておらず、根拠なしのため除外");
   }
 
+  // 【2026-09-07 PR#6対応】商品関連性ゲート(itemName優先、product-relevance.js)。
+  // 上のEXCLUSIVE_GROUPS判定は「必須属性が商品側に無い場合」しか矛盾とみなさないため、
+  // 必須属性(例: species:cat)と反対属性(species:dog)がitemName+catchcopy+itemCaption
+  // 全体に同時に存在する場合(SEOキーワード詰め込み)に矛盾を検出できない欠陥があった
+  // (2026-09-07に「キャットフード グレインフリー」で犬用おやつが1位混入した実例)。
+  // itemNameを最優先の根拠とする独立判定を追加で適用し、既存判定の結果に関わらず
+  // 明確な矛盾があればREJECTEDへ格上げする(既存のspecies排他判定だけに依存しない)。
+  const relevance = evaluateProductRelevance({
+    requiredAttributes,
+    itemName: item.itemName,
+    catchcopy: item.catchcopy,
+    itemCaption: item.itemCaption,
+  });
+  if (relevance.status === "REJECTED" && status !== "REJECTED") {
+    status = "REJECTED";
+    reasons.push(`商品関連性ゲートにより除外(${relevance.reasonCodes.join(", ")})`);
+  } else if (relevance.status === "REVIEW_REQUIRED" && status === "ELIGIBLE") {
+    status = "NEEDS_MANUAL_REVIEW";
+    reasons.push(`必須属性が商品名(itemName)単独では確認できないため手動確認が必要(${relevance.reasonCodes.join(", ")})`);
+  }
+
   return {
     canonicalKeyword,
     itemCode: item.itemCode,
@@ -232,5 +254,9 @@ function matchOneItem(canonicalKeyword, requiredAttributes, item) {
     matchScore,
     status,
     reasons,
+    productRelevanceStatus: relevance.status,
+    productRelevanceReasonCodes: relevance.reasonCodes,
+    detectedTitleAttributes: relevance.detectedTitleAttributes,
+    detectedFullTextAttributes: relevance.detectedFullTextAttributes,
   };
 }

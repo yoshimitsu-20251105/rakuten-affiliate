@@ -9,7 +9,7 @@ const ATTRIBUTE_DICTIONARY = [
   { tag: "lifeStage:senior", tokens: ["シニア", "老犬", "老猫", "高齢"] },
   { tag: "lifeStage:adult", tokens: ["成犬", "成猫"] },
   { tag: "productType:staple", tokens: ["主食", "フード", "ドッグフード", "キャットフード"] },
-  { tag: "productType:treat", tokens: ["おやつ", "トリーツ", "スナック"] },
+  { tag: "productType:treat", tokens: ["おやつ", "トリーツ", "スナック", "ジャーキー", "ガム"] },
   { tag: "productType:dry", tokens: ["ドライ"] },
   { tag: "productType:wet", tokens: ["ウェット", "缶詰"] },
   { tag: "feature:domestic", tokens: ["国産", "日本製", "日本産"] },

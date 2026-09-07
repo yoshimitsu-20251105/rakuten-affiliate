@@ -81,7 +81,9 @@ async function buildValidSourceRun(dir) {
   await writeFile(
     join(dir, "rakuten-items.json"),
     JSON.stringify({
-      [KEYWORD]: [0, 1, 2].map((i) => ({ itemCode: `shop:${i}`, itemName: `テスト商品${i}`, catchcopy: "", itemPrice: 2000 + i, reviewAverage: 4.5, reviewCount: 100, qualityScore: 80 - i })),
+      // 【2026-09-07 PR#6対応】商品関連性ゲート(itemName優先)がKEYWORDのspecies:dogを
+      // itemNameから確認できることを要求するため、itemNameに「犬用」を含める。
+      [KEYWORD]: [0, 1, 2].map((i) => ({ itemCode: `shop:${i}`, itemName: `犬用テスト商品${i}`, catchcopy: "", itemPrice: 2000 + i, reviewAverage: 4.5, reviewCount: 100, qualityScore: 80 - i })),
     }),
     "utf-8"
   );
