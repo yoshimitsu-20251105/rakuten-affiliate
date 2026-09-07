@@ -64,8 +64,34 @@ test("listExistingRankingSlugs: 実際のdocs/rankings/から既存slugを取得
   assert.ok(slugs.length > 0);
 });
 
-test("listExistingRankingSlugs: 存在しないディレクトリは空配列を返す", () => {
-  assert.deepEqual(listExistingRankingSlugs("/definitely/does/not/exist"), []);
+test("listExistingRankingSlugs: 存在しないディレクトリは例外を投げる(2026-09-07 PR#5監査対応: 空配列を返さない。判定材料が無いことと既存ページ0件を区別する)", () => {
+  assert.throws(() => listExistingRankingSlugs("/definitely/does/not/exist"), /見つかりません/);
+});
+
+test("listExistingRankingSlugs: 実在する空ディレクトリは空配列を返す(既存ページが本当に0件のケースは許可する)", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "empty-rankings-"));
+  try {
+    assert.deepEqual(listExistingRankingSlugs(dir), []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("listExistingRankingSlugs: ディレクトリではない(ファイル)パスは例外を投げる", async () => {
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = await mkdtemp(join(tmpdir(), "not-a-dir-"));
+  const filePath = join(dir, "not-a-directory.txt");
+  await writeFile(filePath, "dummy", "utf-8");
+  try {
+    assert.throws(() => listExistingRankingSlugs(filePath), /ディレクトリではありません/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("findConflicts: 実データで、承認予定の2件が既存slug・既存シードキーワードのいずれとも衝突しない", async () => {

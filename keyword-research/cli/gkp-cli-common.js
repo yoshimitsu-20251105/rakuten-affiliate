@@ -1,9 +1,10 @@
 // keywords:import-gkp / keywords:gkp-dry-run の共通処理(2026-09-06 PR#4監査対応)。
 // 両CLIで重複していたrunId生成・出力先の排他作成・失敗時メタデータ書き込みを集約する。
 
-import { mkdir, writeFile, readdir, rm } from "node:fs/promises";
+import { mkdir, writeFile, readdir, rm, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import { sha256File } from "../hash-utils.js";
 
 export function getCodeCommit(cwdUrl) {
   try {
@@ -76,6 +77,28 @@ export function evaluateApiErrorRate(mappedCandidates, threshold) {
   const attemptedCount = mappedCandidates.filter((c) => c.rakutenLookupStatus !== "NOT_RUN").length;
   const apiErrorRate = attemptedCount > 0 ? apiErrorCount / attemptedCount : 0;
   return { apiErrorCount, attemptedCount, apiErrorRate, exceeded: apiErrorRate > threshold };
+}
+
+/**
+ * source runの成果物ファイル(keyword-scores.csv/keyword-candidates.csv/
+ * rakuten-matches.csv/rakuten-items.json)のSHA-256を計算し、run-metadata.jsonへ
+ * artifactHashesとして原子的に(一時ファイル+rename)追記する(2026-09-07 PR#5監査対応)。
+ * 対象ファイルをすべて書き終えた後に呼び出すこと。run-metadata.json自身はハッシュ対象にしない。
+ * @param {string} outDir - 末尾に区切り文字を含むディレクトリパス(例: "C:/.../runId/")
+ * @param {string[]} artifactFilenames - ハッシュ対象のファイル名一覧
+ */
+export async function writeArtifactHashes(outDir, artifactFilenames) {
+  const artifactHashes = {};
+  for (const filename of artifactFilenames) {
+    artifactHashes[filename] = await sha256File(`${outDir}${filename}`);
+  }
+  const metadataPath = `${outDir}run-metadata.json`;
+  const metadata = JSON.parse(await readFile(metadataPath, "utf-8"));
+  metadata.artifactHashes = artifactHashes;
+  const tmpPath = `${metadataPath}.tmp-${process.pid}-${Date.now()}`;
+  await writeFile(tmpPath, JSON.stringify(metadata, null, 2), "utf-8");
+  await rename(tmpPath, metadataPath);
+  return artifactHashes;
 }
 
 /**

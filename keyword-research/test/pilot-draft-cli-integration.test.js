@@ -1,6 +1,9 @@
-// 【2026-09-07 Phase 3A対応】keywords:build-pilot-drafts CLI統合テスト。
+// 【2026-09-07 Phase 3A対応 / PR#5監査対応で一部改訂】keywords:build-pilot-drafts CLI統合テスト。
 // feature flag・承認ファイル必須・出力先・既存サイト無影響・ネットワーク呼び出し0件・
 // 部分失敗時のクリーンアップを、実際にサブプロセスとして起動して検証する。
+//
+// artifactHashes/candidateSetHashは実ファイルから再計算されるため、フィクスチャは
+// 実際に書き込んだファイル内容から算出したハッシュを使う。
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -10,77 +13,115 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { sha256File, computeCandidateSetHash } from "../hash-utils.js";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url)).replace(/[\\/]$/, "");
 const CLI = fileURLToPath(new URL("../cli/build-pilot-drafts.js", import.meta.url));
 const PILOT_DRAFTS_DIR = fileURLToPath(new URL("../output/pilot-drafts/", import.meta.url));
-
-const VALID_METADATA = {
-  runId: "cli-test-source-run",
-  status: "completed",
-  rakutenSource: "live",
-  searchSourceCounts: { live: 3 },
-  resultCounts: { apiErrorCount: 0, attemptedCount: 3, apiErrorRate: 0 },
-  candidateSetHash: "cli-test-hash",
-};
+const ARTIFACT_FILENAMES = ["keyword-scores.csv", "keyword-candidates.csv", "rakuten-matches.csv", "rakuten-items.json"];
+const KEYWORD = "シニア 犬 豚肉";
+const SOURCE_RUN_ID = "cli-test-source-run";
 
 async function writeCsv(dir, filename, header, rows) {
   const lines = rows.map((r) => header.split(",").map((h) => r[h] ?? "").join(","));
   await writeFile(join(dir, filename), [header, ...lines].join("\n") + "\n", "utf-8");
 }
 
+/**
+ * source run一式を実際に書き込み、artifactHashes/candidateSetHashを実ファイルから
+ * 計算してrun-metadata.jsonへ埋め込む。
+ * @returns {Promise<string>} 実際に計算されたcandidateSetHash
+ */
 async function buildValidSourceRun(dir) {
-  await writeFile(join(dir, "run-metadata.json"), JSON.stringify(VALID_METADATA), "utf-8");
-  const kw = "シニア 犬 豚肉";
+  const scoresRows = [
+    {
+      originalKeyword: KEYWORD,
+      normalizedKeyword: KEYWORD,
+      businessValidated: "true",
+      decisionStatus: "PRIORITY",
+      scoreBand_simulationOnly: "PRIORITY",
+      eligibleForApproval: "true",
+      safetyStatus: "SAFE",
+      queryQualityStatus: "VALID",
+      rakutenLookupStatus: "SUCCESS",
+      rakutenSupplyStatus: "ELIGIBLE",
+      finalPriority: "77",
+      webKeywordScoreTotal: "74",
+      bestProductQualityScore: "80",
+    },
+  ];
   await writeCsv(
     dir,
     "keyword-scores.csv",
     "originalKeyword,normalizedKeyword,rakutenQuery,businessValidated,scoreBand_simulationOnly,decisionStatus,safetyStatus,queryQualityStatus,rakutenLookupStatus,rakutenSupplyStatus,eligibleForApproval,eligibleForExport,eligibleForPublish,validationFailureReasons,dataSource,sourceProvider,isSynthetic,demand,purchaseIntent,adsCompetitionGap_notSeoCompetition,trendAndStability,rakutenSupplyFit,clusterFit,webKeywordScoreTotal,confidence,bestProductQualityScore,finalPriority,reasons",
-    [
-      {
-        originalKeyword: kw,
-        normalizedKeyword: kw,
-        businessValidated: "true",
-        decisionStatus: "PRIORITY",
-        scoreBand_simulationOnly: "PRIORITY",
-        eligibleForApproval: "true",
-        safetyStatus: "SAFE",
-        queryQualityStatus: "VALID",
-        rakutenLookupStatus: "SUCCESS",
-        rakutenSupplyStatus: "ELIGIBLE",
-        finalPriority: "77",
-        webKeywordScoreTotal: "74",
-        bestProductQualityScore: "80",
-      },
-    ]
+    scoresRows
   );
   await writeCsv(
     dir,
     "keyword-candidates.csv",
     "originalKeyword,normalizedKeyword,rakutenQuery,keywordVariants,cluster,intent,safetyStatus,queryQualityStatus,variantCount,mergeReason,sourceProvider,isSynthetic,periodStart,periodEnd,monthlySearches,searchVolumeVariance,competitionLevel,trendIndex,lowTopOfPageBid_monetizationOnly,highTopOfPageBid_monetizationOnly",
-    [{ originalKeyword: kw, normalizedKeyword: kw, cluster: "シニア犬フード", monthlySearches: "500" }]
+    [{ originalKeyword: KEYWORD, normalizedKeyword: KEYWORD, cluster: "シニア犬フード", monthlySearches: "500" }]
   );
   await writeCsv(
     dir,
     "rakuten-matches.csv",
     "originalKeyword,normalizedKeyword,rakutenQuery,itemCode,status,matchScore,requiredAttributes,matchedAttributes,missingAttributes,conflictingAttributes,dataSource,reasons",
-    [0, 1, 2].map((i) => ({ originalKeyword: kw, normalizedKeyword: kw, itemCode: `shop:${i}`, status: "ELIGIBLE", matchedAttributes: "species:dog | feature:domestic" }))
+    [0, 1, 2].map((i) => ({
+      originalKeyword: KEYWORD,
+      normalizedKeyword: KEYWORD,
+      itemCode: `shop:${i}`,
+      status: "ELIGIBLE",
+      matchScore: "100",
+      requiredAttributes: "species:dog | feature:domestic",
+      matchedAttributes: "species:dog | feature:domestic",
+      missingAttributes: "",
+      conflictingAttributes: "",
+    }))
   );
   await writeFile(
     join(dir, "rakuten-items.json"),
     JSON.stringify({
-      [kw]: [0, 1, 2].map((i) => ({ itemCode: `shop:${i}`, itemName: `テスト商品${i}`, itemPrice: 2000 + i, reviewAverage: 4.5, reviewCount: 100, qualityScore: 80 - i })),
+      [KEYWORD]: [0, 1, 2].map((i) => ({ itemCode: `shop:${i}`, itemName: `テスト商品${i}`, catchcopy: "", itemPrice: 2000 + i, reviewAverage: 4.5, reviewCount: 100, qualityScore: 80 - i })),
     }),
     "utf-8"
   );
-  return kw;
+
+  const artifactHashes = {};
+  for (const filename of ARTIFACT_FILENAMES) {
+    artifactHashes[filename] = await sha256File(join(dir, filename));
+  }
+  const candidateSetHash = computeCandidateSetHash(scoresRows.map((r) => ({ originalKeyword: r.originalKeyword })));
+
+  const metadata = {
+    runId: SOURCE_RUN_ID,
+    status: "completed",
+    commandMode: "gkp-dry-run",
+    rakutenSource: "live",
+    sourceProvider: "google_keyword_planner",
+    executedAt: "2026-09-01T00:00:00.000Z",
+    searchSourceCounts: { live: 1 },
+    resultCounts: { apiErrorCount: 0, apiErrorRate: 0, attemptedCount: 1 },
+    selectedCount: 1,
+    candidateCount: 1,
+    candidateSetHash,
+    artifactHashes,
+  };
+  await writeFile(join(dir, "run-metadata.json"), JSON.stringify(metadata), "utf-8");
+  return candidateSetHash;
 }
 
 async function writeApproval(dir, sourceRunId, candidateSetHash, keywords) {
   const filePath = join(dir, "approval.json");
   await writeFile(
     filePath,
-    JSON.stringify({ version: 1, sourceRunId, candidateSetHash, approvedBy: "human", approvedAt: "2026-09-07T00:00:00.000Z", keywords }),
+    JSON.stringify({
+      version: 1,
+      sourceRunId,
+      candidateSetHash,
+      approvedBy: "human",
+      approvedAt: new Date(Date.now() - 60_000).toISOString(), // 常に「現在より過去」かつsource run実行後になるよう実行時刻基準にする
+      keywords,
+    }),
     "utf-8"
   );
   return filePath;
@@ -102,9 +143,9 @@ test("KEYWORD_RESEARCH_DRAFTS_ENABLEDが未設定(既定false)の場合は生成
   const sourceRunDir = await mkdtemp(join(tmpdir(), "pilot-cli-source-"));
   const approvalDir = await mkdtemp(join(tmpdir(), "pilot-cli-approval-"));
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
-      { normalizedKeyword: "シニア 犬 豚肉", title: "テスト", slug: "flag-off-test", action: "CREATE" },
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
+      { normalizedKeyword: KEYWORD, title: "テスト", slug: "flag-off-test", action: "CREATE" },
     ]);
     const runId = `test-flagoff-${Date.now()}`;
     const result = runCli(
@@ -138,9 +179,9 @@ test("正常な承認ファイル・source runから下書きを生成できる(
   const approvalDir = await mkdtemp(join(tmpdir(), "pilot-cli-approval-"));
   const runId = `test-success-${Date.now()}`;
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
-      { normalizedKeyword: "シニア 犬 豚肉", title: "シニア犬向け豚肉ドッグフードおすすめランキング比較", slug: "cli-success-test", action: "CREATE" },
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
+      { normalizedKeyword: KEYWORD, title: "シニア犬向け豚肉ドッグフードおすすめランキング比較", slug: "cli-success-test", action: "CREATE" },
     ]);
     const result = runCli(["--source-run", sourceRunDir, "--approved-file", approvedFilePath, "--run-id", runId], {
       KEYWORD_RESEARCH_DRAFTS_ENABLED: "true",
@@ -160,8 +201,8 @@ test("正常な承認ファイル・source runから下書きを生成できる(
 
     const metadata = JSON.parse(await readFile(join(outDir, "run-metadata.json"), "utf-8"));
     assert.equal(metadata.status, "completed");
-    assert.equal(metadata.sourceRunId, "cli-test-source-run");
-    assert.equal(metadata.candidateSetHash, "cli-test-hash");
+    assert.equal(metadata.sourceRunId, SOURCE_RUN_ID);
+    assert.equal(metadata.candidateSetHash, candidateSetHash);
     assert.deepEqual(metadata.slugs, ["cli-success-test"]);
     assert.equal(metadata.generatedCount, 1);
   } finally {
@@ -176,9 +217,9 @@ test("出力先が既に存在する場合はエラーになり上書きしな�
   const approvalDir = await mkdtemp(join(tmpdir(), "pilot-cli-approval-"));
   const runId = `test-existing-${Date.now()}`;
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
-      { normalizedKeyword: "シニア 犬 豚肉", title: "テスト", slug: "existing-test-slug", action: "CREATE" },
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
+      { normalizedKeyword: KEYWORD, title: "テスト", slug: "existing-test-slug", action: "CREATE" },
     ]);
     const first = runCli(["--source-run", sourceRunDir, "--approved-file", approvedFilePath, "--run-id", runId], {
       KEYWORD_RESEARCH_DRAFTS_ENABLED: "true",
@@ -203,9 +244,9 @@ test("既存サイトのファイル(docs/index.html, articles-data.json, select
   const targets = ["docs/index.html", "articles-data.json", "selected-products.json"].map((p) => join(PROJECT_ROOT, p));
   const before = await Promise.all(targets.map(async (p) => ({ content: await readFile(p, "utf-8"), mtime: (await stat(p)).mtimeMs })));
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
-      { normalizedKeyword: "シニア 犬 豚肉", title: "テスト", slug: "siteimpact-test-slug", action: "CREATE" },
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
+      { normalizedKeyword: KEYWORD, title: "テスト", slug: "siteimpact-test-slug", action: "CREATE" },
     ]);
     const result = runCli(["--source-run", sourceRunDir, "--approved-file", approvedFilePath, "--run-id", runId], {
       KEYWORD_RESEARCH_DRAFTS_ENABLED: "true",
@@ -230,9 +271,9 @@ test("ネットワーク呼び出しは発生しない(RAKUTEN_APP_ID/SECRET未�
   const approvalDir = await mkdtemp(join(tmpdir(), "pilot-cli-approval-"));
   const runId = `test-nonetwork-${Date.now()}`;
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
-      { normalizedKeyword: "シニア 犬 豚肉", title: "テスト", slug: "nonetwork-test-slug", action: "CREATE" },
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
+      { normalizedKeyword: KEYWORD, title: "テスト", slug: "nonetwork-test-slug", action: "CREATE" },
     ]);
     const result = runCli(["--source-run", sourceRunDir, "--approved-file", approvedFilePath, "--run-id", runId], {
       KEYWORD_RESEARCH_DRAFTS_ENABLED: "true",
@@ -252,8 +293,8 @@ test("承認ファイルにゲート違反のキーワードが含まれる場�
   const approvalDir = await mkdtemp(join(tmpdir(), "pilot-cli-approval-"));
   const runId = `test-gateviolation-${Date.now()}`;
   try {
-    await buildValidSourceRun(sourceRunDir);
-    const approvedFilePath = await writeApproval(approvalDir, "cli-test-source-run", "cli-test-hash", [
+    const candidateSetHash = await buildValidSourceRun(sourceRunDir);
+    const approvedFilePath = await writeApproval(approvalDir, SOURCE_RUN_ID, candidateSetHash, [
       { normalizedKeyword: "存在しないキーワード", title: "テスト", slug: "gateviolation-test-slug", action: "CREATE" },
     ]);
     const result = runCli(["--source-run", sourceRunDir, "--approved-file", approvedFilePath, "--run-id", runId], {

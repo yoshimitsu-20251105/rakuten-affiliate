@@ -7,7 +7,7 @@
 // 判定不能・抽出失敗の場合は必ず安全側(=重複ありとみなして拒否)に倒す。
 
 import { readFile } from "node:fs/promises";
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, statSync } from "node:fs";
 import { extractAttributes } from "./attributes.js";
 
 const SYNONYM_CANONICAL = [
@@ -143,14 +143,35 @@ export async function extractExistingSeedKeywords(projectRoot) {
 
 /**
  * docs/rankings/配下の既存ランキングページのslug(拡張子除きファイル名)一覧を返す。
+ * 【2026-09-07 PR#5監査対応】以前は存在しないディレクトリに対して空配列を返しており、
+ * 「重複検出の判定材料が取得できない」状態と「本当に既存ページが0件」の状態を
+ * 区別できなかった(前者を後者として扱うと、実際には既存ページ一覧を取得できて
+ * いないのに重複無しと誤判定してしまう安全上のリスクがあった)。読取不能・
+ * ディレクトリではない場合は例外を投げ、呼び出し側で安全側(全件拒否)に倒す。
+ * 実在する空ディレクトリ(既存ページが本当に0件)は正しく空配列を返す。
  * @param {string} rankingsDir
  * @returns {string[]}
  */
 export function listExistingRankingSlugs(rankingsDir) {
-  if (!existsSync(rankingsDir)) return [];
-  return readdirSync(rankingsDir)
-    .filter((f) => f.endsWith(".html"))
-    .map((f) => f.slice(0, -".html".length));
+  if (!existsSync(rankingsDir)) {
+    throw new Error(`既存ランキングページのディレクトリが見つかりません: ${rankingsDir}`);
+  }
+  let stat;
+  try {
+    stat = statSync(rankingsDir);
+  } catch (e) {
+    throw new Error(`既存ランキングページのディレクトリの状態を取得できません: ${rankingsDir}(${e.message})`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`既存ランキングページのパスがディレクトリではありません: ${rankingsDir}`);
+  }
+  let entries;
+  try {
+    entries = readdirSync(rankingsDir);
+  } catch (e) {
+    throw new Error(`既存ランキングページのディレクトリを読み取れません: ${rankingsDir}(${e.message})`);
+  }
+  return entries.filter((f) => f.endsWith(".html")).map((f) => f.slice(0, -".html".length));
 }
 
 /**

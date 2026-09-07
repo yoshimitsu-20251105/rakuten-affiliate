@@ -32,7 +32,11 @@ import {
   writeFailureMetadata,
   validateMaxRakutenKeywords,
   evaluateApiErrorRate,
+  writeArtifactHashes,
 } from "./gkp-cli-common.js";
+
+// Phase 3A(pilot-draft-source-run.js)がsource run成果物の改変検知に使うハッシュ対象。
+const ARTIFACT_FILENAMES = ["keyword-scores.csv", "keyword-candidates.csv", "rakuten-matches.csv", "rakuten-items.json"];
 
 const OUTPUT_ROOT_URL = new URL("../output/gkp-runs/", import.meta.url);
 const OUTPUT_ROOT = OUTPUT_ROOT_URL.pathname.replace(/^\/([A-Za-z]):/, "$1:");
@@ -169,6 +173,10 @@ async function main() {
         "生成されました。eligibleForApproval/eligibleForExport/eligibleForPublishはすべて強制的にfalseです。\n\n";
       await writeFile(`${outDir}/summary.md`, banner + existing, "utf-8");
     }
+
+    // 【2026-09-07 PR#5監査対応】成果物を書き終えた後にSHA-256を計算し、
+    // run-metadata.jsonへartifactHashesを原子的に追記する(Phase 3Aの改変検知用)。
+    await writeArtifactHashes(outDir, ARTIFACT_FILENAMES);
 
     console.log(`${LOG} 完了(status=${finalStatus})`);
     console.log(`  楽天データ源: ${rakutenSource}`);

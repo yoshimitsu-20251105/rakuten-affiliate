@@ -67,10 +67,27 @@ test("情報取得日時が表示される", () => {
   assert.match(html, /2026-09-06T04:45:11\.364Z/);
 });
 
-test("アフィリエイト広告である旨、価格・在庫変動の注意書きが含まれる", () => {
+test("【監査対応】公開時にアフィリエイトリンクを使用予定である旨、価格・在庫変動の注意書きが含まれる", () => {
   const html = renderPilotDraftHtml(baseData());
-  assert.match(html, /アフィリエイト広告/);
+  assert.match(html, /公開時には楽天アフィリエイトリンクを使用する予定です/);
   assert.match(html, /価格・在庫/);
+});
+
+test("【監査対応】現時点でクリック可能なリンクが存在しないため、「本ページのリンクにはアフィリエイト広告を含みます」という事実と異なる表現は使わない", () => {
+  const html = renderPilotDraftHtml(baseData());
+  assert.doesNotMatch(html, /本ページのリンクにはアフィリエイト広告を含みます/);
+});
+
+test("【監査対応・回帰テスト15】seller由来のcatchcopyはHTMLへ一切出力されない(ランキング表に不要なため削除済み)", () => {
+  const html = renderPilotDraftHtml(
+    baseData({
+      eligibleItems: [
+        { itemCode: "shop:1", itemName: "テスト商品", catchcopy: "これは絶対に出力されてはいけない販売者コピーABC999", itemPrice: 1000, reviewAverage: 4.0, reviewCount: 10, qualityScore: 50 },
+      ],
+    })
+  );
+  assert.doesNotMatch(html, /ABC999/);
+  assert.doesNotMatch(html, /class="catchcopy"/);
 });
 
 test("禁止表現(治療・予防等の医療効果を断定する肯定文)が出力に含まれない", () => {

@@ -8,6 +8,17 @@
 // - 商品データ(itemName/catchcopy)に無い属性・原材料・原産国等を推定して書かない
 //   (確認できた属性は、楽天照合層(rakuten-match.js)が実際に確認したmatchedAttributesの
 //   みを表示する)。
+//
+// 【2026-09-07 PR#5監査対応】
+// - catchcopy(販売者が書いた文言。医療・健康表現を含む可能性がある)はランキング表に
+//   必須ではないため表示から削除した。安全確認は呼び出し側(pilot-draft-build.js)が
+//   itemName+catchcopyに対して行うが、catchcopy自体はこのテンプレートへ渡っても
+//   出力しない。
+// - 本ページには現時点でクリック可能なリンクが存在しないため、「アフィリエイト広告を
+//   含みます」という事実と異なる開示文言は使わない(公開時に使用予定である旨へ変更)。
+// - eligibleItemsに渡す配列は、呼び出し側で安全確認・数値検証・上位3〜5件への絞込み
+//   (Quality Score降順)を済ませたもの(pageReadyItems)を渡すこと。このテンプレート
+//   自身は表示件数の絞込み(defense-in-depthとしてのslice)以上のゲート判定は行わない。
 
 const ATTRIBUTE_LABELS = {
   "species:dog": "犬用",
@@ -51,10 +62,12 @@ function attributeLabels(tags) {
  *   title: string, slug: string, normalizedKeyword: string, originalKeyword: string,
  *   cluster: string, monthlySearches: string|number, finalPriority: number,
  *   webKeywordScoreTotal: number, eligibleItems: Array<{itemCode:string,itemName:string,
- *     catchcopy:string,itemPrice:number,reviewAverage:number,reviewCount:number,
+ *     itemPrice:number|null,reviewAverage:number|null,reviewCount:number|null,
  *     itemUrl:string,affiliateUrl:string,qualityScore:number}>,
  *   requiredAttributeLabels: string[], dataRetrievedAt: string, sourceRunId: string,
- * }} data
+ * }} data - eligibleItemsは呼び出し側(pilot-draft-build.js)で安全確認・数値検証・
+ *   件数絞込み(3〜5件、Quality Score降順)を済ませたもの(pageReadyItems)を渡すこと。
+ *   catchcopy(seller文言)はこのテンプレートへ渡しても表示しない。
  * @returns {string} 完全なHTML文書
  */
 export function renderPilotDraftHtml(data) {
@@ -80,10 +93,10 @@ export function renderPilotDraftHtml(data) {
       (item, i) => `
         <tr>
           <td class="rank-cell">${i + 1}</td>
-          <td class="name-cell">${escapeHtml(item.itemName)}<br><span class="catchcopy">${escapeHtml(item.catchcopy ?? "")}</span></td>
+          <td class="name-cell">${escapeHtml(item.itemName)}</td>
           <td class="price-cell">${formatPrice(item.itemPrice)}</td>
           <td class="review-cell">${formatReview(item.reviewAverage, item.reviewCount)}</td>
-          <td class="score-cell">${item.qualityScore}<span class="score-max">/100点</span></td>
+          <td class="score-cell">${escapeHtml(String(item.qualityScore))}<span class="score-max">/100点</span></td>
         </tr>`
     )
     .join("\n");
@@ -112,7 +125,6 @@ export function renderPilotDraftHtml(data) {
   table { width:100%; border-collapse:collapse; background:var(--card-bg); }
   th, td { border:1px solid var(--border); padding:0.6rem; font-size:0.85rem; vertical-align:top; }
   th { background:rgba(128,128,128,0.08); }
-  .catchcopy { color:var(--muted); font-size:0.78rem; }
   .attr-list { padding-left:1.2rem; }
   .disclosure { font-size:0.78rem; color:var(--muted); border-top:1px solid var(--border); margin-top:2rem; padding-top:1rem; }
   @media (max-width: 480px) {
@@ -159,9 +171,10 @@ ${rows}
 </p>
 
 <p class="disclosure">
-  本ページのリンクにはアフィリエイト広告(楽天アフィリエイト)を含みます。掲載している価格・レビュー情報は
-  ${escapeHtml(dataRetrievedAt)}時点で取得したものであり、その後価格・在庫状況が変動する場合があります。
-  本ページはslug「${escapeHtml(slug)}」の下書き(DRAFT)であり、公開ページではありません。
+  本ページは下書き(DRAFT)であり、クリック可能な商品リンクはまだ設置していません。
+  公開時には楽天アフィリエイトリンクを使用する予定です。
+  掲載している価格・レビュー情報は${escapeHtml(dataRetrievedAt)}時点で取得したものであり、
+  その後価格・在庫状況が変動する場合があります。本ページはslug「${escapeHtml(slug)}」の下書きであり、公開ページではありません。
 </p>
 </main>
 </body>

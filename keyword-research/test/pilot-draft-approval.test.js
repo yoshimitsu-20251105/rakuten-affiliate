@@ -13,7 +13,7 @@ function validApproval(overrides = {}) {
     sourceRunId: "live-2026-09-07",
     candidateSetHash: "abc123",
     approvedBy: "human",
-    approvedAt: "2026-09-07T00:00:00.000Z",
+    approvedAt: new Date(Date.now() - 60_000).toISOString(), // 常に「現在より過去」となるよう実行時刻基準にする
     keywords: [
       { normalizedKeyword: "シニア 犬 豚肉", title: "シニア犬向け豚肉ドッグフードおすすめランキング比較", slug: "senior-dog-pork", action: "CREATE" },
     ],
@@ -171,4 +171,107 @@ test("approvedFileHashは承認ファイルの内容から一意に決まる(内
   const hash1 = await withApprovalFile(content, (p) => loadApprovalFile(p).then((r) => r.approvedFileHash));
   const hash2 = await withApprovalFile(content, (p) => loadApprovalFile(p).then((r) => r.approvedFileHash));
   assert.equal(hash1, hash2);
+});
+
+// --- 2026-09-07 PR#5監査対応: version厳格化・ISO日時/未来日時・slug厳格化・制御文字 ---
+
+test("【監査対応】versionが1以外(2)の場合はエラーになる", async () => {
+  await withApprovalFile(validApproval({ version: 2 }), async (filePath) => {
+    const result = await loadApprovalFile(filePath);
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join(""), /version/);
+  });
+});
+
+test("【監査対応】approvedAtが有効なISO日時ではない文字列の場合はエラーになる", async () => {
+  await withApprovalFile(validApproval({ approvedAt: "2026年9月7日" }), async (filePath) => {
+    const result = await loadApprovalFile(filePath);
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join(""), /ISO日時/);
+  });
+});
+
+test("【監査対応】approvedAtが現在時刻より5分を超えて未来の場合はエラーになる", async () => {
+  const futureDate = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1時間後
+  await withApprovalFile(validApproval({ approvedAt: futureDate }), async (filePath) => {
+    const result = await loadApprovalFile(filePath);
+    assert.equal(result.valid, false);
+    assert.match(result.errors.join(""), /未来/);
+  });
+});
+
+test("【監査対応】approvedAtが現在時刻より5分以内の未来は許容される(時計のずれの許容範囲)", async () => {
+  const nearFuture = new Date(Date.now() + 60 * 1000).toISOString(); // 1分後
+  await withApprovalFile(validApproval({ approvedAt: nearFuture }), async (filePath) => {
+    const result = await loadApprovalFile(filePath);
+    assert.equal(result.valid, true, result.errors.join(", "));
+  });
+});
+
+test("【監査対応】slugが先頭にハイフンを持つ場合はエラーになる", async () => {
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: "テスト", title: "テスト", slug: "-leading-hyphen", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /slugが不正/);
+    }
+  );
+});
+
+test("【監査対応】slugが末尾にハイフンを持つ場合はエラーになる", async () => {
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: "テスト", title: "テスト", slug: "trailing-hyphen-", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /slugが不正/);
+    }
+  );
+});
+
+test("【監査対応】slugに連続ハイフンが含まれる場合はエラーになる", async () => {
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: "テスト", title: "テスト", slug: "double--hyphen", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /slugが不正/);
+    }
+  );
+});
+
+test("【監査対応】normalizedKeywordに制御文字が含まれる場合はエラーになる", async () => {
+  const withControlChar = "テスト" + String.fromCharCode(1) + "混入";
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: withControlChar, title: "テスト", slug: "test-ctrl", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /制御文字/);
+    }
+  );
+});
+
+test("【監査対応】titleに制御文字が含まれる場合はエラーになる", async () => {
+  const withControlChar = "タイトル" + String.fromCharCode(1) + "混入";
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: "テスト", title: withControlChar, slug: "test-ctrl-title", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /制御文字/);
+    }
+  );
+});
+
+test("【監査対応】normalizedKeyword/titleがtrim後に空文字の場合はエラーになる", async () => {
+  await withApprovalFile(
+    validApproval({ keywords: [{ normalizedKeyword: "   ", title: "  ", slug: "blank-fields", action: "CREATE" }] }),
+    async (filePath) => {
+      const result = await loadApprovalFile(filePath);
+      assert.equal(result.valid, false);
+      assert.match(result.errors.join(""), /normalizedKeyword|title/);
+    }
+  );
 });
