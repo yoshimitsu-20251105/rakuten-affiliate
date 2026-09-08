@@ -307,6 +307,7 @@ export function enrichedItem(itemCode, overrides = {}) {
     affiliateUrl: `https://hb.afl.rakuten.co.jp/hgc/abc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2F${itemCode}%2F`,
     shopName: `Shop-${itemCode}`,
     imageUrl: "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/1.jpg",
+    availability: 1,
     fetchedAt: "2026-09-07T12:00:00.000Z",
     sourceRunId: "phase3b-test-source-run",
     publicationApprovedFileHash: "placeholder",

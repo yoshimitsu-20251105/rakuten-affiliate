@@ -62,7 +62,7 @@ export function renderPublicationPreviewHtml(data) {
         <p class="product-review">レビュー: ${formatReview(p.reviewAverage, p.reviewCount)}</p>
         ${p.verifiedAttributeLabels.length > 0 ? `<ul class="product-attrs">${p.verifiedAttributeLabels.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>` : ""}
         ${p.displayNote ? `<p class="product-note">※ ${escapeHtml(p.displayNote)}</p>` : ""}
-        <a class="cta-button" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="nofollow sponsored noopener">楽天市場で価格・在庫を見る</a>
+        <a class="cta-button" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="nofollow sponsored noopener">楽天市場で在庫・価格を確認してください</a>
       </article>`
     )
     .join("\n");

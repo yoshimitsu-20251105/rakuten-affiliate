@@ -11,6 +11,7 @@ import { loadSourceRun } from "./pilot-draft-source-run.js";
 import { loadPublicationApprovalFile, MIN_PRODUCTS_PER_PAGE, MAX_PRODUCTS_PER_PAGE } from "./publication-approval.js";
 import { evaluateProductRelevance } from "./product-relevance.js";
 import { classifySafety } from "./safety.js";
+import { isAvailableEnrichedItem } from "./publication-enrichment.js";
 import { loadConfig } from "./config.js";
 import { ATTRIBUTE_LABELS } from "./attributes.js";
 import { PUBLICATION_PAGE_REQUIREMENTS, needsFlavorSelectionNote, FLAVOR_SELECTION_NOTE_TEXT } from "./publication-attributes.js";
@@ -166,6 +167,17 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
       const enrichedItem = enrichedItemsByCode.get(product.itemCode);
       if (!enrichedItem) {
         pageErrors.push(`itemCode「${product.itemCode}」が楽天最新結果(補完データ)に存在しません`);
+        continue;
+      }
+
+      // 【2026-09-08 在庫ゲート・多層防御】段階B(enrich-publication-products)の判定結果を
+      // そのまま信用せず、enrichment-items.json自体のavailabilityを独立して再検証する。
+      // enrichmentArtifactHashの一致だけでは、そもそもavailabilityフィールドを持たない
+      // 古い形式の成果物(この在庫ゲート導入前に生成されたenrichment run)を検出できない
+      // ため、ここで明示的にチェックする(欠損・0・不正な値はすべて非公開扱い)。
+      // 人間承認済み(product.humanApproved=true)であっても在庫ゲートは回避できない。
+      if (!isAvailableEnrichedItem(enrichedItem)) {
+        pageErrors.push(`itemCode「${product.itemCode}」: 在庫が確認できません(availability再検証NG、公開候補から除外)`);
         continue;
       }
 
