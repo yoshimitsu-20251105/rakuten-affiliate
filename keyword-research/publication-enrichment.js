@@ -9,7 +9,11 @@
 
 const ALLOWED_IMAGE_HOSTS = ["thumbnail.image.rakuten.co.jp", "image.rakuten.co.jp"];
 const ALLOWED_AFFILIATE_HOSTS = ["hb.afl.rakuten.co.jp"];
-const ALLOWED_ITEM_URL_HOSTS = ["item.rakuten.co.jp"];
+// 楽天公式仕様(https://webservice.rakuten.co.jp/documentation/ichiba-item-search):
+// affiliateId指定時、itemUrlはaffiliateUrlと同じ値(hb.afl.rakuten.co.jp)で返る場合がある。
+// そのためitemUrlは通常の商品ページ(item.rakuten.co.jp)とアフィリエイト形式(hb.afl.rakuten.co.jp)の
+// 両方を正規ホストとして許可する。affiliateUrl側は引き続きhb.afl.rakuten.co.jpのみ。
+const ALLOWED_ITEM_URL_HOSTS = ["item.rakuten.co.jp", "hb.afl.rakuten.co.jp"];
 
 // 補完データとして保存してよい項目のallowlist(2026-09-07 Phase 3B対応)。
 // APIレスポンス全文・認証情報・HTTPヘッダー・itemCaption全文は含めない。
@@ -29,8 +33,9 @@ export const ENRICHMENT_FIELD_ALLOWLIST = [
 ];
 
 function parseUrlSafely(url) {
+  if (typeof url !== "string" || url === "") return null;
   try {
-    return new URL(String(url));
+    return new URL(url);
   } catch {
     return null;
   }
@@ -41,9 +46,15 @@ function isHttpsUrl(url) {
   return parsed !== null && parsed.protocol === "https:";
 }
 
+// hostnameの完全一致に加え、username/password付きURL(https://user@host/)と
+// 独自ポート指定(デフォルトの443は正規化されるため対象外)を拒否する。
+// 部分一致・後方一致(host.evil.example, evil.host等)はhostnameの完全一致判定により防止される。
 function hasAllowedHost(url, allowedHosts) {
   const parsed = parseUrlSafely(url);
-  return parsed !== null && allowedHosts.includes(parsed.hostname);
+  if (parsed === null) return false;
+  if (parsed.username !== "" || parsed.password !== "") return false;
+  if (parsed.port !== "") return false;
+  return allowedHosts.includes(parsed.hostname);
 }
 
 /** @param {any} url @returns {boolean} */

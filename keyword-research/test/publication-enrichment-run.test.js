@@ -159,6 +159,53 @@ test("runPublicationEnrichment: 画像・affiliateUrlが不正な商品は掲載
   }
 });
 
+test("runPublicationEnrichment: itemUrlがaffiliateUrlと同じ(hb.afl.rakuten.co.jp)形式でも全件拒否されない(楽天公式仕様)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const affiliateStyleItem = (itemCode) => {
+    const affiliateUrl = `https://hb.afl.rakuten.co.jp/hgc/abc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2F${itemCode}%2F`;
+    return liveApiItem(itemCode, { itemUrl: affiliateUrl, affiliateUrl });
+  };
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return { items: ["shop:d1", "shop:d2", "shop:d3"].map((c) => affiliateStyleItem(c)), count: 3, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => affiliateStyleItem(c)), count: 3, source: "live" };
+  };
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.equal(result.pages.find((p) => p.slug === DOG_SLUG).items.length, 3);
+    assert.equal(result.pages.find((p) => p.slug === CAT_SLUG).items.length, 3);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("runPublicationEnrichment: itemUrlが不正なホストの商品は掲載せず、残数不足ならfail closedでページ拒否する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return {
+        items: [
+          liveApiItem("shop:d1", { itemUrl: "https://evil.example.com/shop/1/" }), // 不正
+          liveApiItem("shop:d2"),
+          liveApiItem("shop:d3"),
+        ],
+        count: 3,
+        source: "live",
+      };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /最低基準/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
 test("runPublicationEnrichment: sourceRunId/candidateSetHashが承認ファイルと不一致なら拒否する", async () => {
   const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
   // 別のsource run(異なるrunId)を用意してミスマッチを作る
