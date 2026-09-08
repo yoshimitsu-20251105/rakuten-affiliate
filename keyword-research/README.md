@@ -195,6 +195,28 @@ KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true npm run keywords:build-publica
     hashが一致していても再検証で不正・欠損と判定されれば公開候補から除外する。
   - 公開前プレビューのUI文言は「在庫あり」等の断定表現を使わず、常に
     「楽天市場で在庫・価格を確認してください」と案内する(`publication-preview-template.js`)。
+- **公開前プレビューUI**(2026-09-08〜09対応):
+  - **表示順位**: 商品自体の内容が確定している商品(`needsFlavorSelectionNote()`がfalse)を、
+    購入時にタイプ選択が必要な商品(true)より先に表示する。同じ区分内では既存通りQuality
+    Score降順。新たな文字列判定は追加せず、既存の`needsFlavorSelectionNote()`(itemNameから
+    機械的に判定する既存ロジック)をそのまま流用する(`publication-preview-build.js`)。
+  - **内部情報の非公開**: `renderPublicationPreviewHtml()`の引数から`slug`を廃止し、
+    そもそもテンプレートへ渡さない設計にした(以前はページ下部の注意書きにslugを含む
+    文が存在した)。HTMLコメント・data属性にも内部情報は埋め込まない。
+  - **DRAFTバナー**: ページ最上部(`<header>`より前)に1箇所だけ表示し、
+    「公開前確認用・検索エンジンには非公開」と分かる文言にする。
+  - **デザイン**: `docs/style.css`と同一の配色トークン(`--bg`/`--fg`/`--accent`等)・
+    フォント・`main`の`max-width:800px`を静的に再利用する(値の再利用のみで、
+    `generate-site.js`の生成処理は一切呼び出さない・接続しない)。
+  - **商品カード**: デスクトップでは画像(200px角、`object-fit:contain`)と商品情報を
+    横並びにし、640px以下では縦積みに切り替える。順位ラベルは常に非負の`top`/`left`で
+    カード内左上に配置し、画面外にはみ出さない。店舗名・在庫確認状況・購入方式
+    (固定/選択式)を追加表示する。内容量・対象年齢(猫ページ)・主原料(猫ページ)は
+    確認できる構造化データが無いため表示していない(未実装、今後の課題)。
+  - **比較表**: 640px以下で各`<td>`に`data-label`属性を持たせ、行単位のカード形式へ
+    CSSのみで切り替える(横スクロール依存を解消)。
+  - **CTA**: `rel="sponsored noopener noreferrer"`(`nofollow`を`noreferrer`に置き換え)。
+  - **開示文**: 先頭に「広告・PR」ラベルを表示する(法的効果を断定する説明は追加しない)。
 - `sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`publicationReviewHash`/
   `publicationApprovedFileHash`/`enrichmentArtifactHash`のいずれか1つでも不一致なら
   生成を拒否する(`publication-preview-build.js`)。

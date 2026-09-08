@@ -283,21 +283,134 @@ test("生成されたHTMLはDRAFTバナー・noindex・画像・CTA・rel属性�
     assert.match(html, /noindex,nofollow/);
     assert.match(html, /<img class="product-image"/);
     assert.match(html, /loading="lazy"/);
-    assert.match(html, /width="128" height="128"/);
-    assert.match(html, /rel="nofollow sponsored noopener"/);
+    assert.match(html, /width="200" height="200"/);
+    assert.match(html, /rel="sponsored noopener noreferrer"/);
     assert.match(html, /target="_blank"/);
     assert.match(html, /楽天市場で在庫・価格を確認してください/);
+    assert.match(html, /広告・PR/);
 
     assert.doesNotMatch(html, /シニア 犬 豚肉/); // normalizedKeyword
     assert.doesNotMatch(html, /WebKeywordScore/);
     assert.doesNotMatch(html, /FinalPriority/);
     assert.doesNotMatch(html, /candidateSetHash/);
     assert.doesNotMatch(html, /approvedFileHash/i);
+    assert.doesNotMatch(html, /reviewHash/i);
     assert.doesNotMatch(html, /phase3b-test-source-run/); // sourceRunId
     assert.doesNotMatch(html, /\bqualityScore\b/i);
     assert.doesNotMatch(html, /2026-09-07T/); // ISO日時
     assert.match(html, /\d{4}年\d{1,2}月\d{1,2}日時点/); // 日本語日付
     assert.doesNotMatch(html, /<script/i);
+    assert.doesNotMatch(html, /<!--/); // HTMLコメント自体を使わない
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-08 プレビューUI改善対応】内部slug・runId等の非表示、DRAFTバナーの
+// 位置・回数、犬ページの表示順位(ポーク確定商品を優先)、選択注意文の有無、
+// カード/比較表のレイアウト安全性(過大な固定高さ・画面外へはみ出す配置がない)、
+// CTAのrel属性を検証する回帰テスト。
+// =====================================================================
+
+test("内部slugがHTMLに存在しない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    for (const draft of result.drafts) {
+      assert.doesNotMatch(draft.html, new RegExp(DOG_SLUG.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")));
+      assert.doesNotMatch(draft.html, new RegExp(CAT_SLUG.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")));
+    }
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("runId・itemCode・内部ファイルパスなどの内部情報がHTMLに存在しない", async () => {
+  // 【重要】fixtureのapprovedProduct()既定displayName(「テスト表示名shop:d1」)は
+  // itemCodeをそのまま含んでしまうため、この検証ではitemCodeを含まない
+  // displayNameへ上書きし、テンプレート自身がitemCodeを漏らしていないことだけを検証する。
+  const shopNames = { "shop:d1": "テストペットショップA", "shop:d2": "テストペットショップB", "shop:d3": "テストペットショップC" };
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogProductOverrides: (p) => ({ ...p, displayName: "犬用シニアドッグフード商品" }),
+    dogEnrichedOverrides: (e) => ({ ...e, shopName: shopNames[e.itemCode] }),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    // affiliateUrlのhref値には実際の商品ページ遷移先を示すURLエンコード済みパスが
+    // 正当な理由で含まれる(これはリンク先として機能上必要なものであり、利用者向け
+    // 表示テキストへのitemCode漏えいとは別の話)。そのためhref属性値は除外したうえで、
+    // 画面表示テキスト側にitemCodeが出現していないことを検証する。
+    const htmlWithoutHrefValues = html.replace(/href="[^"]*"/g, 'href="(omitted)"');
+    assert.doesNotMatch(htmlWithoutHrefValues, /shop:d1|shop:d2|shop:d3/); // itemCode(表示テキスト側)
+    assert.doesNotMatch(html, /phase3b-test-(review|enrichment)/); // reviewRunId/enrichmentRunId
+    assert.doesNotMatch(html, /[A-Za-z]:[\\/](Users|home)/i); // 内部ファイルパス
+    assert.doesNotMatch(html, /keyword-research[\\/]output/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("DRAFTバナーがページ最上部(header要素より前)に1回だけ存在する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const bannerMatches = html.match(/class="draft-banner"/g) || [];
+    assert.equal(bannerMatches.length, 1, "DRAFTバナーは1回だけ存在すること");
+    const bodyIdx = html.indexOf("<body>");
+    const bannerIdx = html.indexOf('class="draft-banner"');
+    const headerIdx = html.indexOf("<header>");
+    assert.ok(bodyIdx < bannerIdx && bannerIdx < headerIdx, "DRAFTバナーはheader要素より前(ページ最上部)にあること");
+    assert.match(html, /公開前確認用/);
+    assert.match(html, /検索エンジン/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("商品カードに過大な固定高さ・大きなmin-heightが無い", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /\.product-card\s*\{[^}]*min-height/s);
+    assert.doesNotMatch(html, /\.product-card\s*\{[^}]*\bheight\s*:/s);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("順位ラベル(rank-badge)に画面外へ出る負の位置指定が無い", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const rankBlocks = [...html.matchAll(/\.rank-badge\s*\{([^}]*)\}/gs)].map((m) => m[1]);
+    assert.ok(rankBlocks.length > 0, ".rank-badgeのCSS定義が見つかること");
+    for (const block of rankBlocks) {
+      assert.doesNotMatch(block, /(?:top|left|right|bottom)\s*:\s*-/, "rank-badgeのtop/left/right/bottomに負の値を使わないこと");
+    }
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("比較表にはCTAのrel属性がなく、data-labelでスマートフォン表示に対応する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /<td data-label="順位">/);
+    assert.match(html, /<td data-label="商品名">/);
+    assert.match(html, /max-width:\s*640px/);
   } finally {
     await cleanup(outputRoot);
   }
@@ -342,7 +455,76 @@ test("複数フレーバー豚肉選択商品には固定の注意文が強制�
     const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
-    assert.match(html, /購入時に豚肉タイプを選択してください/);
+    assert.match(html, /購入時にポーク／豚肉タイプを選択してください/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-08 表示順位改善】商品自体の内容が確定している商品(needsFlavorSelectionNote=false)を、
+// 購入時にタイプ選択が必要な商品(needsFlavorSelectionNote=true)より優先して表示する。
+// 既存のneedsFlavorSelectionNote()(itemNameから機械的に判定する既存の構造化ロジック)を
+// そのまま使い、新たな不安定な文字列判定は追加しない。
+// =====================================================================
+
+test("犬ページの1位はポーク確定商品(選択式商品よりQuality Scoreが低くても優先される)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    sourceRunOverrides: {
+      dogItemsOverride: [
+        // 確定商品(選択式フレーズなし)。Quality Scoreは選択式2商品より低い。
+        { itemCode: "shop:d1", itemName: "グリーンプラス ドライドッグフード ポーク 全ステージ対応シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: 58 },
+        // 選択式商品(複数タンパク源から選べる)。Quality Scoreは確定商品より高い。
+        { itemCode: "shop:d2", itemName: "国産無添加 選べるドッグフード 豚肉 牛肉 鶏肉 魚 シニア犬用お試しセット", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: 78 },
+        { itemCode: "shop:d3", itemName: "わんこのきちんとごはん 選べる6袋セット 豚肉 魚 シニア犬用小粒フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: 64 },
+      ],
+    },
+    dogProductOverrides: (p) => ({ ...p, displayName: `確定または選択-${p.itemCode === "shop:d1" ? "confirmed" : "selectable"}-${p.itemCode.slice(-1)}` }),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const idxConfirmed = html.indexOf("確定または選択-confirmed-1"); // shop:d1(確定, QS58)
+    const idxSelectableHigh = html.indexOf("確定または選択-selectable-2"); // shop:d2(選択式, QS78)
+    const idxSelectableLow = html.indexOf("確定または選択-selectable-3"); // shop:d3(選択式, QS64)
+    assert.ok(idxConfirmed >= 0 && idxSelectableHigh >= 0 && idxSelectableLow >= 0, "3商品すべてがHTMLに含まれること");
+    assert.ok(
+      idxConfirmed < idxSelectableHigh && idxConfirmed < idxSelectableLow,
+      "Quality Scoreが低くても、確定商品(shop:d1)が選択式商品より先に表示されること"
+    );
+    assert.ok(idxSelectableHigh < idxSelectableLow, "選択式商品どうしはQuality Score降順(78→64)であること");
+
+    const rank1 = html.match(/<div class="rank-badge">1位<\/div>[\s\S]{0,600}?確定または選択-(\w+)-\d/);
+    assert.ok(rank1 && rank1[1] === "confirmed", "1位バッジの直後に表示される商品が確定商品であること");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("選択式2商品には選択注意文が表示され、ポーク確定商品には表示されない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    sourceRunOverrides: {
+      dogItemsOverride: [
+        { itemCode: "shop:d1", itemName: "グリーンプラス ドライドッグフード ポーク 全ステージ対応シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: 90 },
+        { itemCode: "shop:d2", itemName: "国産無添加 選べるドッグフード 豚肉 牛肉 鶏肉 魚 シニア犬用お試しセット", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: 78 },
+        { itemCode: "shop:d3", itemName: "わんこのきちんとごはん 選べる6袋セット 豚肉 魚 シニア犬用小粒フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: 64 },
+      ],
+    },
+    dogProductOverrides: (p) => ({ ...p, displayName: `注意文検証-${p.itemCode.slice(-1)}` }),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const noteCount = (html.match(/購入時にポーク／豚肉タイプを選択してください/g) || []).length;
+    assert.equal(noteCount, 2, "選択式2商品にのみ選択注意文が表示されること");
+
+    // 確定商品(shop:d1、displayName「注意文検証-1」)の直後に注意文が現れないことを確認する
+    const confirmedIdx = html.indexOf("注意文検証-1");
+    const nextCardIdx = html.indexOf("product-card", confirmedIdx + 1);
+    const confirmedCardHtml = html.slice(confirmedIdx, nextCardIdx > 0 ? nextCardIdx : undefined);
+    assert.doesNotMatch(confirmedCardHtml, /product-note/, "確定商品のカードに注意文(product-note)が含まれないこと");
   } finally {
     await cleanup(outputRoot);
   }
