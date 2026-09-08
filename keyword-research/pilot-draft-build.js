@@ -22,6 +22,7 @@
 //   下書きへ混入させないための多層防御。楽天API再実行は不要)。
 
 import { loadConfig } from "./config.js";
+import { ATTRIBUTE_LABELS } from "./attributes.js";
 import { loadApprovalFile } from "./pilot-draft-approval.js";
 import { loadSourceRun, MIN_ELIGIBLE_ITEMS } from "./pilot-draft-source-run.js";
 import { extractExistingSeedKeywords, listExistingRankingSlugs, findConflicts } from "./pilot-draft-conflict-check.js";
@@ -29,26 +30,6 @@ import { filterSafeItems } from "./pilot-draft-item-safety.js";
 import { filterRelevantItems } from "./pilot-draft-item-relevance.js";
 import { validateItemsNumericFields } from "./pilot-draft-item-validation.js";
 import { renderPilotDraftHtml } from "./pilot-draft-template.js";
-
-const ATTRIBUTE_LABELS = {
-  "species:dog": "犬用",
-  "species:cat": "猫用",
-  "lifeStage:puppy": "子犬向け",
-  "lifeStage:kitten": "子猫向け",
-  "lifeStage:senior": "シニア向け",
-  "lifeStage:adult": "成犬・成猫向け",
-  "productType:staple": "主食",
-  "productType:treat": "おやつ",
-  "productType:dry": "ドライタイプ",
-  "productType:wet": "ウェットタイプ",
-  "feature:domestic": "国産",
-  "feature:additive-free": "無添加",
-  "feature:grain-free": "グレインフリー",
-  "feature:small-bite": "小粒",
-  "purchaseCondition:small-pack": "小分け・お試しサイズ",
-  "purchaseCondition:bulk": "まとめ買い・大容量",
-  "purchaseCondition:free-shipping": "送料無料",
-};
 
 const MAX_DISPLAY_ITEMS = 5;
 

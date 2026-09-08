@@ -264,3 +264,46 @@ test("【追加監査・異常ケース】requiredAttributes自体にstaple/trea
   assert.equal(result.status, "REJECTED");
   assert.ok(result.reasonCodes.includes("REQUIRED_PRODUCT_TYPE_CONFLICT"));
 });
+
+// =====================================================================
+// 2026-09-07 Phase 3B対応: 必須主原料(ingredient:pork)の確認(itemName優先)
+// =====================================================================
+
+test("【Phase 3B】豚肉が明示されたitemNameはingredient:pork必須でもRELEVANT", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "lifeStage:senior", "productType:staple", "ingredient:pork"],
+    itemName: "シニア犬用 豚肉入り ドッグフード 1kg",
+    catchcopy: "国産です",
+  });
+  assert.equal(result.status, "RELEVANT");
+  assert.deepEqual(result.reasonCodes, []);
+});
+
+test("【Phase 3B】豚肉がitemNameに無くcatchcopyだけにある場合はREVIEW_REQUIRED(自動採用しない)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "ingredient:pork"],
+    itemName: "シニア犬用 ドッグフード 1kg",
+    catchcopy: "豚肉を使用した総合栄養食です",
+  });
+  assert.equal(result.status, "REVIEW_REQUIRED");
+  assert.ok(result.reasonCodes.includes("INGREDIENT_NOT_CONFIRMED_IN_TITLE"));
+});
+
+test("【Phase 3B】豚肉の根拠がitemNameにもcatchcopyにも無い場合はREJECTED(INGREDIENT_NOT_CONFIRMED)", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:dog", "ingredient:pork"],
+    itemName: "シニア犬用 ドッグフード 1kg",
+    catchcopy: "国産・無添加です",
+  });
+  assert.equal(result.status, "REJECTED");
+  assert.ok(result.reasonCodes.includes("INGREDIENT_NOT_CONFIRMED"));
+});
+
+test("【Phase 3B】猫用ページ(ingredient:pork不要)には豚肉判定が影響しない", () => {
+  const result = evaluateProductRelevance({
+    requiredAttributes: ["species:cat", "productType:staple", "feature:grain-free"],
+    itemName: "猫用 グレインフリー キャットフード",
+    catchcopy: "",
+  });
+  assert.equal(result.status, "RELEVANT");
+});

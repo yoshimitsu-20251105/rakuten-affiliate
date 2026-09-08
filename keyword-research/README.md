@@ -118,6 +118,57 @@ pilot-draft-source-run.js/pilot-draft-build.jsの両方へ、商品名(itemName)
 `phase3a-pilot-drafts-2026-09-07-02`)で下書きを再生成すること。**
 上記の旧runIdのディレクトリは再利用・上書きしない。
 
+### Phase 3B: 公開前商品レビュー・データ補完・収益化プレビュー(2026-09-07対応)
+
+Phase 3Aの下書き(内部情報中心・アフィリエイトリンク無し)を、公開前に人間が商品単位で
+確認し、画像・楽天アフィリエイトリンク・現在価格を安全に補完したうえで、収益化機能
+(商品カード・CTA・アフィリエイトリンク)を含む非公開プレビューへ変換する3段階のCLI。
+各段階は独立しており、人間の承認を挟まずに自動で次段階へ進むことはない。
+
+```bash
+# 段階A: 公開候補商品レビュー資料の生成(内部確認専用、何も自動承認しない)
+npm run keywords:prepare-publication-review -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --approved-file <keywordApproval.json> \
+  --run-id <reviewRunId>
+
+# (人間がkeyword-research/output/publication-reviews/<reviewRunId>/publication-review.md
+#  を確認し、itemCode単位で公開承認ファイルを作成する。自動生成はしない)
+
+# 段階B: 人間承認済み商品だけの限定的な楽天商品補完(1キーワード1検索、--rakuten-source live必須)
+npm run keywords:enrich-publication-products -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --publication-approved-file <publicationApproval.json> \
+  --rakuten-source live \
+  --run-id <enrichmentRunId>
+
+# 段階C: 収益化機能を含む非公開プレビュー生成(KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true必須)
+KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true npm run keywords:build-publication-preview -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --publication-approved-file <publicationApproval.json> \
+  --enrichment-run keyword-research/output/publication-enrichment/<enrichmentRunId> \
+  --run-id <previewRunId>
+```
+
+- 商品公開承認ファイル(`publication-approval.js`)はキーワード承認ファイルとは別スキーマ。
+  `schemaVersion`/`sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`reviewRunId`/
+  `approvedAt`/`reviewedBy`/`humanApproved`/`pages[].products[]`(1ページ3〜5商品、
+  itemCode重複禁止、`displayName`は120文字以下・医療健康表現禁止、商品ごとに
+  `humanApproved: true`必須)を持つ。自動生成しない(人間が作成する)。
+- 公開ページ単位の必須属性(`publication-attributes.js`)はキーワード必須属性より厳格
+  (例: `senior-dog-pork`は`species:dog`/`lifeStage:senior`/`productType:staple`/
+  `ingredient:pork`を必須とし、`ingredient:pork`はitemNameで確認できない場合は自動採用しない)。
+- 上位表示商品の店舗・シリーズ偏り防止(`shop-diversity.js`): 同一店舗は最大2件、異なる店舗
+  最低3店舗、商品名の類似度(決定的な2-gram Jaccard係数)で同一シリーズを検出し3件以上なら拒否。
+- 楽天商品補完データはallowlist方式(`publication-enrichment.js`)で保存し、画像URL・
+  affiliateUrlは楽天公式のhttpsホストのみ許可する(affiliateUrl欠損時は通常の商品URLへ
+  フォールバックしない、fail closed)。
+- `sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`publicationReviewHash`/
+  `publicationApprovedFileHash`/`enrichmentArtifactHash`のいずれか1つでも不一致なら
+  生成を拒否する(`publication-preview-build.js`)。
+- 出力はすべて`keyword-research/output/`配下(gitignore対象)。既存サイト(`docs/`)・
+  `generate-site.js`・`select-products.js`・日次GitHub Actionsへの接続・公開は一切行わない。
+
 ### Search Console実接続を使ったdry-runの正式な実行方法
 
 ```bash

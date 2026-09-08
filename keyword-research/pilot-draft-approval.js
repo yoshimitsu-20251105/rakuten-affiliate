@@ -12,25 +12,13 @@
 
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { isValidIsoDate, containsControlCharacters } from "./text-validation.js";
 
 const MAX_KEYWORDS = 10;
 const ALLOWED_ACTIONS = new Set(["CREATE"]);
 const SUPPORTED_VERSION = 1;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000; // approvedAtが現在時刻より5分を超えて未来なら拒否
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/; // 先頭・末尾・連続ハイフンを拒否
-
-function isValidIsoDate(value) {
-  return typeof value === "string" && value !== "" && Number.isFinite(Date.parse(value));
-}
-
-// 制御文字(コードポイント0-31、および127)を含むかどうかを文字コードの比較で判定する。
-function containsControlCharacters(s) {
-  for (let i = 0; i < s.length; i++) {
-    const code = s.charCodeAt(i);
-    if (code <= 31 || code === 127) return true;
-  }
-  return false;
-}
 
 /**
  * @param {string} filePath

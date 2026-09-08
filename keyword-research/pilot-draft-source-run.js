@@ -278,6 +278,11 @@ export async function loadSourceRun(runDir) {
     candidatesByKeyword.set(keyword, {
       originalKeyword: s.originalKeyword,
       normalizedKeyword: keyword,
+      // 2026-09-07 Phase 3B対応: 楽天商品補完CLI(enrich-publication-products.js)が
+      // 元のsource run取得時と同じクエリで再検索できるよう、rakuten-matches.csvの
+      // rakutenQuery列(同一キーワードの全行で共通)を追加で保持する。マッチが1件も
+      // 無い場合(候補保存のみ・楽天照合0件)はnormalizedKeywordへフォールバックする。
+      rakutenQuery: keywordMatches[0]?.rakutenQuery || keyword,
       businessValidated: s.businessValidated === "true",
       decisionStatus: s.decisionStatus,
       scoreBand: s.scoreBand_simulationOnly,
