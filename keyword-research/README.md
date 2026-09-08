@@ -163,6 +163,15 @@ KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true npm run keywords:build-publica
 - 楽天商品補完データはallowlist方式(`publication-enrichment.js`)で保存し、画像URL・
   affiliateUrlは楽天公式のhttpsホストのみ許可する(affiliateUrl欠損時は通常の商品URLへ
   フォールバックしない、fail closed)。
+  - **楽天公式仕様**([IchibaItem/Search](https://webservice.rakuten.co.jp/documentation/ichiba-item-search)):
+    `affiliateId`を指定した場合、`itemUrl`は`affiliateUrl`と同じアフィリエイト形式の値
+    (`hb.afl.rakuten.co.jp`)で返る場合がある。そのため`itemUrl`は`item.rakuten.co.jp`と
+    `hb.afl.rakuten.co.jp`の**2つ**を正規ホストとして許可する(2026-09-08 修正)。
+  - `affiliateUrl`は引き続き`hb.afl.rakuten.co.jp`のみを許可し、`item.rakuten.co.jp`への
+    フォールバックは行わない(itemUrl/affiliateUrlの役割はコード上で分離したまま)。
+  - 安全対策: `https:`限定、hostnameの完全一致(部分一致・サブドメイン偽装・後方一致偽装を
+    拒否)、`username`/`password`付きURL禁止、デフォルト(443)以外の独自ポート禁止。
+    許可ホストを`*.rakuten.co.jp`のように広げることはしない。
 - `sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`publicationReviewHash`/
   `publicationApprovedFileHash`/`enrichmentArtifactHash`のいずれか1つでも不一致なら
   生成を拒否する(`publication-preview-build.js`)。

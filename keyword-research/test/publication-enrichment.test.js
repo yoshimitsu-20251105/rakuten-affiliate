@@ -56,6 +56,84 @@ test("isValidItemUrl: item.rakuten.co.jpはtrue", () => {
   assert.equal(isValidItemUrl("https://item.rakuten.co.jp/shop/1/"), true);
 });
 
+// 【2026-09-08 修正】楽天公式仕様: affiliateId指定時、itemUrlはaffiliateUrlと
+// 同じ値(hb.afl.rakuten.co.jp)で返る場合がある。これを正規URLとして許可する。
+test("isValidItemUrl: hb.afl.rakuten.co.jp(アフィリエイト形式)もtrue", () => {
+  assert.equal(isValidItemUrl("https://hb.afl.rakuten.co.jp/hgc/abc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2F1%2F"), true);
+});
+
+test("isValidItemUrl: httpは拒否する", () => {
+  assert.equal(isValidItemUrl("http://hb.afl.rakuten.co.jp/hgc/abc/"), false);
+});
+
+test("isValidItemUrl: 楽天以外のホストは拒否する", () => {
+  assert.equal(isValidItemUrl("https://evil.example.com/shop/1/"), false);
+});
+
+test("isValidItemUrl: サブドメイン偽装(hb.afl.rakuten.co.jp.evil.example)は拒否する", () => {
+  assert.equal(isValidItemUrl("https://hb.afl.rakuten.co.jp.evil.example/"), false);
+});
+
+test("isValidItemUrl: 後方一致偽装(evil-hb.afl.rakuten.co.jp)は拒否する", () => {
+  assert.equal(isValidItemUrl("https://evil-hb.afl.rakuten.co.jp/"), false);
+});
+
+test("isValidItemUrl: クエリ文字列によるホスト偽装は拒否する", () => {
+  assert.equal(isValidItemUrl("https://evil.example/?url=hb.afl.rakuten.co.jp"), false);
+});
+
+test("isValidItemUrl: username/password付きURLは拒否する", () => {
+  assert.equal(isValidItemUrl("https://user@hb.afl.rakuten.co.jp/"), false);
+  assert.equal(isValidItemUrl("https://user:pass@item.rakuten.co.jp/shop/1/"), false);
+});
+
+test("isValidItemUrl: 独自ポート指定は拒否する(デフォルトの443は許可)", () => {
+  assert.equal(isValidItemUrl("https://item.rakuten.co.jp:8443/shop/1/"), false);
+  assert.equal(isValidItemUrl("https://item.rakuten.co.jp:443/shop/1/"), true);
+});
+
+test("isValidItemUrl: javascript:スキームは拒否する", () => {
+  assert.equal(isValidItemUrl("javascript:alert(1)"), false);
+});
+
+test("isValidItemUrl: data:スキームは拒否する", () => {
+  assert.equal(isValidItemUrl("data:text/html,<script>alert(1)</script>"), false);
+});
+
+test("isValidItemUrl: 相対URLは拒否する", () => {
+  assert.equal(isValidItemUrl("/shop/1/"), false);
+});
+
+test("isValidItemUrl: 解析不能なURLは拒否する", () => {
+  assert.equal(isValidItemUrl("https://[invalid"), false);
+});
+
+test("isValidItemUrl: 空文字・null・undefinedは拒否する", () => {
+  assert.equal(isValidItemUrl(""), false);
+  assert.equal(isValidItemUrl(null), false);
+  assert.equal(isValidItemUrl(undefined), false);
+});
+
+test("isValidAffiliateUrl: username/password付きURLは拒否する", () => {
+  assert.equal(isValidAffiliateUrl("https://user@hb.afl.rakuten.co.jp/hgc/abc/"), false);
+});
+
+test("isValidAffiliateUrl: 独自ポート指定は拒否する", () => {
+  assert.equal(isValidAffiliateUrl("https://hb.afl.rakuten.co.jp:8443/hgc/abc/"), false);
+});
+
+test("sanitizeEnrichedItem: affiliateId指定時、itemUrl===affiliateUrl(hb.afl.rakuten.co.jp)でも正常に通過する", () => {
+  const sameAffiliateUrl = "https://hb.afl.rakuten.co.jp/hgc/abc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2F1%2F";
+  const { ok, item, errors } = sanitizeEnrichedItem(validRawItem({ itemUrl: sameAffiliateUrl, affiliateUrl: sameAffiliateUrl }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-08T00:00:00.000Z",
+  });
+  assert.equal(ok, true, errors.join(", "));
+  assert.equal(item.itemUrl, sameAffiliateUrl);
+  assert.equal(item.affiliateUrl, sameAffiliateUrl);
+});
+
 test("sanitizeEnrichedItem: 正常なAPIレスポンスはallowlistの項目だけを抽出して成功する", () => {
   const { ok, item, errors } = sanitizeEnrichedItem(validRawItem(), {
     sourceRunId: "run-1",
