@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFile, rm, readdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -41,6 +41,34 @@ function runCli(cliPath, args, envOverrides = {}) {
 
 async function cleanup(outputRoot) {
   await rm(outputRoot, { recursive: true, force: true });
+}
+
+// 【2026-09-08 監査対応】段階A(prepare-publication-review)は商品公開承認ファイルを
+// 一切生成しない。これを検証する際、実運用のkeyword-research/output/publication-approvals/
+// ディレクトリ「全体が存在しないこと」を前提にしてはいけない(実運用で既に人間承認済みの
+// 承認ファイルが置かれていると、CLIの実際の挙動と無関係にテストが壊れてしまうため)。
+// 代わりに、このCLI実行が生成しうる唯一の懸念事項を直接検証する:
+// (1) 対象reviewRunId向けの承認ファイルが生成されていないこと
+// (2) humanApproved=trueの承認ファイルが(このreviewRunId向けに)生成されていないこと
+// 既存の無関係な承認ファイル(別のreviewRunId)はそのまま読み取るだけで、一切変更しない。
+async function assertNoApprovalFileGeneratedForReviewRun(reviewRunId) {
+  const approvalsDir = `${PROJECT_ROOT}/keyword-research/output/publication-approvals/`;
+  if (!existsSync(approvalsDir)) return;
+  const entries = await readdir(approvalsDir);
+  for (const entry of entries) {
+    if (!entry.endsWith(".json")) continue;
+    let parsed;
+    try {
+      parsed = JSON.parse(await readFile(`${approvalsDir}${entry}`, "utf-8"));
+    } catch {
+      continue; // 承認ファイル以外(壊れたJSON等)は対象外
+    }
+    assert.notEqual(
+      parsed.reviewRunId,
+      reviewRunId,
+      `段階A(prepare-publication-review)はreviewRunId=${reviewRunId}向けの承認ファイルを自動生成してはならない(${entry}に見つかった)`
+    );
+  }
 }
 
 // 【重要】prepare-publication-review.jsのCLIは、build-publication-preview.js(--enrichment-run
@@ -91,9 +119,56 @@ test("prepare-publication-review CLI: 実際に成功し、3ファイルが出�
     const md = await readFile(`${outDir}publication-review.md`, "utf-8");
     assert.match(md, /内部確認専用/);
 
-    // このCLI自体は何も自動承認しない(公開承認ファイルを作らない)
-    assert.equal(existsSync(`${PROJECT_ROOT}/keyword-research/output/publication-approvals/`), false);
+    // このCLI自体は何も自動承認しない(このreviewRunId向けの公開承認ファイルを作らない)。
+    // 実運用のpublication-approvals/に無関係な既存承認ファイルが残っていても影響しない。
+    await assertNoApprovalFileGeneratedForReviewRun(runId);
   } finally {
+    await cleanup(outputRoot);
+    await cleanupRealReviewRun(runId);
+  }
+});
+
+test("prepare-publication-review CLI: 無関係な既存承認ファイルがpublication-approvals/に存在していても正常動作する(回帰)", async () => {
+  const outputRoot = await createOutputRoot();
+  const runId = `cli-test-review-unrelated-${Date.now()}`;
+  const approvalsDir = `${PROJECT_ROOT}/keyword-research/output/publication-approvals/`;
+  const approvalsDirPreexisted = existsSync(approvalsDir);
+  const unrelatedFileName = `cli-test-unrelated-approval-${Date.now()}.json`;
+  const unrelatedFilePath = `${approvalsDir}${unrelatedFileName}`;
+  try {
+    // 段階Aとは無関係な、別のreviewRunId向けの承認ファイルを模擬的に作成する
+    // (このテスト自身が作成し、このテスト自身が後片付けする。実運用ファイルには一切触れない)。
+    await mkdir(approvalsDir, { recursive: true });
+    await writeFile(
+      unrelatedFilePath,
+      JSON.stringify({ schemaVersion: 1, reviewRunId: "unrelated-review-run-not-under-test", humanApproved: true }, null, 2),
+      "utf-8"
+    );
+
+    const sourceRun = await buildFixtureSourceRun(outputRoot);
+    const { filePath: keywordApprovalPath } = await buildFixtureKeywordApprovalFile(outputRoot, sourceRun);
+    const result = runCli(PREPARE_REVIEW_CLI, ["--source-run", sourceRun.dir, "--approved-file", keywordApprovalPath, "--run-id", runId]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const outDir = `${PROJECT_ROOT}/keyword-research/output/publication-reviews/${runId}/`;
+    const entries = await readdir(outDir);
+    assert.ok(entries.includes("publication-review.md"));
+    assert.ok(entries.includes("publication-candidates.json"));
+    assert.ok(entries.includes("run-metadata.json"));
+
+    // 無関係な承認ファイルはこのCLI実行によって変更されていないこと
+    const unrelatedContentAfter = await readFile(unrelatedFilePath, "utf-8");
+    assert.equal(
+      JSON.parse(unrelatedContentAfter).reviewRunId,
+      "unrelated-review-run-not-under-test",
+      "無関係な既存承認ファイルの内容が変更されていないこと"
+    );
+    await assertNoApprovalFileGeneratedForReviewRun(runId);
+  } finally {
+    await rm(unrelatedFilePath, { force: true });
+    if (!approvalsDirPreexisted) {
+      await rm(approvalsDir, { recursive: true, force: true });
+    }
     await cleanup(outputRoot);
     await cleanupRealReviewRun(runId);
   }
