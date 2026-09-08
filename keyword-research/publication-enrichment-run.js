@@ -7,6 +7,10 @@
 // 【重要】1キーワードにつき楽天商品検索は1回だけ(論理検索回数は承認ページ数が上限)。
 // 承認済みitemCodeが最新の検索結果に見つからない場合はその商品を掲載しない。
 // 結果、ページの有効商品が3件未満になればページ全体を拒否する。
+//
+// 【2026-09-08 在庫ゲート対応】availability(在庫)もこの「有効商品」判定に含まれる
+// (sanitizeEnrichedItem内で検証)。人間承認済みの商品であっても、在庫なし
+// (OUT_OF_STOCK)・在庫不明(AVAILABILITY_NOT_CONFIRMED)なら掲載しない。
 
 import { loadSourceRun } from "./pilot-draft-source-run.js";
 import { loadPublicationApprovalFile } from "./publication-approval.js";
@@ -23,7 +27,8 @@ const MIN_PRODUCTS_PER_PAGE = 3;
  * @returns {Promise<{
  *   ok: boolean, errors: string[],
  *   sourceRunId?: string, candidateSetHash?: string, publicationApprovedFileHash?: string,
- *   pages?: Array<{ slug: string, items: any[] }>,
+ *   pages?: Array<{ slug: string, items: any[], itemIssues: string[], excludedItems: Array<{itemCode: string, reasonCode: string}> }>,
+ *   pageExclusions: Array<{ slug: string, excludedItems: Array<{itemCode: string, reasonCode: string}> }>,
  *   logicalRakutenQueryCount: number, apiErrorCount: number,
  * }>}
  */
@@ -53,6 +58,11 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
   }
 
   const resultPages = [];
+  // 【2026-09-08 在庫ゲート対応】商品単位の除外理由をitemCodeと理由コードだけで
+  // ページ横断的に記録する(販売文句・itemName等は含めない)。ページが最終的に成功
+  // したか拒否されたかに関わらず、常にここへ追記する(呼び出し元がテスト・監査で
+  // 参照できるようにするため)。
+  const pageExclusions = [];
   for (const page of approval.pages) {
     const candidate = candidatesByKeyword.get(page.normalizedKeyword);
     if (!candidate) {
@@ -80,23 +90,30 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
     const fetchedAt = new Date().toISOString();
     const pageItems = [];
     const pageErrors = [];
+    const excludedItems = [];
     for (const itemCode of approvedItemCodes) {
       const liveItem = liveItemsByCode.get(itemCode);
       if (!liveItem) {
         pageErrors.push(`承認済みitemCode「${itemCode}」が最新の楽天検索結果に見つからないため掲載しません`);
+        excludedItems.push({ itemCode, reasonCode: "NOT_FOUND_IN_LIVE_RESULTS" });
         continue;
       }
-      const { ok, item, errors: itemErrors } = sanitizeEnrichedItem(liveItem, {
+      // 【重要】人間承認済み(page.products[].humanApproved=true)であっても、
+      // 在庫ゲート(availability)は回避できない。承認は「この商品を掲載してよい」
+      // という判断であり、「今この瞬間に在庫がある」ことまでは保証しないため。
+      const { ok, item, errors: itemErrors, reasonCode } = sanitizeEnrichedItem(liveItem, {
         sourceRunId: metadata.runId,
         publicationApprovedFileHash: approvedFileHash,
         fetchedAt,
       });
       if (!ok) {
         pageErrors.push(`itemCode「${itemCode}」: ${itemErrors.join(" / ")}`);
+        excludedItems.push({ itemCode, reasonCode: reasonCode ?? "VALIDATION_FAILED" });
         continue;
       }
       pageItems.push(item);
     }
+    pageExclusions.push({ slug: page.slug, excludedItems });
 
     if (pageItems.length < MIN_PRODUCTS_PER_PAGE) {
       errors.push(
@@ -106,7 +123,7 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
       continue;
     }
 
-    resultPages.push({ slug: page.slug, normalizedKeyword: page.normalizedKeyword, items: pageItems, itemIssues: pageErrors });
+    resultPages.push({ slug: page.slug, normalizedKeyword: page.normalizedKeyword, items: pageItems, itemIssues: pageErrors, excludedItems });
   }
 
   if (errors.length > 0) {
@@ -118,6 +135,7 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
       sourceRunId: metadata.runId,
       candidateSetHash: metadata.candidateSetHash,
       publicationApprovedFileHash: approvedFileHash,
+      pageExclusions,
     };
   }
 
@@ -130,5 +148,6 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
     sourceRunId: metadata.runId,
     candidateSetHash: metadata.candidateSetHash,
     publicationApprovedFileHash: approvedFileHash,
+    pageExclusions,
   };
 }

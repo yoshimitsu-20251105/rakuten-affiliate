@@ -27,6 +27,7 @@ export const ENRICHMENT_FIELD_ALLOWLIST = [
   "affiliateUrl",
   "shopName",
   "imageUrl",
+  "availability",
   "fetchedAt",
   "sourceRunId",
   "publicationApprovedFileHash",
@@ -72,16 +73,46 @@ export function isValidItemUrl(url) {
   return isHttpsUrl(url) && hasAllowedHost(url, ALLOWED_ITEM_URL_HOSTS);
 }
 
+// 【2026-09-08 在庫ゲート対応】楽天IchibaItem/Search APIのavailability(0または1)だけを
+// 厳格に判定する。文字列("1")・真偽値(true)・小数・欠損/null/undefinedはすべて
+// 「在庫不明」として扱い、曖昧な型変換は行わない(=== による厳密比較のみ)。
+// - AVAILABLE: availability===1(販売可能)
+// - OUT_OF_STOCK: availability===0(在庫切れ、明示的に確認できた除外理由)
+// - AVAILABILITY_NOT_CONFIRMED: 上記以外すべて(欠損・null・不正型・0/1以外の値)
+/** @param {any} rawApiItem @returns {"AVAILABLE"|"OUT_OF_STOCK"|"AVAILABILITY_NOT_CONFIRMED"} */
+export function classifyAvailability(rawApiItem) {
+  const value = rawApiItem?.availability;
+  if (value === 1) return "AVAILABLE";
+  if (value === 0) return "OUT_OF_STOCK";
+  return "AVAILABILITY_NOT_CONFIRMED";
+}
+
+// sanitize済み(allowlist抽出後)の補完データに対する在庫再検証専用ヘルパー。
+// 段階C(build-publication-preview)がenrichment-items.jsonを独立して再検証する際に使う
+// (多層防御: 段階Bの判定結果をそのまま信用せず、成果物が改変・古い形式で
+// availabilityが欠損している場合も安全側に倒して除外する)。
+/** @param {any} item @returns {boolean} */
+export function isAvailableEnrichedItem(item) {
+  return item?.availability === 1;
+}
+
 /**
  * 楽天APIの生レスポンス1商品分から、allowlistの項目だけを安全に抽出する。
  * 画像URL・affiliateUrl・itemUrlはいずれもhttps + 許可ホストのみ受け入れる。
  * affiliateUrlが取得できない場合はfail closed(通常の商品URLへフォールバックしない)。
  * @param {any} rawApiItem - 楽天IchibaItem/Search APIのItem1件分
  * @param {{ sourceRunId: string, publicationApprovedFileHash: string, fetchedAt: string }} context
- * @returns {{ ok: boolean, item: any|null, errors: string[] }}
+ * @returns {{ ok: boolean, item: any|null, errors: string[], reasonCode: string|null }}
  */
 export function sanitizeEnrichedItem(rawApiItem, { sourceRunId, publicationApprovedFileHash, fetchedAt }) {
   const errors = [];
+  let reasonCode = null;
+
+  const availabilityStatus = classifyAvailability(rawApiItem);
+  if (availabilityStatus !== "AVAILABLE") {
+    errors.push(`availabilityが${availabilityStatus}のため除外します(在庫なし・在庫不明の商品は公開候補にできません)`);
+    reasonCode = availabilityStatus;
+  }
 
   const itemCode = typeof rawApiItem?.itemCode === "string" && rawApiItem.itemCode !== "" ? rawApiItem.itemCode : null;
   if (!itemCode) errors.push("itemCodeが取得できません");
@@ -121,12 +152,13 @@ export function sanitizeEnrichedItem(rawApiItem, { sourceRunId, publicationAppro
   }
 
   if (errors.length > 0) {
-    return { ok: false, item: null, errors };
+    return { ok: false, item: null, errors, reasonCode: reasonCode ?? "VALIDATION_FAILED" };
   }
 
   return {
     ok: true,
     errors: [],
+    reasonCode: null,
     item: {
       itemCode,
       itemName,
@@ -137,6 +169,7 @@ export function sanitizeEnrichedItem(rawApiItem, { sourceRunId, publicationAppro
       affiliateUrl,
       shopName,
       imageUrl,
+      availability: 1,
       fetchedAt,
       sourceRunId,
       publicationApprovedFileHash,

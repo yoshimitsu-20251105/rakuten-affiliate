@@ -172,6 +172,29 @@ KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true npm run keywords:build-publica
   - 安全対策: `https:`限定、hostnameの完全一致(部分一致・サブドメイン偽装・後方一致偽装を
     拒否)、`username`/`password`付きURL禁止、デフォルト(443)以外の独自ポート禁止。
     許可ホストを`*.rakuten.co.jp`のように広げることはしない。
+- **在庫ゲート**(2026-09-08対応、`publication-enrichment.js`の`classifyAvailability`/
+  `isAvailableEnrichedItem`): 楽天APIの`availability`(0または1)だけを厳格に判定する。
+  `===`による厳密比較のみで、文字列("1")・真偽値(true)・小数・欠損/null/undefinedへの
+  曖昧な型変換は一切行わない。
+  - `AVAILABLE`(availability===1): 販売可能、掲載候補として許可
+  - `OUT_OF_STOCK`(availability===0): 在庫切れとして除外
+  - `AVAILABILITY_NOT_CONFIRMED`(上記以外すべて): 在庫不明として除外(安全側に倒す)
+  - ページ単位の判定(段階B・`publication-enrichment-run.js`): 在庫確認済み(`AVAILABLE`)の
+    商品が`MIN_PRODUCTS_PER_PAGE`(3件)以上残る場合のみそのページを補完データに含める。
+    3件未満ならページ全体を非生成・非ゼロ終了する。承認商品が3件のページ(例:
+    `senior-dog-pork`)は1件でも在庫なし・不明ならページ全体がブロックされる。
+    人間承認済み(`humanApproved: true`)であっても在庫ゲートは回避できない。
+  - 商品単位の除外理由は itemCode と理由コード(`NOT_FOUND_IN_LIVE_RESULTS`/
+    `OUT_OF_STOCK`/`AVAILABILITY_NOT_CONFIRMED`/`VALIDATION_FAILED`)だけを記録し
+    (`runPublicationEnrichment`の戻り値`pageExclusions`)、販売文句・APIレスポンス全文は
+    一切保存しない。
+  - **多層防御**: 段階C(`publication-preview-build.js`)は段階Bの判定結果を信用せず、
+    `enrichment-items.json`自体の`availability`を`isAvailableEnrichedItem`で独立して
+    再検証する。enrichmentArtifactHashの一致だけでは、そもそも`availability`フィールドを
+    持たない古い形式(この在庫ゲート導入前に生成されたenrichment run)を検出できないため、
+    hashが一致していても再検証で不正・欠損と判定されれば公開候補から除外する。
+  - 公開前プレビューのUI文言は「在庫あり」等の断定表現を使わず、常に
+    「楽天市場で在庫・価格を確認してください」と案内する(`publication-preview-template.js`)。
 - `sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`publicationReviewHash`/
   `publicationApprovedFileHash`/`enrichmentArtifactHash`のいずれか1つでも不一致なら
   生成を拒否する(`publication-preview-build.js`)。

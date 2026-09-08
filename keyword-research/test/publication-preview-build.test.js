@@ -286,7 +286,7 @@ test("生成されたHTMLはDRAFTバナー・noindex・画像・CTA・rel属性�
     assert.match(html, /width="128" height="128"/);
     assert.match(html, /rel="nofollow sponsored noopener"/);
     assert.match(html, /target="_blank"/);
-    assert.match(html, /楽天市場で価格・在庫を見る/);
+    assert.match(html, /楽天市場で在庫・価格を確認してください/);
 
     assert.doesNotMatch(html, /シニア 犬 豚肉/); // normalizedKeyword
     assert.doesNotMatch(html, /WebKeywordScore/);
@@ -343,6 +343,66 @@ test("複数フレーバー豚肉選択商品には固定の注意文が強制�
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
     assert.match(html, /購入時に豚肉タイプを選択してください/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-08 在庫ゲート対応】段階Cの独立した在庫再検証(多層防御)。
+// 段階B(enrich-publication-products)の判定結果をそのまま信用せず、
+// enrichment-items.json自体のavailabilityを段階Cが独立して再チェックする。
+// 人間承認済み(product.humanApproved=true)であっても在庫ゲートは回避できない。
+// =====================================================================
+
+test("段階Cの独立した在庫再検証: enrichment-items.jsonのavailability=0は最終ゲートで拒否する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogEnrichedOverrides: (e) => (e.itemCode === "shop:d1" ? { ...e, availability: 0 } : e),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /在庫/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("段階Cの独立した在庫再検証: availabilityが欠損している(在庫ゲート導入前の古い形式)場合も拒否する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogEnrichedOverrides: (e) => {
+      if (e.itemCode !== "shop:d1") return e;
+      const { availability, ...rest } = e;
+      return rest;
+    },
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /在庫/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("段階Cの独立した在庫再検証: 事後改変でavailability=0にしartifactHashを再計算・整合させても拒否する(hash一致だけでは見逃す欠陥がないことの確認)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  const itemsPath = `${enrichmentRun.dir}enrichment-items.json`;
+  const raw = JSON.parse(await readFile(itemsPath, "utf-8"));
+  raw[DOG_SLUG] = raw[DOG_SLUG].map((i) => (i.itemCode === "shop:d1" ? { ...i, availability: 0 } : i));
+  await writeFile(itemsPath, JSON.stringify(raw, null, 2), "utf-8");
+  // artifactHashを実ファイルに合わせて再計算(改変検知=hash不一致ではなく、
+  // 「hashは一致しているのにavailabilityが不正」という独立ゲートの効果を検証するため)
+  const { sha256File } = await import("../hash-utils.js");
+  const metaPath = `${enrichmentRun.dir}run-metadata.json`;
+  const meta = JSON.parse(await readFile(metaPath, "utf-8"));
+  meta.artifactHashes["enrichment-items.json"] = await sha256File(itemsPath);
+  await writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, false);
+    assert.doesNotMatch(result.errors.join(""), /改変の可能性/, "hash不一致としてではなく、独立した在庫ゲートとして拒否されること");
+    assert.match(result.errors.join(""), /在庫/);
   } finally {
     await cleanup(outputRoot);
   }

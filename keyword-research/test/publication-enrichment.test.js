@@ -2,7 +2,15 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isValidImageUrl, isValidAffiliateUrl, isValidItemUrl, sanitizeEnrichedItem, ENRICHMENT_FIELD_ALLOWLIST } from "../publication-enrichment.js";
+import {
+  isValidImageUrl,
+  isValidAffiliateUrl,
+  isValidItemUrl,
+  sanitizeEnrichedItem,
+  classifyAvailability,
+  isAvailableEnrichedItem,
+  ENRICHMENT_FIELD_ALLOWLIST,
+} from "../publication-enrichment.js";
 
 function validRawItem(overrides = {}) {
   return {
@@ -15,6 +23,7 @@ function validRawItem(overrides = {}) {
     itemUrl: "https://item.rakuten.co.jp/shop/1/",
     affiliateUrl: "https://hb.afl.rakuten.co.jp/hgc/abc/?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2F1%2F",
     shopName: "テストショップ",
+    availability: 1,
     mediumImageUrls: [{ imageUrl: "https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/1.jpg" }],
     ...overrides,
   };
@@ -215,4 +224,132 @@ test("sanitizeEnrichedItem: itemCodeが欠損している場合は拒否する",
   });
   assert.equal(ok, false);
   assert.match(errors.join(""), /itemCode/);
+});
+
+// =====================================================================
+// 【2026-09-08 在庫ゲート対応】classifyAvailability / isAvailableEnrichedItem
+// =====================================================================
+
+test("classifyAvailability: availability=1はAVAILABLE", () => {
+  assert.equal(classifyAvailability({ availability: 1 }), "AVAILABLE");
+});
+
+test("classifyAvailability: availability=0はOUT_OF_STOCK", () => {
+  assert.equal(classifyAvailability({ availability: 0 }), "OUT_OF_STOCK");
+});
+
+test("classifyAvailability: availabilityが欠損(undefined)している場合はAVAILABILITY_NOT_CONFIRMED", () => {
+  assert.equal(classifyAvailability({}), "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("classifyAvailability: availability=nullはAVAILABILITY_NOT_CONFIRMED", () => {
+  assert.equal(classifyAvailability({ availability: null }), "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("classifyAvailability: 文字列\"1\"は曖昧変換せずAVAILABILITY_NOT_CONFIRMED", () => {
+  assert.equal(classifyAvailability({ availability: "1" }), "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("classifyAvailability: 真偽値trueは曖昧変換せずAVAILABILITY_NOT_CONFIRMED", () => {
+  assert.equal(classifyAvailability({ availability: true }), "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("classifyAvailability: 0/1以外の数値(例: 2, -1, 0.5)はAVAILABILITY_NOT_CONFIRMED", () => {
+  assert.equal(classifyAvailability({ availability: 2 }), "AVAILABILITY_NOT_CONFIRMED");
+  assert.equal(classifyAvailability({ availability: -1 }), "AVAILABILITY_NOT_CONFIRMED");
+  assert.equal(classifyAvailability({ availability: 0.5 }), "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("isAvailableEnrichedItem: sanitize後アイテムのavailability=1はtrue", () => {
+  assert.equal(isAvailableEnrichedItem({ availability: 1 }), true);
+});
+
+test("isAvailableEnrichedItem: availability欠損・0・不正型はfalse", () => {
+  assert.equal(isAvailableEnrichedItem({}), false);
+  assert.equal(isAvailableEnrichedItem({ availability: 0 }), false);
+  assert.equal(isAvailableEnrichedItem({ availability: "1" }), false);
+  assert.equal(isAvailableEnrichedItem(null), false);
+});
+
+test("sanitizeEnrichedItem: availability=1は正常通過し、item.availability=1が付与される", () => {
+  const { ok, item, errors } = sanitizeEnrichedItem(validRawItem({ availability: 1 }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, true, errors.join(", "));
+  assert.equal(item.availability, 1);
+  assert.deepEqual(Object.keys(item).sort(), [...ENRICHMENT_FIELD_ALLOWLIST].sort());
+});
+
+test("sanitizeEnrichedItem: availability=0(在庫なし)は除外し、reasonCode=OUT_OF_STOCKを返す", () => {
+  const { ok, item, errors, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: 0 }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(item, null);
+  assert.equal(reasonCode, "OUT_OF_STOCK");
+  assert.match(errors.join(""), /availability/);
+});
+
+test("sanitizeEnrichedItem: availabilityが欠損している場合は除外し、reasonCode=AVAILABILITY_NOT_CONFIRMEDを返す", () => {
+  const { ok, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: undefined }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(reasonCode, "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("sanitizeEnrichedItem: availability=nullの場合は除外し、reasonCode=AVAILABILITY_NOT_CONFIRMEDを返す", () => {
+  const { ok, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: null }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(reasonCode, "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("sanitizeEnrichedItem: 文字列\"1\"は拒否する(曖昧変換禁止)", () => {
+  const { ok, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: "1" }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(reasonCode, "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("sanitizeEnrichedItem: 真偽値trueは拒否する(曖昧変換禁止)", () => {
+  const { ok, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: true }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(reasonCode, "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("sanitizeEnrichedItem: 0/1以外の数値は拒否する", () => {
+  const { ok, reasonCode } = sanitizeEnrichedItem(validRawItem({ availability: 2 }), {
+    sourceRunId: "run-1",
+    publicationApprovedFileHash: "hash-1",
+    fetchedAt: "2026-09-07T12:00:00.000Z",
+  });
+  assert.equal(ok, false);
+  assert.equal(reasonCode, "AVAILABILITY_NOT_CONFIRMED");
+});
+
+test("sanitizeEnrichedItem: APIレスポンス全文・itemCaption・認証情報はavailability追加後も保存しない", () => {
+  const { item } = sanitizeEnrichedItem(
+    validRawItem({ itemCaption: "非常に長いseller文言...", applicationId: "secret-app-id", accessKey: "secret-key" }),
+    { sourceRunId: "run-1", publicationApprovedFileHash: "hash-1", fetchedAt: "2026-09-07T12:00:00.000Z" }
+  );
+  assert.equal(Object.prototype.hasOwnProperty.call(item, "itemCaption"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(item, "applicationId"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(item, "accessKey"), false);
 });
