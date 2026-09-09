@@ -94,15 +94,20 @@ test("listExistingRankingSlugs: ディレクトリではない(ファイル)パ�
   }
 });
 
-test("findConflicts: 実データで、承認予定の2件が既存slug・既存シードキーワードのいずれとも衝突しない", async () => {
+// 【2026-09-09更新】senior-dog-pork・grain-free-cat-foodはPhase 3B(PR #11)で
+// docs/rankings/へ試験公開済みのため、この2slugは「既存のランキングページ」そのものに
+// なった。findConflicts()が実際のdocs/rankings/を読むため、これらのslugで新規に
+// pilot draftを再生成しようとすると、意図通り衝突として検出されるべきである
+// (重複ページの誤生成を防ぐ、この安全機構が正しく機能していることの確認)。
+test("findConflicts: senior-dog-pork・grain-free-cat-foodはPhase 3Bで試験公開済みのため、既存slugとの衝突が正しく検出される", async () => {
   const existingSeedKeywords = await extractExistingSeedKeywords(PROJECT_ROOT);
   const existingSlugs = listExistingRankingSlugs(`${PROJECT_ROOT}/docs/rankings`);
   const batchSlugs = ["senior-dog-pork", "grain-free-cat-food"];
 
   const issuesA = findConflicts({ normalizedKeyword: "シニア 犬 豚肉", slug: "senior-dog-pork" }, { existingSlugs, existingSeedKeywords, batchSlugs });
   const issuesB = findConflicts({ normalizedKeyword: "キャットフード グレインフリー", slug: "grain-free-cat-food" }, { existingSlugs, existingSeedKeywords, batchSlugs });
-  assert.deepEqual(issuesA, []);
-  assert.deepEqual(issuesB, []);
+  assert.match(issuesA.join(""), /senior-dog-pork.*既存のランキングページと重複/, "試験公開済みのため衝突が検出されること");
+  assert.match(issuesB.join(""), /grain-free-cat-food.*既存のランキングページと重複/, "試験公開済みのため衝突が検出されること");
 });
 
 test("findConflicts: 既存シードキーワードと重複する候補は問題として検出される", async () => {

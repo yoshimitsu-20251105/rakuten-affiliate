@@ -21,7 +21,7 @@
     "keywords:prepare-publication-review": "node keyword-research/cli/prepare-publication-review.js",
     "keywords:enrich-publication-products": "node --env-file-if-exists=.env keyword-research/cli/enrich-publication-products.js",
     "keywords:build-publication-preview": "node keyword-research/cli/build-publication-preview.js",
-    "keywords:publish-approved-pages": "node keyword-research/cli/publish-approved-pages.js"
+    "keywords:publish-approved-pages": "node --env-file-if-exists=.env keyword-research/cli/publish-approved-pages.js"
   },
   "repository": {
     "type": "git",

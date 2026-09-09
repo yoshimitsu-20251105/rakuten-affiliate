@@ -108,7 +108,7 @@ test("publish-approved-pages CLI: 出力先ファイルが既に存在する場�
     const result = runCli(
       PUBLISH_CLI,
       ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
-      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true" }
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
     );
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /既に存在/);
@@ -132,7 +132,7 @@ test("publish-approved-pages CLI: 全ゲート通過時は成功し、DRAFTバ�
     const result = runCli(
       PUBLISH_CLI,
       ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
-      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true" }
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
     );
     assert.equal(result.status, 0, result.stderr);
 
@@ -143,7 +143,29 @@ test("publish-approved-pages CLI: 全ゲート通過時は成功し、DRAFTバ�
       assert.doesNotMatch(html, /下書き・非公開/, "タイトル接頭辞を含まないこと");
       assert.match(html, /noindex,nofollow/, "noindexは維持されること");
       assert.match(html, /<a class="site-title" href="https:\/\/[^"]+">/, "既存サイトと同じヘッダーリンクを含むこと");
+      assert.match(html, /<script async src="https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-TEST12345"><\/script>/, "既存サイトと同じGA4計測タグを含むこと");
+      assert.match(html, /gtag\('config','G-TEST12345'\)/);
     }
+  } finally {
+    await cleanup(outputRoot);
+    await rm(docsRankingsDir, { recursive: true, force: true });
+  }
+});
+
+test("publish-approved-pages CLI: GA_MEASUREMENT_ID未設定の場合はfail closedで非ゼロ終了し、何も書き込まない", async () => {
+  const outputRoot = await createOutputRoot();
+  const docsRankingsDir = await mkdtemp(join(tmpdir(), "docs-rankings-test-"));
+  try {
+    const { sourceRun, pubApprovalPath, enrichmentRun } = await setupPublishFixture(outputRoot);
+    const result = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: undefined }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /GA_MEASUREMENT_ID/);
+    const entries = await readdir(docsRankingsDir);
+    assert.equal(entries.length, 0, "GA_MEASUREMENT_ID未設定時は何も書き込まれないこと");
   } finally {
     await cleanup(outputRoot);
     await rm(docsRankingsDir, { recursive: true, force: true });
@@ -172,9 +194,10 @@ test("publish-approved-pages CLI: 在庫ゲート等の既存の安全ゲート�
     const result = runCli(
       PUBLISH_CLI,
       ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
-      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true" }
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
     );
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /在庫/, "在庫ゲート違反が理由で拒否されること(GA未設定等の別理由ではない)");
     const entries = await readdir(docsRankingsDir);
     assert.equal(entries.length, 0, "ゲート違反時は何も公開されないこと(fail closed)");
   } finally {

@@ -248,6 +248,21 @@ KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED=true npm run keywords:publish-approved-pa
 - `generate-site.js`・`select-products.js`・日次GitHub Actionsは一切呼び出さない。
 - 実行記録は`keyword-research/output/publication-publish/<runId>/run-metadata.json`
   (gitignore対象)に、他段階と同じ形式のhash・件数・公開パス一覧を保存する。
+- **日次再生成による消失リスクの検証結果(2026-09-09)**: `generate-site.js`は
+  `docs/rankings/<slug>.html`を選定商品データ(`selected-products.json`)からのみ
+  生成し、それ以外の既存ファイルを削除・上書きすることはない。そのため試験公開した
+  2ページは`generate-site.js`実行後もSHA-256完全一致で存在し続けることを実測で確認
+  済み(`docs/sitemap.xml`・`docs/robots.txt`にも含まれない)。この2ページを保護する
+  ための特別な変更は`generate-site.js`側に一切加えていない。
+- **GA4計測**(2026-09-09対応): `isDraft: false`(試験公開)の場合のみ、既存サイト
+  (`generate-site.js`)と全く同じgtag.js読込・dataLayer初期化スクリプトを、既存の
+  `GA_MEASUREMENT_ID`(`.env`)からそのまま埋め込む(新しいGA4プロパティは作成しない)。
+  `keywords:publish-approved-pages`は`GA_MEASUREMENT_ID`が未設定の場合**fail closed**
+  (非ゼロ終了・docs/への書き込みなし)とする。これは、計測タグ無しで黙って公開を
+  続ける`generate-site.js`の既存仕様とは意図的に異なる挙動であり、このCLIの目的の
+  1つが「限定公開ページの閲覧をGA4で計測できること」の確認そのものであるため。
+  DRAFT(`isDraft: true`、既定)では、内部レビュー閲覧が実際のアクセス解析に混入
+  しないよう、`GA_MEASUREMENT_ID`が設定されていても計測タグは常に出力しない。
 
 ### Search Console実接続を使ったdry-runの正式な実行方法
 

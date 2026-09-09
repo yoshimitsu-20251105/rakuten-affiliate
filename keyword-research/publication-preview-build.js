@@ -33,7 +33,9 @@ function buildAttributeLabels(requiredAttributes) {
  * 【2026-09-09 試験公開対応】isDraft(既定true)をfalseにすると、生成されるHTMLから
  * DRAFTバナーと「【下書き・非公開】」タイトル接頭辞を取り除く(通常ページと同じ見た目)。
  * 全ゲート・全検証ロジックはisDraftの値に関わらず完全に同一(安全性は一切緩めない)。
- * @param {{ sourceRunDir: string, publicationApprovedFilePath: string, enrichmentRunDir: string, isDraft?: boolean }} options
+ * gaMeasurementIdを渡すと、isDraft:falseの場合のみ既存サイトと同じGA4計測タグを
+ * 出力する(新しいGA4プロパティは作成せず、既存のIDをそのまま再利用するだけ)。
+ * @param {{ sourceRunDir: string, publicationApprovedFilePath: string, enrichmentRunDir: string, isDraft?: boolean, gaMeasurementId?: string }} options
  * @returns {Promise<{
  *   ok: boolean, errors: string[], validationReportLines: string[],
  *   drafts?: Array<{ slug: string, html: string }>,
@@ -41,7 +43,7 @@ function buildAttributeLabels(requiredAttributes) {
  *   enrichmentArtifactHash?: string, productCountBySlug?: Record<string, number>,
  * }>}
  */
-export async function buildPublicationPreview({ sourceRunDir, publicationApprovedFilePath, enrichmentRunDir, isDraft = true }) {
+export async function buildPublicationPreview({ sourceRunDir, publicationApprovedFilePath, enrichmentRunDir, isDraft = true, gaMeasurementId = "" }) {
   const validationReportLines = [];
   const errors = [];
 
@@ -280,7 +282,7 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         selectionType: item.selectionType,
         verifiedAttributeLabels: buildAttributeLabels(p.pageConfig.requiredAttributes),
       })),
-    }, { isDraft });
+    }, { isDraft, gaMeasurementId });
     return { slug: p.slug, html };
   });
 

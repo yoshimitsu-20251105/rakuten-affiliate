@@ -15,6 +15,13 @@
 //   最短で翌日の自動実行時に消えてしまう。人間が直接URLを共有して確認する運用を想定)。
 // - 出力先ファイルが既に存在する場合は上書きせず失敗する(fail closed)。
 // - generate-site.js・select-products.js・日次GitHub Actionsは一切呼び出さない。
+//
+// 【2026-09-09 GA4計測対応】このCLIの目的の1つは「限定公開したページの閲覧が
+// 既存GA4で計測できること」の確認そのものであるため、generate-site.js(GA未設定でも
+// 黙って無計測のまま生成を続ける)とは異なり、GA_MEASUREMENT_IDが未設定の場合は
+// fail closed(非ゼロ終了、docs/への書き込みを一切行わない)とする。新しいGA4
+// プロパティは作成せず、既存の.envのGA_MEASUREMENT_IDをそのまま再利用するだけ。
+// GA4 Data API・Search Console API等の外部APIは一切呼び出さない。
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { buildPublicationPreview } from "../publication-preview-build.js";
@@ -53,6 +60,19 @@ async function main() {
     return;
   }
 
+  // 【fail closed】このCLIの目的の1つが「GA4での計測確認」であるため、
+  // GA_MEASUREMENT_ID未設定のまま計測タグなしで静かに公開することはしない。
+  const gaMeasurementId = process.env.GA_MEASUREMENT_ID || "";
+  if (!gaMeasurementId) {
+    console.error(
+      `${LOG} GA_MEASUREMENT_IDが未設定です(.envに設定するか、環境変数として渡してください)。` +
+        `このCLIは公開ページの閲覧をGA4で計測できることの確認を目的の1つとしているため、` +
+        `計測タグなしでの公開はfail closedとし、docs/への書き込みは行いません。`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   let sourceRunDir, enrichmentRunDir;
   try {
     sourceRunDir = resolveInputPath(args["source-run"]);
@@ -79,6 +99,7 @@ async function main() {
     publicationApprovedFilePath: args["publication-approved-file"],
     enrichmentRunDir,
     isDraft: false,
+    gaMeasurementId,
   });
 
   if (!result.ok) {
@@ -133,6 +154,7 @@ async function main() {
         productCountBySlug: result.productCountBySlug,
         noindexMaintained: true,
         linkedFromNavigation: false,
+        gaMeasurementTagIncluded: true,
       },
       null,
       2
@@ -143,6 +165,7 @@ async function main() {
   console.log(`${LOG} 完了(status=completed): ${result.drafts.length}件公開`);
   console.log(`${LOG}(docs/index.html・docs/rankings/all.html等の既存ナビゲーションは変更していません)`);
   console.log(`${LOG}(noindex,nofollowを維持しています。generate-site.js・日次パイプラインは呼び出していません)`);
+  console.log(`${LOG}(既存サイトと同じGA4計測タグを含めています。GA_MEASUREMENT_IDの値自体はログに記録しません)`);
 }
 
 main().catch((e) => {

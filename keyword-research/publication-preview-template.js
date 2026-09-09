@@ -1,6 +1,8 @@
 // Phase 3B(公開前商品レビュー・収益化プレビュー)専用: 決定的なHTMLテンプレート生成(2026-09-07対応)。
 // 外部生成AI(LLM)は一切呼び出さない。すべて固定の文言・構造とデータの埋め込みのみ。
-// scriptタグ・外部トラッキングは追加しない。
+// DRAFT(isDraft:true)ではscriptタグ・外部トラッキングを一切追加しない。試験公開
+// (isDraft:false)時のみ、既存サイトと同じGA4計測タグ(gaMeasurementId経由)を
+// 条件付きで追加する場合がある(下記2026-09-09試験公開GA4対応を参照)。
 //
 // 【厳守・非公開情報】normalizedKeyword・WebKeywordScore・FinalPriority・source run・
 // candidateSetHash・approvedFileHash・reviewHash・itemCode・slug・runId・
@@ -21,6 +23,12 @@
 // タイトルの「【下書き・非公開】」接頭辞を出力しない(通常ページと同じ見た目にする)。
 // robots meta(noindex,nofollow)はisDraftの値に関わらず常に出力する(検索エンジンへの
 // 公開可否は別の判断であり、このテンプレート単体では変更しない)。
+//
+// 【2026-09-09 試験公開GA4対応】gaMeasurementIdが渡された場合、既存サイト
+// (generate-site.js)と全く同じgtag.js読込・dataLayer初期化スクリプトを出力する
+// (新しいGA4プロパティは作成しない。既存のGA_MEASUREMENT_IDをそのまま再利用するのみ)。
+// DRAFT(isDraft:true)では、内部レビュー用の閲覧が実際のアクセス解析に混入しないよう、
+// gaMeasurementIdが渡されていても常にタグを出力しない。
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -67,11 +75,19 @@ export function formatJaDate(isoString) {
  *     verifiedAttributeLabels: string[], affiliateUrl: string,
  *   }>,
  * }} data
- * @param {{ isDraft?: boolean }} [options]
+ * @param {{ isDraft?: boolean, gaMeasurementId?: string }} [options]
  * @returns {string} 完全なHTML文書
  */
-export function renderPublicationPreviewHtml(data, { isDraft = true } = {}) {
+export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "" } = {}) {
   const { title, introText, buyingGuideText, dataRetrievedAtJa, products } = data;
+
+  // 既存サイト(generate-site.js)と同一のgtag.js読込・dataLayer初期化パターン。
+  // DRAFT中は内部レビュー閲覧を実際の計測に混入させないため常に空にする。
+  const gaTag =
+    !isDraft && gaMeasurementId
+      ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaMeasurementId}');</script>`
+      : "";
 
   const cards = products
     .map(
@@ -181,6 +197,7 @@ export function renderPublicationPreviewHtml(data, { isDraft = true } = {}) {
     main { padding:1rem; }
   }
 </style>
+${gaTag}
 </head>
 <body>
 ${isDraft ? '<div class="draft-banner">⚠ DRAFT — 公開前確認用ページ・検索エンジンには非公開(noindex) ⚠</div>' : ""}
