@@ -220,8 +220,34 @@ KEYWORD_RESEARCH_PUBLICATION_PREVIEW_ENABLED=true npm run keywords:build-publica
 - `sourceRunId`/`candidateSetHash`/`keywordApprovedFileHash`/`publicationReviewHash`/
   `publicationApprovedFileHash`/`enrichmentArtifactHash`のいずれか1つでも不一致なら
   生成を拒否する(`publication-preview-build.js`)。
-- 出力はすべて`keyword-research/output/`配下(gitignore対象)。既存サイト(`docs/`)・
+- 段階A〜Cの出力はすべて`keyword-research/output/`配下(gitignore対象)。既存サイト(`docs/`)・
   `generate-site.js`・`select-products.js`・日次GitHub Actionsへの接続・公開は一切行わない。
+
+### 試験公開: 承認済みページをdocs/へ直接接続する(2026-09-09対応)
+
+```bash
+KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED=true npm run keywords:publish-approved-pages -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --publication-approved-file <publicationApproval.json> \
+  --enrichment-run keyword-research/output/publication-enrichment/<enrichmentRunId>
+```
+
+- 段階Cと同じ`buildPublicationPreview()`(全ゲート・全検証ロジック)をそのまま再利用し、
+  `isDraft: false`を渡すことで、DRAFTバナーと「【下書き・非公開】」タイトル接頭辞を
+  含まない(通常ページと同じ見た目の)HTMLを生成する。`<meta name="robots"
+  content="noindex,nofollow">`はisDraftの値に関わらず常に出力されるため、試験公開中は
+  検索エンジンにインデックスされない。
+- 出力先は`docs/rankings/<slug>.html`(承認ファイルのslugをそのままファイル名にする)。
+  **出力先ファイルが既に存在する場合は上書きせず非ゼロ終了する(fail closed)**。
+- `docs/index.html`・`docs/rankings/all.html`等の既存ナビゲーション・ハブページは
+  一切変更しない。これらは`generate-site.js`が日次で完全に再生成するため、手動で
+  リンクを追記しても最短で翌日の自動実行時に消えてしまう。そのため試験公開中の
+  2ページは**サイト内のどこからもリンクされない**(直接URLでのみ到達可能)。
+  サイト内リンクへの本格導入には、`generate-site.js`自体をPhase 3Bページを
+  認識できるよう拡張する必要がある(今回のスコープ外)。
+- `generate-site.js`・`select-products.js`・日次GitHub Actionsは一切呼び出さない。
+- 実行記録は`keyword-research/output/publication-publish/<runId>/run-metadata.json`
+  (gitignore対象)に、他段階と同じ形式のhash・件数・公開パス一覧を保存する。
 
 ### Search Console実接続を使ったdry-runの正式な実行方法
 

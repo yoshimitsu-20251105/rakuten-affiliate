@@ -16,6 +16,11 @@
 // 【2026-09-08 UI改善対応】既存サイト(docs/style.css)と同一の配色トークン・
 // フォント・最大横幅を採用し、視覚的な統一感を持たせる。ただし generate-site.js の
 // 生成処理そのものは一切呼び出さない・接続しない(値を静的に再利用するのみ)。
+//
+// 【2026-09-09 試験公開対応】isDraftオプション(既定true)がfalseのとき、DRAFTバナーと
+// タイトルの「【下書き・非公開】」接頭辞を出力しない(通常ページと同じ見た目にする)。
+// robots meta(noindex,nofollow)はisDraftの値に関わらず常に出力する(検索エンジンへの
+// 公開可否は別の判断であり、このテンプレート単体では変更しない)。
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -47,6 +52,11 @@ export function formatJaDate(isoString) {
 }
 
 /**
+ * 【2026-09-09 試験公開対応】isDraft=falseの場合、DRAFTバナーとタイトルの
+ * 「【下書き・非公開】」接頭辞を出さない(通常ページと同じ見た目にする)。
+ * ただし`<meta name="robots" content="noindex,nofollow">`はisDraftの値に関わらず
+ * 常に出力する(試験公開中は検索エンジンにインデックスさせない、という運用判断とは
+ * 独立してテンプレート自身が安全側で固定する)。
  * @param {{
  *   title: string, introText: string, buyingGuideText: string,
  *   dataRetrievedAtJa: string,
@@ -57,9 +67,10 @@ export function formatJaDate(isoString) {
  *     verifiedAttributeLabels: string[], affiliateUrl: string,
  *   }>,
  * }} data
+ * @param {{ isDraft?: boolean }} [options]
  * @returns {string} 完全なHTML文書
  */
-export function renderPublicationPreviewHtml(data) {
+export function renderPublicationPreviewHtml(data, { isDraft = true } = {}) {
   const { title, introText, buyingGuideText, dataRetrievedAtJa, products } = data;
 
   const cards = products
@@ -105,7 +116,7 @@ export function renderPublicationPreviewHtml(data) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>【下書き・非公開】${escapeHtml(title)}</title>
+<title>${isDraft ? "【下書き・非公開】" : ""}${escapeHtml(title)}</title>
 <style>
   :root { color-scheme: light dark; --bg:#fafaf8; --fg:#222; --card-bg:#fff; --border:#e2e2df; --accent:#bf0000; --accent-dark:#950000; --muted:#6a6a64; }
   @media (prefers-color-scheme: dark) { :root { --bg:#1a1a1a; --fg:#eee; --card-bg:#262626; --border:#3a3a3a; --muted:#a3a39c; } }
@@ -172,7 +183,7 @@ export function renderPublicationPreviewHtml(data) {
 </style>
 </head>
 <body>
-<div class="draft-banner">⚠ DRAFT — 公開前確認用ページ・検索エンジンには非公開(noindex) ⚠</div>
+${isDraft ? '<div class="draft-banner">⚠ DRAFT — 公開前確認用ページ・検索エンジンには非公開(noindex) ⚠</div>' : ""}
 <header><a class="site-title" href="https://yoshimitsu-20251105.github.io/rakuten-affiliate/">楽天トレンドセレクト</a></header>
 <main>
 <h1>${escapeHtml(title)}</h1>
