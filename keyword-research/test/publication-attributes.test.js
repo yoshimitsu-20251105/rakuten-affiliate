@@ -31,5 +31,5 @@ test("「選べる」表現があってもフレーバーが1種類だけなら�
 });
 
 test("FLAVOR_SELECTION_NOTE_TEXTは固定の安全な文言である", () => {
-  assert.equal(FLAVOR_SELECTION_NOTE_TEXT, "購入時に豚肉タイプを選択してください");
+  assert.equal(FLAVOR_SELECTION_NOTE_TEXT, "購入時にポーク／豚肉タイプを選択してください");
 });

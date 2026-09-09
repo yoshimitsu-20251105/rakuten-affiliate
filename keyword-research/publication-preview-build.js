@@ -193,6 +193,12 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         continue;
       }
 
+      // 【重要】selectionType(confirmed/selectable)は、既存のneedsFlavorSelectionNote()
+      // (itemNameから機械的に判定、既存の多層防御ロジック)をそのまま再利用する。
+      // これは承認時点(レビュー段階)でも同じ関数・同じsourceItem.itemNameから算出される値であり、
+      // source run自体が変わっていないことはcandidateSetHash一致で既に保証されているため、
+      // 新たに別の(信頼度の異なる)フィールドを追加せず、既存の単一の判定結果を
+      // 表示順位の決定にも安全に転用できる。
       const flavorNoteRequired = needsFlavorSelectionNote(sourceItem.itemName);
       const displayNote = flavorNoteRequired ? FLAVOR_SELECTION_NOTE_TEXT : (typeof product.displayNote === "string" && product.displayNote.trim() !== "" ? product.displayNote.trim() : null);
 
@@ -206,6 +212,7 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         reviewCount: enrichedItem.reviewCount,
         affiliateUrl: enrichedItem.affiliateUrl,
         shopName: enrichedItem.shopName,
+        selectionType: flavorNoteRequired ? "selectable" : "confirmed",
         qualityScore: sourceItem.qualityScore, // 内部ソート専用、HTMLには出力しない
         _sourceItemName: sourceItem.itemName, // 内部の類似度判定専用、HTMLには出力しない
       });
@@ -221,8 +228,15 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
       continue;
     }
 
-    // 既存Quality Score順に並べ替える(公開HTMLへQuality Score自体は出力しない)。
-    finalItems.sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0));
+    // 【2026-09-08 表示順位改善】商品自体の内容が確定している商品(confirmed)を、
+    // 購入時にタイプ選択が必要な商品(selectable)より先に表示する。同じ区分内では
+    // 既存通りQuality Score降順(公開HTMLへQuality Score自体は出力しない)。
+    finalItems.sort((a, b) => {
+      if (a.selectionType !== b.selectionType) {
+        return a.selectionType === "confirmed" ? -1 : 1;
+      }
+      return (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
+    });
 
     const diversity = evaluateShopDiversity(finalItems.map((i) => ({ itemCode: i.itemCode, shopName: i.shopName })));
     if (diversity.exceedsMaxPerShop) {
@@ -247,7 +261,6 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
   const drafts = pageResults.map((p) => {
     const html = renderPublicationPreviewHtml({
       title: p.title,
-      slug: p.slug,
       introText: buildIntroText(p.pageConfig.requiredAttributes),
       buyingGuideText: "",
       dataRetrievedAtJa: formatJaDate(p.enrichmentFetchedAt ?? enrichmentMetadata.executedAt),
@@ -260,6 +273,8 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         reviewAverage: item.reviewAverage,
         reviewCount: item.reviewCount,
         affiliateUrl: item.affiliateUrl,
+        shopName: item.shopName,
+        selectionType: item.selectionType,
         verifiedAttributeLabels: buildAttributeLabels(p.pageConfig.requiredAttributes),
       })),
     });

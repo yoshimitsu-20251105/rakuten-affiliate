@@ -34,4 +34,7 @@ export function needsFlavorSelectionNote(itemName) {
   return proteinTokenCount >= 2;
 }
 
-export const FLAVOR_SELECTION_NOTE_TEXT = "購入時に豚肉タイプを選択してください";
+// 【2026-09-08 プレビューUI改善対応】犬ページの選択式2商品向けに、購入方式を
+// 「ポーク/豚肉」どちらの表記でも齟齬なく伝わる共通文言へ統一(商品ごとに文言を
+// 個別化する仕組みは現在のスキーマに無いため、全選択式商品で共通の1文とする)。
+export const FLAVOR_SELECTION_NOTE_TEXT = "購入時にポーク／豚肉タイプを選択してください";
