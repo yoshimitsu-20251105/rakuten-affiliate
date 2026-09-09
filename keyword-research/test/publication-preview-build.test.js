@@ -373,6 +373,43 @@ test("DRAFTバナーがページ最上部(header要素より前)に1回だけ存
   }
 });
 
+// 【2026-09-09 監査対応】既存サイト(docs/index.html・docs/rankings/*.html)は
+// ヘッダーを<a class="site-title">(リンク)、フッターを2段落(アフィリエイト開示+
+// 運営者情報)で構成している。以前のドラフトは<span>(非リンク)・1段落のみで、
+// 「似た独自HTML」に留まっていたため、実際に存在する既存サイトの構造(要素種別・
+// リンクの有無・フッター段落数)に合わせる。ヘッダーのリンク先は本番公開済みの
+// サイトURL(固定文字列)であり、リンク切れは発生しない。generate-site.jsは
+// 呼び出さない(値の再利用のみ)。
+test("ヘッダーは既存サイトと同じ<a class=\"site-title\">構造で、リンク切れが無い", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const headerMatch = html.match(/<header>([\s\S]*?)<\/header>/);
+    assert.ok(headerMatch, "header要素が存在すること");
+    assert.match(headerMatch[1], /<a class="site-title" href="https:\/\/[^"]+">楽天トレンドセレクト<\/a>/, "既存サイトと同じくheader内はリンク(<a>)であること");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("フッターは既存サイトと同じく2段落(アフィリエイト開示+運営者情報)で構成される", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const footerMatch = html.match(/<footer>([\s\S]*?)<\/footer>/);
+    assert.ok(footerMatch, "footer要素が存在すること");
+    const paragraphs = footerMatch[1].match(/<p>/g) || [];
+    assert.equal(paragraphs.length, 2, "既存サイトと同じくフッターは2段落であること");
+    assert.match(footerMatch[1], /運営者/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
 test("商品カードに過大な固定高さ・大きなmin-heightが無い", async () => {
   const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
   try {

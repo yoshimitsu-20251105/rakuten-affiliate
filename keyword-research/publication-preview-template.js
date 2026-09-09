@@ -173,7 +173,7 @@ export function renderPublicationPreviewHtml(data) {
 </head>
 <body>
 <div class="draft-banner">⚠ DRAFT — 公開前確認用ページ・検索エンジンには非公開(noindex) ⚠</div>
-<header><span class="site-title">楽天トレンドセレクト</span></header>
+<header><a class="site-title" href="https://yoshimitsu-20251105.github.io/rakuten-affiliate/">楽天トレンドセレクト</a></header>
 <main>
 <h1>${escapeHtml(title)}</h1>
 <p class="hook">${escapeHtml(introText)}</p>
@@ -215,6 +215,7 @@ ${tableRows}
 </main>
 <footer>
 <p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価などをもとに人が内容を確認して選定しています。</p>
+<p>運営者: 楽天トレンドセレクト運営チーム / 情報取得時点: ${escapeHtml(dataRetrievedAtJa)}</p>
 </footer>
 </body>
 </html>
