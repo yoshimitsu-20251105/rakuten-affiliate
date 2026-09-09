@@ -87,6 +87,112 @@ test("すべてのゲートを満たす場合は生成に成功する", async ()
   }
 });
 
+// =====================================================================
+// 【2026-09-09 試験公開対応】isDraft:falseのとき、DRAFTバナー・タイトル接頭辞を
+// 出さないが、noindex,nofollowは常に維持する。全ゲート・検証ロジックは
+// isDraftの値に関わらず完全に同一(安全性は一切緩めない)。
+// =====================================================================
+
+test("isDraft:falseの場合、DRAFTバナー・タイトル接頭辞を出力しないが、noindex,nofollowは維持する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /class="draft-banner"/);
+    assert.doesNotMatch(html, /下書き・非公開/);
+    assert.match(html, /noindex,nofollow/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("isDraft未指定(既定値)の場合は従来通りDRAFTバナー・タイトル接頭辞を出力する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /class="draft-banner"/);
+    assert.match(html, /下書き・非公開/);
+    assert.match(html, /noindex,nofollow/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("isDraft:falseでも、availability=0等の既存ゲートは通常通り機能する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogEnrichedOverrides: (e) => (e.itemCode === "shop:d1" ? { ...e, availability: 0 } : e),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /在庫/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-09 GA4計測対応】isDraft:falseかつgaMeasurementIdが渡された場合のみ、
+// 既存サイトと同じgtag.js読込・dataLayer初期化スクリプトを出力する。新しいGA4
+// プロパティは作成せず、渡された値をそのまま使うだけ。DRAFTでは常に出力しない
+// (内部レビュー閲覧が実際の計測に混入しないようにするため)。
+// =====================================================================
+
+test("isDraft:false かつ gaMeasurementId指定時、既存サイトと同じgtag.jsタグを出力する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /<script async src="https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-TEST12345"><\/script>/);
+    assert.match(html, /gtag\('config','G-TEST12345'\)/);
+    assert.match(html, /window\.dataLayer=window\.dataLayer\|\|\[\]/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("isDraft:false でも gaMeasurementId未指定なら計測タグを出力しない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /googletagmanager\.com/);
+    assert.doesNotMatch(html, /dataLayer/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("isDraft:true(DRAFT)では、gaMeasurementIdが指定されていても計測タグを出力しない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: true,
+      gaMeasurementId: "G-TEST12345",
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /googletagmanager\.com/);
+    assert.doesNotMatch(html, /G-TEST12345/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
 test("商品公開承認ファイルのcandidateSetHashがsource runと不一致なら拒否する", async () => {
   const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
     approvalOverrides: {},

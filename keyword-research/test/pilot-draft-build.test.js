@@ -462,8 +462,14 @@ function catSourceRunOptions(catItems) {
   };
 }
 
+// 【2026-09-09更新】slugは"grain-free-cat-food"から変更した。このスラッグはPhase 3B
+// (PR #11)でdocs/rankings/へ実際に試験公開され、既存のランキングページになったため、
+// buildPilotDrafts()内部のfindConflicts()(docs/rankings/を実際に読む)が本物の衝突として
+// 検出してしまい、これらの商品関連性ゲート専用の回帰テストが無関係な理由で失敗していた。
+// このテスト群の目的はslug衝突ではなく商品関連性ゲートの検証のため、衝突しない
+// テスト専用のslugへ変更する(normalizedKeywordはそのまま、実際のバグ再現条件を維持)。
 function catApprovalOverrides() {
-  return { keywords: [{ normalizedKeyword: CAT_KEYWORD, title: "猫用グレインフリーキャットフードおすすめランキング比較", slug: "grain-free-cat-food", action: "CREATE" }] };
+  return { keywords: [{ normalizedKeyword: CAT_KEYWORD, title: "猫用グレインフリーキャットフードおすすめランキング比較", slug: "grain-free-cat-food-relevance-regression-test", action: "CREATE" }] };
 }
 
 function catItem(itemCode, overrides = {}) {
