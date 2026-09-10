@@ -19,10 +19,17 @@ import { evaluateShopDiversity, hasExcessiveSameSeriesGroup } from "./shop-diver
 import { sha256File, computePublicationReviewHash } from "./hash-utils.js";
 import { deriveOutputRoot } from "./output-paths.js";
 import { renderPublicationPreviewHtml, formatJaDate } from "./publication-preview-template.js";
+import { SITE_URL } from "../lib/site-config.js";
 
 function buildIntroText(requiredAttributes) {
   const animal = requiredAttributes.includes("species:cat") ? "猫" : "犬";
   return `${animal}用のおすすめ商品を、レビュー評価や商品情報をもとに人が内容を確認して選定しました。`;
+}
+
+// 【2026-09-10 CTAクリック計測対応】affiliate_clickイベントのanimal_type値(dog/cat)。
+// buildIntroText()と同じrequiredAttributes判定をそのまま再利用する(判定基準を1つに保つ)。
+function buildAnimalType(requiredAttributes) {
+  return requiredAttributes.includes("species:cat") ? "cat" : "dog";
 }
 
 function buildAttributeLabels(requiredAttributes) {
@@ -38,7 +45,13 @@ function buildAttributeLabels(requiredAttributes) {
  * 【2026-09-10 検索公開試験対応】allowSearchIndex(既定false)をtrueにすると、
  * isDraft:falseの場合のみrobots metaを省略する(通常の公開ページと同じ挙動)。
  * 安全性・関連性ゲート等はisDraft/allowSearchIndexの値に関わらず完全に同一。
- * @param {{ sourceRunDir: string, publicationApprovedFilePath: string, enrichmentRunDir: string, isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean }} options
+ * 【2026-09-10 canonical・CTAクリック計測対応】各ページのcanonical URLは、既存サイトと
+ * 共通のSITE_URL(lib/site-config.js)から`${SITE_URL}/rankings/${slug}.html`として
+ * このモジュール内で組み立てる(呼び出し側から任意の値を受け取らない。相対URL・
+ * 別ページURL・重複canonicalが混入する余地を構造的になくすため)。animal_typeは
+ * pageConfig.requiredAttributesから機械的に判定する。pageTypeはaffiliate_click
+ * イベントに含める固定ラベル(既定"search_trial_ranking")。
+ * @param {{ sourceRunDir: string, publicationApprovedFilePath: string, enrichmentRunDir: string, isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean, pageType?: string }} options
  * @returns {Promise<{
  *   ok: boolean, errors: string[], validationReportLines: string[],
  *   drafts?: Array<{ slug: string, html: string }>,
@@ -46,7 +59,7 @@ function buildAttributeLabels(requiredAttributes) {
  *   enrichmentArtifactHash?: string, productCountBySlug?: Record<string, number>,
  * }>}
  */
-export async function buildPublicationPreview({ sourceRunDir, publicationApprovedFilePath, enrichmentRunDir, isDraft = true, gaMeasurementId = "", allowSearchIndex = false }) {
+export async function buildPublicationPreview({ sourceRunDir, publicationApprovedFilePath, enrichmentRunDir, isDraft = true, gaMeasurementId = "", allowSearchIndex = false, pageType = "search_trial_ranking" }) {
   const validationReportLines = [];
   const errors = [];
 
@@ -272,6 +285,8 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
       introText: buildIntroText(p.pageConfig.requiredAttributes),
       buyingGuideText: "",
       dataRetrievedAtJa: formatJaDate(p.enrichmentFetchedAt ?? enrichmentMetadata.executedAt),
+      canonicalUrl: `${SITE_URL}/rankings/${p.slug}.html`,
+      animalType: buildAnimalType(p.pageConfig.requiredAttributes),
       products: p.finalItems.map((item, idx) => ({
         rank: idx + 1,
         displayName: item.displayName,
@@ -285,7 +300,7 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         selectionType: item.selectionType,
         verifiedAttributeLabels: buildAttributeLabels(p.pageConfig.requiredAttributes),
       })),
-    }, { isDraft, gaMeasurementId, allowSearchIndex });
+    }, { isDraft, gaMeasurementId, allowSearchIndex, pageType });
     return { slug: p.slug, html };
   });
 

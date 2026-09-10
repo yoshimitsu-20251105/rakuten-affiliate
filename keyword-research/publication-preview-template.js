@@ -35,6 +35,20 @@
 // (新しいGA4プロパティは作成しない。既存のGA_MEASUREMENT_IDをそのまま再利用するのみ)。
 // DRAFT(isDraft:true)では、内部レビュー用の閲覧が実際のアクセス解析に混入しないよう、
 // gaMeasurementIdが渡されていても常にタグを出力しない。
+//
+// 【2026-09-10 canonical対応】data.canonicalUrlが渡された場合のみ
+// <link rel="canonical">を出力する。値は呼び出し側(publication-preview-build.js)が
+// 既存サイトと共通のSITE_URL(lib/site-config.js)から「そのページ自身の」絶対URLとして
+// 組み立てたものをそのまま使う(このテンプレートはslugを受け取らず組み立てを行わない)。
+//
+// 【2026-09-10 CTAクリック計測対応】gaTagと同じ条件(!isDraft && gaMeasurementId)の
+// ときだけ、楽天CTAのクリックをaffiliate_clickイベントとしてGA4へ送信するscriptを
+// 出力する。イベントに含める情報はitem_rank・animal_type・selection_type・page_type
+// のみ(affiliateUrl全文・itemCode・商品タイトル全文・hash・runId・catchcopy・
+// 認証情報・ユーザー情報は一切含めない)。gtag未定義でも例外を投げず、CTA自体の
+// 通常のリンク遷移(target="_blank"、rel="sponsored noopener noreferrer")は妨げない。
+
+import { SITE_URL } from "../lib/site-config.js";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -51,6 +65,13 @@ function formatReview(average, count) {
 
 function formatSelectionType(selectionType) {
   return selectionType === "selectable" ? "選択式商品(購入時にタイプ選択)" : "固定商品(表示内容で確定)";
+}
+
+// 【2026-09-10 CTAクリック計測対応】affiliate_clickイベントのselection_type値は
+// 表示用のformatSelectionType()とは別語彙(fixed/selection_required)を使う仕様のため、
+// ここで変換する(内部のselectionType自体は変更しない)。
+function ctaSelectionType(selectionType) {
+  return selectionType === "selectable" ? "selection_required" : "fixed";
 }
 
 /**
@@ -81,12 +102,13 @@ export function formatJaDate(isoString) {
  *     shopName?: string|null, selectionType: "confirmed"|"selectable",
  *     verifiedAttributeLabels: string[], affiliateUrl: string,
  *   }>,
+ *   canonicalUrl?: string, animalType?: "dog"|"cat",
  * }} data
- * @param {{ isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean }} [options]
+ * @param {{ isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean, pageType?: string }} [options]
  * @returns {string} 完全なHTML文書
  */
-export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "", allowSearchIndex = false } = {}) {
-  const { title, introText, buyingGuideText, dataRetrievedAtJa, products } = data;
+export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "", allowSearchIndex = false, pageType = "search_trial_ranking" } = {}) {
+  const { title, introText, buyingGuideText, dataRetrievedAtJa, products, canonicalUrl = "", animalType = "" } = data;
 
   // 既存サイト(generate-site.js)と同一のgtag.js読込・dataLayer初期化パターン。
   // DRAFT中は内部レビュー閲覧を実際の計測に混入させないため常に空にする。
@@ -95,6 +117,41 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
       ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaMeasurementId}');</script>`
       : "";
+
+  // 【2026-09-10 CTAクリック計測対応】GA4のpage_viewだけでは収益化導線(楽天CTAの
+  // クリック)を測れないため、affiliate_clickイベントを明示的に送信する。
+  // 送信してよい情報はitem_rank・animal_type・selection_type・page_typeのみ
+  // (affiliateUrl全文・itemCode・商品タイトル全文・hash・runId等は一切含めない)。
+  // gaTagと同じ条件(DRAFTでは常に無効)で出力する。gtag未定義でも例外を投げない
+  // (GA4未設定時もCTA自体は通常どおり動作する)。同じCTAへ二重にイベント
+  // ハンドラを登録しないよう、bind済みフラグをdata属性で管理する。
+  const affiliateClickScript =
+    !isDraft && gaMeasurementId
+      ? `<script>(function(){
+  var ctas = document.querySelectorAll('.cta-button[data-page-type]');
+  for (var i = 0; i < ctas.length; i++) {
+    var el = ctas[i];
+    if (el.dataset.affiliateClickBound === '1') continue;
+    el.dataset.affiliateClickBound = '1';
+    el.addEventListener('click', function (ev) {
+      var t = ev.currentTarget;
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'affiliate_click', {
+          item_rank: Number(t.dataset.itemRank),
+          animal_type: t.dataset.animalType,
+          selection_type: t.dataset.selectionType,
+          page_type: t.dataset.pageType
+        });
+      }
+    });
+  }
+})();</script>`
+      : "";
+
+  // 【重要】DRAFT(isDraft:true)ではcanonicalUrlを出力しない。canonicalUrlは
+  // 「そのページ自身の公開URL」であり内部slugを含むため、内部レビュー用ページの
+  // HTMLに含めてしまうと既存のslug非開示ポリシー(このファイル冒頭のコメント参照)に反する。
+  const canonicalTag = !isDraft && canonicalUrl ? `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">\n` : "";
 
   // 【2026-09-10 検索公開試験対応】isDraft:falseかつallowSearchIndex:trueの場合のみ
   // robots metaを省略する(既存の通常公開ページと同じくmetaタグ自体を出さない=index,follow)。
@@ -120,7 +177,7 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
           <p class="product-price">${formatPrice(p.itemPrice)}</p>
           <p class="product-review">レビュー: ${formatReview(p.reviewAverage, p.reviewCount)}</p>
           ${p.displayNote ? `<p class="product-note">※ ${escapeHtml(p.displayNote)}</p>` : ""}
-          <a class="cta-button" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="sponsored noopener noreferrer">楽天市場で在庫・価格を確認してください</a>
+          <a class="cta-button" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="sponsored noopener noreferrer" data-item-rank="${p.rank}" data-animal-type="${escapeHtml(animalType)}" data-selection-type="${ctaSelectionType(p.selectionType)}" data-page-type="${escapeHtml(pageType)}">楽天市場で在庫・価格を確認してください</a>
         </div>
       </article>`
     )
@@ -144,7 +201,7 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${robotsMeta}<title>${isDraft ? "【下書き・非公開】" : ""}${escapeHtml(title)}</title>
-<style>
+${canonicalTag}<style>
   :root { color-scheme: light dark; --bg:#fafaf8; --fg:#222; --card-bg:#fff; --border:#e2e2df; --accent:#bf0000; --accent-dark:#950000; --muted:#6a6a64; }
   @media (prefers-color-scheme: dark) { :root { --bg:#1a1a1a; --fg:#eee; --card-bg:#262626; --border:#3a3a3a; --muted:#a3a39c; } }
   * { box-sizing: border-box; }
@@ -212,7 +269,7 @@ ${gaTag}
 </head>
 <body>
 ${isDraft ? '<div class="draft-banner">⚠ DRAFT — 公開前確認用ページ・検索エンジンには非公開(noindex) ⚠</div>' : ""}
-<header><a class="site-title" href="https://yoshimitsu-20251105.github.io/rakuten-affiliate/">楽天トレンドセレクト</a></header>
+<header><a class="site-title" href="${SITE_URL}/">楽天トレンドセレクト</a></header>
 <main>
 <h1>${escapeHtml(title)}</h1>
 <p class="hook">${escapeHtml(introText)}</p>
@@ -256,6 +313,7 @@ ${tableRows}
 <p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価などをもとに人が内容を確認して選定しています。</p>
 <p>運営者: 楽天トレンドセレクト運営チーム / 情報取得時点: ${escapeHtml(dataRetrievedAtJa)}</p>
 </footer>
+${affiliateClickScript}
 </body>
 </html>
 `;

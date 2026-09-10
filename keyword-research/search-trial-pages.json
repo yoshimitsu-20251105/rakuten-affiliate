@@ -1,15 +1,29 @@
 {
-  "description": "Phase 3B: 検索公開試験(30日間)の対象ページ一覧。generate-site.jsのsitemap.xml生成に読み込まれる。サイト内リンク(トップページ・ランキング一覧からのリンク)は追加しない方針のため、発見経路はサイトマップのみ。期間は手動管理(このファイルのreviewByを見て人が判断する。自動失効やnoindexへの自動戻しは行わない)。",
+  "description": "Phase 3B: 検索公開試験(30日間)の対象ページ一覧。generate-site.jsが日次再生成のたびにこの設定を読み込み、sitemap.xmlへの追加・ランキング一覧(docs/rankings/all.html)への内部リンク・対象ページ自身のrobots meta(noindex,nofollow)の付与/解除を、このファイルの値だけで同期する。設定が壊れている場合(JSON不正・必須項目欠落・slug重複・参照先HTML不在・日付形式不正等)はgenerate-site.jsが非ゼロ終了し、docs/への書き込みを一切行わない(このファイル自体が存在しない場合だけは試験ページなしとして通常生成を継続する)。期間は手動管理(reviewDateを見て人が判断する。自動失効やnoindexへの自動戻しは行わない)。試験を個別に停止するには、対象ページのsitemapEnabled/internalLinkEnabled/searchIndexEnabledをそれぞれfalseに変更するだけでよい(コード変更・再公開CLIの実行は不要)。",
   "pages": [
     {
+      "slug": "senior-dog-pork",
       "path": "rankings/senior-dog-pork.html",
-      "startedAt": "2026-09-10",
-      "reviewBy": "2026-10-10"
+      "title": "シニア犬も食べられる豚肉ドッグフードおすすめ比較",
+      "status": "search_trial",
+      "startDate": "2026-09-10",
+      "reviewDate": "2026-10-10",
+      "pageType": "search_trial_ranking",
+      "sitemapEnabled": true,
+      "internalLinkEnabled": true,
+      "searchIndexEnabled": true
     },
     {
+      "slug": "grain-free-cat-food",
       "path": "rankings/grain-free-cat-food.html",
-      "startedAt": "2026-09-10",
-      "reviewBy": "2026-10-10"
+      "title": "猫用グレインフリーキャットフードおすすめランキング比較",
+      "status": "search_trial",
+      "startDate": "2026-09-10",
+      "reviewDate": "2026-10-10",
+      "pageType": "search_trial_ranking",
+      "sitemapEnabled": true,
+      "internalLinkEnabled": true,
+      "searchIndexEnabled": true
     }
   ]
 }
