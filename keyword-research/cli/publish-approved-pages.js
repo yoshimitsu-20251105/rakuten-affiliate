@@ -22,6 +22,17 @@
 // fail closed(非ゼロ終了、docs/への書き込みを一切行わない)とする。新しいGA4
 // プロパティは作成せず、既存の.envのGA_MEASUREMENT_IDをそのまま再利用するだけ。
 // GA4 Data API・Search Console API等の外部APIは一切呼び出さない。
+//
+// 【2026-09-10 検索公開試験対応】--enable-search-index を明示的に指定した場合のみ、
+// isDraft:false かつ allowSearchIndex:true でHTMLを再生成し、robots meta
+// (noindex,nofollow)を出力しないページを作る(通常の公開ページと同じ挙動)。
+// このモードは「既に試験公開済みのページを検索公開試験へ切り替える」ための更新専用
+// モードであるため、通常モードと安全側の前提を反転させる:
+//   - 通常モード: 出力先が既に存在すれば失敗する(新規公開、上書きしない)。
+//   - --enable-search-index: 出力先が「存在しなければ」失敗する(更新対象が
+//     存在することを前提とし、誤って未公開ページを新規に検索公開してしまうことを防ぐ)。
+// サイト内リンクの追加やdocs/sitemap.xmlの更新はこのCLIの責務ではない
+// (generate-site.js側の検索公開試験ページ一覧を参照する処理で別途対応する)。
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { buildPublicationPreview } from "../publication-preview-build.js";
@@ -94,12 +105,15 @@ async function main() {
   console.log(`${LOG} 補完データ: (指定済み、絶対パスはログに記録しません)`);
   console.log(`${LOG} 出力先: ${DOCS_RANKINGS_DIR}<slug>.html(既存のnavigation/hubページは変更しません)`);
 
+  const enableSearchIndex = args["enable-search-index"] === true;
+
   const result = await buildPublicationPreview({
     sourceRunDir,
     publicationApprovedFilePath: args["publication-approved-file"],
     enrichmentRunDir,
     isDraft: false,
     gaMeasurementId,
+    allowSearchIndex: enableSearchIndex,
   });
 
   if (!result.ok) {
@@ -109,28 +123,42 @@ async function main() {
     return;
   }
 
-  // 【fail closed】出力先ファイルが既に存在する場合は一切上書きしない。
-  // 事前に全件チェックしてから書き込む(一部だけ公開されてしまう状態を避ける)。
   const targetPaths = result.drafts.map((d) => ({ slug: d.slug, path: `${DOCS_RANKINGS_DIR}${d.slug}.html` }));
   const { existsSync } = await import("node:fs");
-  const alreadyExisting = targetPaths.filter((t) => existsSync(t.path));
-  if (alreadyExisting.length > 0) {
-    console.error(`${LOG} 出力先が既に存在するため、公開を中止しました(上書きしません):`);
-    for (const t of alreadyExisting) console.error(`  - docs/rankings/${t.slug}.html`);
-    process.exitCode = 1;
-    return;
+
+  if (enableSearchIndex) {
+    // 【fail closed・更新モード】検索公開試験への切り替えは「既に公開済みのページ」に
+    // 対してのみ許可する。未公開のページを誤ってこのモードで新規作成しない。
+    const missing = targetPaths.filter((t) => !existsSync(t.path));
+    if (missing.length > 0) {
+      console.error(`${LOG} --enable-search-index は既存の公開ページを更新するモードです。次の出力先がまだ存在しません:`);
+      for (const t of missing) console.error(`  - docs/rankings/${t.slug}.html`);
+      process.exitCode = 1;
+      return;
+    }
+  } else {
+    // 【fail closed・通常モード】出力先ファイルが既に存在する場合は一切上書きしない。
+    // 事前に全件チェックしてから書き込む(一部だけ公開されてしまう状態を避ける)。
+    const alreadyExisting = targetPaths.filter((t) => existsSync(t.path));
+    if (alreadyExisting.length > 0) {
+      console.error(`${LOG} 出力先が既に存在するため、公開を中止しました(上書きしません):`);
+      for (const t of alreadyExisting) console.error(`  - docs/rankings/${t.slug}.html`);
+      process.exitCode = 1;
+      return;
+    }
   }
 
-  console.log(`${LOG} 全ゲート通過。docs/rankings/へ書き込みます(${result.drafts.length}件)`);
+  console.log(`${LOG} 全ゲート通過。docs/rankings/へ書き込みます(${result.drafts.length}件、モード=${enableSearchIndex ? "検索公開試験への更新" : "新規公開"})`);
   console.log(`${LOG}   sourceRunId: ${result.sourceRunId}`);
   console.log(`${LOG}   publicationApprovedFileHash: ${result.publicationApprovedFileHash}`);
   console.log(`${LOG}   enrichmentArtifactHash: ${result.enrichmentArtifactHash}`);
 
   for (const t of targetPaths) {
     const draft = result.drafts.find((d) => d.slug === t.slug);
-    // flag "wx": 排他作成。既に存在すればEEXISTで例外(直前のチェックとのTOCTOU競合に対する二重の安全策)。
-    await writeFile(t.path, draft.html, { encoding: "utf-8", flag: "wx" });
-    console.log(`${LOG}   公開: docs/rankings/${t.slug}.html`);
+    // 通常モードは flag "wx"(排他作成、直前チェックとのTOCTOU競合に対する二重の安全策)。
+    // --enable-search-index は既存ファイルの意図的な更新のため flag "w"(上書き)を使う。
+    await writeFile(t.path, draft.html, { encoding: "utf-8", flag: enableSearchIndex ? "w" : "wx" });
+    console.log(`${LOG}   ${enableSearchIndex ? "更新" : "公開"}: docs/rankings/${t.slug}.html`);
   }
 
   const runId = sanitizeRunId(args["run-id"] || nowJstIso());
@@ -142,7 +170,7 @@ async function main() {
       {
         runId,
         executedAt: new Date().toISOString(),
-        commandMode: "publish-approved-pages",
+        commandMode: enableSearchIndex ? "enable-search-index" : "publish-approved-pages",
         status: "completed",
         codeCommit: getCodeCommit(new URL("../../", import.meta.url)),
         sourceRunId: result.sourceRunId,
@@ -152,7 +180,7 @@ async function main() {
         publishedSlugs: result.drafts.map((d) => d.slug),
         publishedPaths: targetPaths.map((t) => `docs/rankings/${t.slug}.html`),
         productCountBySlug: result.productCountBySlug,
-        noindexMaintained: true,
+        noindexMaintained: !enableSearchIndex,
         linkedFromNavigation: false,
         gaMeasurementTagIncluded: true,
       },
@@ -162,9 +190,13 @@ async function main() {
     "utf-8"
   );
 
-  console.log(`${LOG} 完了(status=completed): ${result.drafts.length}件公開`);
+  console.log(`${LOG} 完了(status=completed): ${result.drafts.length}件${enableSearchIndex ? "更新(検索公開試験)" : "公開"}`);
   console.log(`${LOG}(docs/index.html・docs/rankings/all.html等の既存ナビゲーションは変更していません)`);
-  console.log(`${LOG}(noindex,nofollowを維持しています。generate-site.js・日次パイプラインは呼び出していません)`);
+  console.log(
+    enableSearchIndex
+      ? `${LOG}(noindex,nofollowを解除しました。docs/sitemap.xmlへの反映は別途、検索公開試験ページ一覧の更新が必要です)`
+      : `${LOG}(noindex,nofollowを維持しています。generate-site.js・日次パイプラインは呼び出していません)`
+  );
   console.log(`${LOG}(既存サイトと同じGA4計測タグを含めています。GA_MEASUREMENT_IDの値自体はログに記録しません)`);
 }
 

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
+import vm from "node:vm";
 import { buildPublicationPreview } from "../publication-preview-build.js";
 import {
   createOutputRoot,
@@ -188,6 +189,66 @@ test("isDraft:true(DRAFT)では、gaMeasurementIdが指定されていても計�
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
     assert.doesNotMatch(html, /googletagmanager\.com/);
     assert.doesNotMatch(html, /G-TEST12345/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-10 検索公開試験対応】allowSearchIndex:trueかつisDraft:falseの場合のみ、
+// robots meta(noindex,nofollow)を出力しない(通常の公開ページと同じ挙動)。
+// isDraft:trueのときはallowSearchIndexの値に関わらず常にnoindex,nofollowを維持する
+// (下書きレビュー用ページが誤って検索エンジンに見つかることを二重に防ぐ)。
+// =====================================================================
+
+test("isDraft:false かつ allowSearchIndex:true の場合、robots metaを出力しない(検索エンジンへの公開を許可)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      allowSearchIndex: true,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /noindex/);
+    assert.doesNotMatch(html, /name="robots"/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("allowSearchIndex:trueでも、isDraft:true(既定値)のままなら noindex,nofollowを維持する(defense in depth)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      allowSearchIndex: true,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /noindex,nofollow/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("allowSearchIndex未指定(既定false)の場合、isDraft:falseでもnoindex,nofollowを維持する(安全側デフォルト)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /noindex,nofollow/);
   } finally {
     await cleanup(outputRoot);
   }
@@ -749,6 +810,219 @@ test("catchcopyはHTMLへ一切出力されない", async () => {
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
     assert.doesNotMatch(html, /XYZ777/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-10 canonical対応】isDraft:falseの場合のみ、そのページ自身の絶対URLを
+// 指すcanonicalを1つだけ出力する。DRAFTでは内部slugを含むため出力しない。
+// =====================================================================
+
+test("isDraft:falseの場合、canonicalが各ページ自身の絶対URL(https)を1つだけ指す", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const dogHtml = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const catHtml = result.drafts.find((d) => d.slug === CAT_SLUG).html;
+    const dogCanonicals = dogHtml.match(/<link rel="canonical" href="[^"]*">/g) ?? [];
+    const catCanonicals = catHtml.match(/<link rel="canonical" href="[^"]*">/g) ?? [];
+    assert.equal(dogCanonicals.length, 1, "canonicalは1つだけであること(重複禁止)");
+    assert.equal(catCanonicals.length, 1, "canonicalは1つだけであること(重複禁止)");
+    assert.equal(dogCanonicals[0], `<link rel="canonical" href="https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/${DOG_SLUG}.html">`);
+    assert.equal(catCanonicals[0], `<link rel="canonical" href="https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/${CAT_SLUG}.html">`);
+    // 相対URLではなく絶対https URLであること
+    assert.match(dogCanonicals[0], /href="https:\/\//);
+    // 別ページのURLではなく、そのページ自身のslugを指すこと(犬ページに猫slugが混入しない等)
+    assert.doesNotMatch(dogHtml.match(/<link rel="canonical"[^>]*>/)[0], new RegExp(CAT_SLUG));
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("isDraft未指定(既定true、DRAFT)ではcanonicalを出力しない(内部slug非開示ポリシーの維持)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /rel="canonical"/);
+    assert.doesNotMatch(html, new RegExp(DOG_SLUG));
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-09-10 CTAクリック計測対応】affiliate_clickイベント。GA4のpage_viewだけでは
+// 測れない楽天CTAのクリックを、item_rank・animal_type・selection_type・page_typeの
+// みを含めて計測する。affiliateUrl全文・itemCode・商品タイトル全文・hash・runId・
+// catchcopy・認証情報・ユーザー情報は一切含めない。gaTagと同じ条件(!isDraft &&
+// gaMeasurementId)でのみscriptを出力し、gtag未定義でも例外を投げない。
+// =====================================================================
+
+// affiliateClickScriptを抽出し、フェイクDOM上で実行してCTAクリックを模擬するヘルパー。
+// jsdom等の新規依存を避け、node:vmの最小限のフェイクdocument/windowだけで検証する。
+function extractAffiliateClickScriptSource(html) {
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  const affiliateScript = scripts.find((s) => s.includes("affiliate_click"));
+  assert.ok(affiliateScript, "affiliate_click計測scriptが見つかりません");
+  return affiliateScript;
+}
+
+function makeFakeCta(dataset) {
+  return { dataset: { ...dataset }, _listeners: [], addEventListener(type, handler) { this._listeners.push({ type, handler }); } };
+}
+
+function runAffiliateClickScript(scriptSrc, ctaElements, gtagSpy) {
+  const fakeDocument = { querySelectorAll: () => ctaElements };
+  const fakeWindow = {};
+  if (gtagSpy) fakeWindow.gtag = gtagSpy;
+  const context = vm.createContext({ document: fakeDocument, window: fakeWindow });
+  vm.runInContext(scriptSrc, context);
+}
+
+test("affiliate_clickは犬3商品・猫4商品すべてが対象で、CTAごとに1クリック1イベントだけ送信される", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const dogHtml = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const dogScript = extractAffiliateClickScriptSource(dogHtml);
+
+    const ctas = [1, 2, 3].map((rank) => makeFakeCta({ itemRank: String(rank), animalType: "dog", selectionType: "fixed", pageType: "search_trial_ranking" }));
+    const events = [];
+    const gtagSpy = (...args) => events.push(args);
+    runAffiliateClickScript(dogScript, ctas, gtagSpy);
+
+    for (const cta of ctas) {
+      assert.equal(cta._listeners.length, 1, "CTAごとにハンドラは1つだけ登録されること");
+    }
+    for (const cta of ctas) {
+      cta._listeners[0].handler({ currentTarget: cta });
+    }
+    assert.equal(events.length, 3, "犬3商品それぞれから1回ずつ、合計3回送信されること");
+    for (const [i, [eventName, name, payload]] of events.entries()) {
+      assert.equal(eventName, "event");
+      assert.equal(name, "affiliate_click");
+      assert.equal(payload.item_rank, i + 1);
+      assert.equal(payload.animal_type, "dog");
+      assert.equal(payload.page_type, "search_trial_ranking");
+    }
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("affiliate_click: 同じCTAへスクリプトを再実行してもイベントハンドラは重複登録されない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    const dogScript = extractAffiliateClickScriptSource(result.drafts.find((d) => d.slug === DOG_SLUG).html);
+    const cta = makeFakeCta({ itemRank: "1", animalType: "dog", selectionType: "fixed", pageType: "search_trial_ranking" });
+    const events = [];
+    runAffiliateClickScript(dogScript, [cta], (...args) => events.push(args));
+    runAffiliateClickScript(dogScript, [cta], (...args) => events.push(args));
+    assert.equal(cta._listeners.length, 1, "2回実行してもハンドラは1つのまま(重複登録されない)こと");
+    cta._listeners[0].handler({ currentTarget: cta });
+    assert.equal(events.length, 1, "クリック1回につきイベントは1件だけ送信されること");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("affiliate_click: window.gtagが未定義でも例外を投げない(GA4未読込・ブロック時を想定)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    const dogScript = extractAffiliateClickScriptSource(result.drafts.find((d) => d.slug === DOG_SLUG).html);
+    const cta = makeFakeCta({ itemRank: "1", animalType: "dog", selectionType: "fixed", pageType: "search_trial_ranking" });
+    assert.doesNotThrow(() => {
+      runAffiliateClickScript(dogScript, [cta], undefined); // window.gtagを渡さない
+      cta._listeners[0].handler({ currentTarget: cta });
+    });
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("affiliate_clickイベントのselection_typeは固定商品がfixed、選択式商品がselection_requiredになる", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    sourceRunOverrides: {
+      dogItemsOverride: [
+        { itemCode: "shop:d1", itemName: "グリーンプラス ドライドッグフード ポーク 全ステージ対応シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: 58 },
+        { itemCode: "shop:d2", itemName: "国産無添加 選べるドッグフード 豚肉 牛肉 鶏肉 魚 シニア犬用お試しセット", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: 78 },
+        { itemCode: "shop:d3", itemName: "わんこのきちんとごはん 選べる6袋セット 豚肉 魚 シニア犬用小粒フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: 64 },
+      ],
+    },
+  });
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const ctaAttrs = [...html.matchAll(/<a class="cta-button"[^>]*data-item-rank="(\d+)"[^>]*data-selection-type="([a-z_]+)"[^>]*>/g)].map((m) => ({ rank: m[1], selectionType: m[2] }));
+    assert.equal(ctaAttrs.length, 3);
+    assert.equal(ctaAttrs.find((c) => c.rank === "1").selectionType, "fixed", "1位(確定商品)はfixed");
+    assert.equal(ctaAttrs.find((c) => c.rank === "2").selectionType, "selection_required", "選択式商品はselection_required");
+    assert.equal(ctaAttrs.find((c) => c.rank === "3").selectionType, "selection_required", "選択式商品はselection_required");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("affiliate_click計測scriptにaffiliateUrl全文・itemCodeが含まれない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      gaMeasurementId: "G-TEST12345",
+    });
+    const dogScript = extractAffiliateClickScriptSource(result.drafts.find((d) => d.slug === DOG_SLUG).html);
+    assert.doesNotMatch(dogScript, /shop:d1|shop:d2|shop:d3/);
+    assert.doesNotMatch(dogScript, /hb\.afl\.rakuten/);
+    assert.doesNotMatch(dogScript, /item\.rakuten\.co\.jp/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("GA_MEASUREMENT_ID未指定の場合、affiliate_click計測scriptは出力されないが、CTA自体は通常のリンク(href/target/rel)のまま機能する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /affiliate_click/);
+    assert.match(html, /<a class="cta-button" href="[^"]+" target="_blank" rel="sponsored noopener noreferrer"/);
   } finally {
     await cleanup(outputRoot);
   }

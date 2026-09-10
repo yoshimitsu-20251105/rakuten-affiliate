@@ -3,13 +3,24 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { scoreItem } from "./lib/quality-score.js";
+import { SITE_URL } from "./lib/site-config.js";
+import { loadSearchTrialConfig } from "./lib/search-trial-config.js";
 
 const SITE_TITLE = "楽天トレンドセレクト";
-const SITE_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
 const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
+const DOCS_DIR_PATH = DOCS_DIR.pathname.replace(/^\/([A-Za-z]):/, "$1:");
+// 【2026-09-10 検索公開試験対応】Phase 3B(人間承認済み)ページのうち、検索公開試験の
+// 対象として明示的に承認されたものの一覧(手動管理、docs/配下ではなくリポジトリに
+// コミットされるファイル)。keyword-research/output/ はgitignore対象のため、
+// 日次パイプライン実行時にも読み込めるようこのファイルの場所を選んでいる。
+// 【重要・fail closed】ファイルが存在しない場合だけは「試験ページなし」として通常の
+// サイト生成を継続する。それ以外の不正(JSON構文エラー・必須項目欠落・slug重複・
+// 参照先HTML不在・日付形式不正等)は lib/search-trial-config.js が例外を投げ、
+// main()側でdocs/への書き込みを一切行わずに非ゼロ終了する。
+const SEARCH_TRIAL_CONFIG_PATH = new URL("./keyword-research/search-trial-pages.json", import.meta.url).pathname.replace(/^\/([A-Za-z]):/, "$1:");
 const NOW = new Date();
 const TODAY_ISO = NOW.toISOString().slice(0, 10);
 const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
@@ -435,7 +446,23 @@ ${faq.html}
 // 各ジャンルは上位5件のみの短縮表示にし、続きは個別ページへのリンクに誘導する。
 const HUB_ROW_LIMIT = 5;
 
-function hubPage(rankingGroups) {
+// 【2026-09-10 検索公開試験対応】Phase 3B検索公開試験ページのうち internalLinkEnabled
+// のものだけをランキング一覧(docs/rankings/all.html)へのリンクとして描画する。
+// 既存のrankingGroups由来セクションの表示・並び順には一切影響しない(末尾に追加するのみ)。
+// リンク先HTMLは既に生成済みの静的ページ(generate-site.jsが生成するものではない)。
+function searchTrialLinksBlock(searchTrialPages) {
+  if (!searchTrialPages.length) return "";
+  const links = searchTrialPages
+    .map((p) => `<a href="${escapeHtml(p.slug)}.html" class="ranking-link">🔍 ${escapeHtml(p.title)}</a>`)
+    .join("\n");
+  return `
+<section class="hub-section search-trial-section">
+<h2>特集ページ</h2>
+<div class="ranking-links">${links}</div>
+</section>`;
+}
+
+function hubPage(rankingGroups, searchTrialPages = []) {
   const toc = rankingGroups
     .map((g) => `<li><a href="#${g.slug}">${escapeHtml(g.title)}</a></li>`)
     .join("\n");
@@ -465,6 +492,7 @@ ${hasMore ? `<p><a href="${g.slug}.html">「${escapeHtml(g.title)}」の全${g.i
 <p class="hook">気になるジャンルだけタップして見てください。レビュー評価・件数・リピート性をもとに100点満点でスコアリングしています。</p>
 <nav class="hub-toc"><ul>${toc}</ul></nav>
 ${sections}
+${searchTrialLinksBlock(searchTrialPages)}
 <p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
 ${faq.html}
 `;
@@ -515,12 +543,15 @@ function indexPage(items, rankingGroups) {
   });
 }
 
-function sitemapXml(items, rankingGroups) {
+function sitemapXml(items, rankingGroups, searchTrialPages = []) {
   const urls = [
     `${SITE_URL}/index.html`,
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
     ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
     ...(rankingGroups.length ? [`${SITE_URL}/rankings/all.html`] : []),
+    // 【2026-09-10 検索公開試験対応】Phase 3B検索公開試験ページのうち sitemapEnabled
+    // のものだけをサイトマップへ追加する(個別に停止できる設計)。
+    ...searchTrialPages.filter((p) => p.sitemapEnabled).map((p) => `${SITE_URL}/${p.path}`),
   ];
   const entries = urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY_ISO}</lastmod></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
@@ -528,6 +559,30 @@ function sitemapXml(items, rankingGroups) {
 
 function robotsTxt() {
   return `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`;
+}
+
+const ROBOTS_NOINDEX_META = '<meta name="robots" content="noindex,nofollow">';
+
+// 【2026-09-10 検索公開試験対応】検索インデックスの許可・停止を
+// keyword-research/search-trial-pages.json の searchIndexEnabled だけで完結させる
+// ため、対象ページ(generate-site.jsが生成するものではなく、Phase 3Bの公開CLIが
+// 生成した静的HTML)のrobots metaタグを、日次再生成のたびに設定へ同期する。
+// 内容に変更が無い場合は書き込まない(不要な差分・mtime変化を避ける)。
+async function enforceSearchTrialRobotsMeta(searchTrialPages, docsDirPath) {
+  for (const p of searchTrialPages) {
+    const filePath = `${docsDirPath}${p.path}`;
+    const html = await readFile(filePath, "utf-8");
+    const hasRobotsMeta = html.includes(ROBOTS_NOINDEX_META);
+    let updated = html;
+    if (p.searchIndexEnabled && hasRobotsMeta) {
+      updated = html.replace(new RegExp(`${ROBOTS_NOINDEX_META}\\n?`), "");
+    } else if (!p.searchIndexEnabled && !hasRobotsMeta) {
+      updated = html.replace(/(<meta name="viewport"[^>]*>\n)/, `$1${ROBOTS_NOINDEX_META}\n`);
+    }
+    if (updated !== html) {
+      await writeFile(filePath, updated, "utf-8");
+    }
+  }
 }
 
 // matchedKeywordが同じ商品同士をグループ化し、3件以上集まったジャンルのみランキングページを作る
@@ -604,6 +659,18 @@ function buildRankingGroups(articles) {
 }
 
 async function main() {
+  // 【2026-09-10 検索公開試験対応・fail closed】設定ファイルの検証はdocs/への書き込みを
+  // 一切行う前に済ませる。設定ファイル自体が存在しない場合だけ「試験ページなし」を許可し、
+  // それ以外の不正はここでサイト生成全体を中止する(壊れた設定のまま静かに生成しない)。
+  let searchTrialPages;
+  try {
+    ({ pages: searchTrialPages } = await loadSearchTrialConfig(SEARCH_TRIAL_CONFIG_PATH, DOCS_DIR_PATH));
+  } catch (e) {
+    console.error(`サイト生成を中止しました(検索公開試験設定が不正です): ${e.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const newItems = await loadJson(new URL("./selected-products.json", import.meta.url), []);
   const articles = await loadJson(ARTICLES_DATA_FILE, []);
 
@@ -631,15 +698,22 @@ async function main() {
   }
 
   if (rankingGroups.length) {
-    await writeFile(new URL("all.html", RANKING_DIR), hubPage(rankingGroups));
+    await writeFile(new URL("all.html", RANKING_DIR), hubPage(rankingGroups, searchTrialPages.filter((p) => p.internalLinkEnabled)));
   }
 
   await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
-  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups));
+  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups, searchTrialPages));
   await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
+  await enforceSearchTrialRobotsMeta(searchTrialPages, DOCS_DIR_PATH);
 
   console.log(`サイト生成完了: 記事${articles.length}件、ランキングページ${rankingGroups.length}件 → docs/`);
+  if (searchTrialPages.length) {
+    console.log(`検索公開試験ページ${searchTrialPages.length}件を設定に基づき反映しました(サイトマップ${searchTrialPages.filter((p) => p.sitemapEnabled).length}件、内部リンク${searchTrialPages.filter((p) => p.internalLinkEnabled).length}件、検索インデックス許可${searchTrialPages.filter((p) => p.searchIndexEnabled).length}件)`);
+  }
 }
 
-main();
+main().catch((e) => {
+  console.error(`サイト生成中に予期しないエラーが発生しました: ${e.message}`);
+  process.exitCode = 1;
+});

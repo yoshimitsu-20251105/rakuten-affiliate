@@ -264,6 +264,49 @@ KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED=true npm run keywords:publish-approved-pa
   DRAFT(`isDraft: true`、既定)では、内部レビュー閲覧が実際のアクセス解析に混入
   しないよう、`GA_MEASUREMENT_ID`が設定されていても計測タグは常に出力しない。
 
+### 検索公開試験(30日間、2026-09-10対応): noindex解除+サイトマップ追加
+
+上記「試験公開」(限定公開・noindex維持)から一歩進めて、承認済みの2ページ
+(`senior-dog-pork`・`grain-free-cat-food`)を検索エンジンに発見・インデックスさせる
+30日間の試験を行うための変更。**サイト内リンク(トップページ・ランキング一覧からの
+リンク)は今回も追加しない**(引き続き直接URL+サイトマップのみでの到達性)。
+
+```bash
+KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED=true npm run keywords:publish-approved-pages -- \
+  --source-run keyword-research/output/gkp-runs/<runId> \
+  --publication-approved-file <publicationApproval.json> \
+  --enrichment-run keyword-research/output/publication-enrichment/<enrichmentRunId> \
+  --enable-search-index
+```
+
+- `renderPublicationPreviewHtml()` / `buildPublicationPreview()`に`allowSearchIndex`
+  オプション(既定`false`)を追加。`isDraft: false`かつ`allowSearchIndex: true`の
+  場合のみ`<meta name="robots" content="noindex,nofollow">`を出力しない(既存の
+  通常公開ページと同じ挙動)。`isDraft: true`の場合はallowSearchIndexの値に関わらず
+  常にnoindex,nofollowを維持する(defense in depth、下書きレビュー用ページが誤って
+  検索エンジンに見つかることを防ぐ)。
+- `keywords:publish-approved-pages`に`--enable-search-index`フラグを追加。このモードは
+  「既に公開済みのページを検索公開試験用に更新する」専用モードのため、通常モードと
+  安全側の前提を意図的に反転させている: 通常モードは出力先が既に存在すれば失敗する
+  (新規公開、上書きしない)が、`--enable-search-index`は出力先が**存在しなければ**
+  失敗する(更新対象が実在することを前提とし、未公開ページを誤って検索公開して
+  しまうことを防ぐ)。既存ファイルはflag "w"で意図的に上書きする。
+- **サイトマップへの反映**: `keyword-research/search-trial-pages.json`
+  (gitignore対象外、リポジトリにコミットする)に検索公開試験対象ページの相対パス・
+  開始日・見直し予定日(`reviewBy`、手動管理)を記載する。`generate-site.js`は
+  日次再生成のたびにこのファイルを読み込み、`docs/sitemap.xml`へ追加エントリとして
+  含める(サイト内リンクは追加しない、発見経路はサイトマップのみ)。このファイルが
+  存在しない・読めない場合はfail open(空配列扱い)とし、サイト生成自体は止めない。
+  `keyword-research/output/`はgitignore対象のため、この一覧ファイルは意図的に
+  `keyword-research/output/`の外(`keyword-research/`直下)に置いている。
+- 30日間という試験期間は**手動管理**(自動失効・自動でのnoindexへの巻き戻しは
+  行わない)。`keyword-research/search-trial-pages.json`の`reviewBy`を見て人が
+  判断し、試験終了時は`--enable-search-index`を使わない形でページを再生成する
+  (テンプレート側の既定値は引き続き`allowSearchIndex: false`=noindex)か、この
+  一覧ファイルからエントリを削除してsitemap.xmlへの掲載を止める。
+- Search Consoleへの手動インデックス登録・サイト内リンクの追加は、この変更の
+  スコープに含まない。
+
 ### Search Console実接続を使ったdry-runの正式な実行方法
 
 ```bash
