@@ -10,6 +10,13 @@ const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
 const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
+// 【2026-09-10 検索公開試験対応】Phase 3B(人間承認済み)ページのうち、検索公開試験の
+// 対象として明示的に承認されたものの一覧(手動管理、docs/配下ではなくリポジトリに
+// コミットされるファイル)。keyword-research/output/ はgitignore対象のため、
+// 日次パイプライン実行時にも読み込めるようこのファイルの場所を選んでいる。
+// 存在しない・読めない場合は空配列として扱う(fail open: サイト生成自体は止めない。
+// このファイルはsitemap.xmlへの追加エントリのみに使う付加的な情報のため)。
+const SEARCH_TRIAL_PAGES_FILE = new URL("./keyword-research/search-trial-pages.json", import.meta.url);
 const NOW = new Date();
 const TODAY_ISO = NOW.toISOString().slice(0, 10);
 const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
@@ -515,12 +522,25 @@ function indexPage(items, rankingGroups) {
   });
 }
 
-function sitemapXml(items, rankingGroups) {
+// 【2026-09-10 検索公開試験対応】Phase 3Bの検索公開試験ページ一覧を読み込む。
+// サイト生成の主要ロジックとは独立しており、失敗してもサイト生成自体は継続する
+// (sitemap.xmlへの追加エントリが1回分抜ける程度の影響に留める)。
+async function loadSearchTrialSitemapPaths() {
+  const data = await loadJson(SEARCH_TRIAL_PAGES_FILE, { pages: [] });
+  const pages = Array.isArray(data.pages) ? data.pages : [];
+  return pages.map((p) => p.path).filter((p) => typeof p === "string" && p.length > 0);
+}
+
+function sitemapXml(items, rankingGroups, searchTrialPaths = []) {
   const urls = [
     `${SITE_URL}/index.html`,
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
     ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
     ...(rankingGroups.length ? [`${SITE_URL}/rankings/all.html`] : []),
+    // 【2026-09-10 検索公開試験対応】Phase 3B検索公開試験ページ(承認済み一覧に
+    // 明示的に含まれるもののみ)。トップページ・ランキング一覧からのリンクは
+    // 追加しない(サイト内リンクなしの運用方針を維持、サイトマップのみ)。
+    ...searchTrialPaths.map((p) => `${SITE_URL}/${p}`),
   ];
   const entries = urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY_ISO}</lastmod></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
@@ -634,12 +654,17 @@ async function main() {
     await writeFile(new URL("all.html", RANKING_DIR), hubPage(rankingGroups));
   }
 
+  const searchTrialPaths = await loadSearchTrialSitemapPaths();
+
   await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
-  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups));
+  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups, searchTrialPaths));
   await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
 
   console.log(`サイト生成完了: 記事${articles.length}件、ランキングページ${rankingGroups.length}件 → docs/`);
+  if (searchTrialPaths.length) {
+    console.log(`検索公開試験ページ${searchTrialPaths.length}件をsitemap.xmlへ追加しました`);
+  }
 }
 
 main();

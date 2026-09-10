@@ -21,8 +21,14 @@
 //
 // 【2026-09-09 試験公開対応】isDraftオプション(既定true)がfalseのとき、DRAFTバナーと
 // タイトルの「【下書き・非公開】」接頭辞を出力しない(通常ページと同じ見た目にする)。
-// robots meta(noindex,nofollow)はisDraftの値に関わらず常に出力する(検索エンジンへの
-// 公開可否は別の判断であり、このテンプレート単体では変更しない)。
+// robots meta(noindex,nofollow)は既定で常に出力する(検索エンジンへの公開可否は
+// 別の判断であり、明示的なオプションなしにこのテンプレートが緩めることはない)。
+//
+// 【2026-09-10 検索公開試験対応】allowSearchIndexオプション(既定false)をtrueにすると、
+// isDraft:falseの場合に限り robots meta 自体を出力しない(既存の通常公開ページと同じ
+// 挙動=index,followが既定になる)。isDraft:trueのときはallowSearchIndexの値に関わらず
+// 常にnoindex,nofollowを出力する(下書きレビュー用ページが誤って検索エンジンに
+// 見つかることを二重に防ぐ、defense in depth)。
 //
 // 【2026-09-09 試験公開GA4対応】gaMeasurementIdが渡された場合、既存サイト
 // (generate-site.js)と全く同じgtag.js読込・dataLayer初期化スクリプトを出力する
@@ -62,9 +68,10 @@ export function formatJaDate(isoString) {
 /**
  * 【2026-09-09 試験公開対応】isDraft=falseの場合、DRAFTバナーとタイトルの
  * 「【下書き・非公開】」接頭辞を出さない(通常ページと同じ見た目にする)。
- * ただし`<meta name="robots" content="noindex,nofollow">`はisDraftの値に関わらず
- * 常に出力する(試験公開中は検索エンジンにインデックスさせない、という運用判断とは
- * 独立してテンプレート自身が安全側で固定する)。
+ * `<meta name="robots" content="noindex,nofollow">`は既定で常に出力する。
+ * 【2026-09-10 検索公開試験対応】allowSearchIndex:trueかつisDraft:falseの場合のみ、
+ * robots metaを出力しない(通常の公開ページと同じ挙動)。isDraft:trueの場合は
+ * allowSearchIndexの値に関わらずnoindex,nofollowを維持する。
  * @param {{
  *   title: string, introText: string, buyingGuideText: string,
  *   dataRetrievedAtJa: string,
@@ -75,10 +82,10 @@ export function formatJaDate(isoString) {
  *     verifiedAttributeLabels: string[], affiliateUrl: string,
  *   }>,
  * }} data
- * @param {{ isDraft?: boolean, gaMeasurementId?: string }} [options]
+ * @param {{ isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean }} [options]
  * @returns {string} 完全なHTML文書
  */
-export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "" } = {}) {
+export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "", allowSearchIndex = false } = {}) {
   const { title, introText, buyingGuideText, dataRetrievedAtJa, products } = data;
 
   // 既存サイト(generate-site.js)と同一のgtag.js読込・dataLayer初期化パターン。
@@ -88,6 +95,11 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
       ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaMeasurementId}');</script>`
       : "";
+
+  // 【2026-09-10 検索公開試験対応】isDraft:falseかつallowSearchIndex:trueの場合のみ
+  // robots metaを省略する(既存の通常公開ページと同じくmetaタグ自体を出さない=index,follow)。
+  // それ以外(isDraft:trueを含む)は常にnoindex,nofollowを出力する(安全側デフォルト)。
+  const robotsMeta = !isDraft && allowSearchIndex ? "" : '<meta name="robots" content="noindex,nofollow">\n';
 
   const cards = products
     .map(
@@ -131,8 +143,7 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>${isDraft ? "【下書き・非公開】" : ""}${escapeHtml(title)}</title>
+${robotsMeta}<title>${isDraft ? "【下書き・非公開】" : ""}${escapeHtml(title)}</title>
 <style>
   :root { color-scheme: light dark; --bg:#fafaf8; --fg:#222; --card-bg:#fff; --border:#e2e2df; --accent:#bf0000; --accent-dark:#950000; --muted:#6a6a64; }
   @media (prefers-color-scheme: dark) { :root { --bg:#1a1a1a; --fg:#eee; --card-bg:#262626; --border:#3a3a3a; --muted:#a3a39c; } }

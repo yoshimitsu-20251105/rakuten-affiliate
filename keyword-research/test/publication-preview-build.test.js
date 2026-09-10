@@ -193,6 +193,66 @@ test("isDraft:true(DRAFT)では、gaMeasurementIdが指定されていても計�
   }
 });
 
+// =====================================================================
+// 【2026-09-10 検索公開試験対応】allowSearchIndex:trueかつisDraft:falseの場合のみ、
+// robots meta(noindex,nofollow)を出力しない(通常の公開ページと同じ挙動)。
+// isDraft:trueのときはallowSearchIndexの値に関わらず常にnoindex,nofollowを維持する
+// (下書きレビュー用ページが誤って検索エンジンに見つかることを二重に防ぐ)。
+// =====================================================================
+
+test("isDraft:false かつ allowSearchIndex:true の場合、robots metaを出力しない(検索エンジンへの公開を許可)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      allowSearchIndex: true,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.doesNotMatch(html, /noindex/);
+    assert.doesNotMatch(html, /name="robots"/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("allowSearchIndex:trueでも、isDraft:true(既定値)のままなら noindex,nofollowを維持する(defense in depth)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      allowSearchIndex: true,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /noindex,nofollow/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("allowSearchIndex未指定(既定false)の場合、isDraft:falseでもnoindex,nofollowを維持する(安全側デフォルト)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /noindex,nofollow/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
 test("商品公開承認ファイルのcandidateSetHashがsource runと不一致なら拒否する", async () => {
   const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
     approvalOverrides: {},

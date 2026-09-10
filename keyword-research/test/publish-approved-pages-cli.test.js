@@ -172,6 +172,93 @@ test("publish-approved-pages CLI: GA_MEASUREMENT_ID未設定の場合はfail clo
   }
 });
 
+// =====================================================================
+// 【2026-09-10 検索公開試験対応】--enable-search-index は「既に公開済みのページ」を
+// 検索公開試験用(noindex解除)に更新するための専用モード。通常モード(--enable-search-index
+// なし)とは安全側の前提が逆(通常は既存なら失敗、こちらは既存でなければ失敗)。
+// =====================================================================
+
+test("publish-approved-pages CLI --enable-search-index: 出力先がまだ存在しない場合は非ゼロ終了し、新規作成しない", async () => {
+  const outputRoot = await createOutputRoot();
+  const docsRankingsDir = await mkdtemp(join(tmpdir(), "docs-rankings-test-"));
+  try {
+    const { sourceRun, pubApprovalPath, enrichmentRun } = await setupPublishFixture(outputRoot);
+    const result = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir, "--enable-search-index"],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /まだ存在しません/);
+    const entries = await readdir(docsRankingsDir);
+    assert.equal(entries.length, 0, "未公開のページを--enable-search-indexで新規作成しないこと");
+  } finally {
+    await cleanup(outputRoot);
+    await rm(docsRankingsDir, { recursive: true, force: true });
+  }
+});
+
+test("publish-approved-pages CLI --enable-search-index: 既に公開済みのページを更新し、robots metaを除去する", async () => {
+  const outputRoot = await createOutputRoot();
+  const docsRankingsDir = await mkdtemp(join(tmpdir(), "docs-rankings-test-"));
+  try {
+    const { sourceRun, pubApprovalPath, enrichmentRun } = await setupPublishFixture(outputRoot);
+    // 通常モードで先に公開しておく(既存の限定公開ページを模擬)
+    const publishResult = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
+    );
+    assert.equal(publishResult.status, 0, publishResult.stderr);
+    const beforeDogHtml = await readFile(join(docsRankingsDir, `${DOG_SLUG}.html`), "utf-8");
+    assert.match(beforeDogHtml, /noindex,nofollow/);
+
+    const result = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir, "--enable-search-index"],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
+    );
+    assert.equal(result.status, 0, result.stderr);
+
+    const dogHtml = await readFile(join(docsRankingsDir, `${DOG_SLUG}.html`), "utf-8");
+    const catHtml = await readFile(join(docsRankingsDir, `${CAT_SLUG}.html`), "utf-8");
+    for (const html of [dogHtml, catHtml]) {
+      assert.doesNotMatch(html, /name="robots"/, "検索公開試験ではrobots metaを出力しないこと");
+      assert.doesNotMatch(html, /noindex/, "noindexを含まないこと");
+      assert.doesNotMatch(html, /class="draft-banner"/, "DRAFTバナーを含まないこと(通常公開と同じ見た目を維持)");
+      assert.match(html, /gtag\('config','G-TEST12345'\)/, "GA4計測タグは維持されること");
+    }
+  } finally {
+    await cleanup(outputRoot);
+    await rm(docsRankingsDir, { recursive: true, force: true });
+  }
+});
+
+test("publish-approved-pages CLI: --enable-search-indexを指定しない通常モードは、既存ページ更新後も従来通り上書きを拒否する(既定の安全側が変わらないこと)", async () => {
+  const outputRoot = await createOutputRoot();
+  const docsRankingsDir = await mkdtemp(join(tmpdir(), "docs-rankings-test-"));
+  try {
+    const { sourceRun, pubApprovalPath, enrichmentRun } = await setupPublishFixture(outputRoot);
+    const publishResult = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
+    );
+    assert.equal(publishResult.status, 0, publishResult.stderr);
+
+    const result = runCli(
+      PUBLISH_CLI,
+      ["--source-run", sourceRun.dir, "--publication-approved-file", pubApprovalPath, "--enrichment-run", enrichmentRun.dir, "--docs-rankings-dir", docsRankingsDir],
+      { KEYWORD_RESEARCH_TRIAL_PUBLISH_ENABLED: "true", GA_MEASUREMENT_ID: "G-TEST12345" }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /既に存在/);
+  } finally {
+    await cleanup(outputRoot);
+    await rm(docsRankingsDir, { recursive: true, force: true });
+  }
+});
+
 test("publish-approved-pages CLI: 在庫ゲート等の既存の安全ゲートが機能し、違反時は書き込まない", async () => {
   const outputRoot = await createOutputRoot();
   const docsRankingsDir = await mkdtemp(join(tmpdir(), "docs-rankings-test-"));
