@@ -491,3 +491,113 @@ Googleキーワードプランナーの「キーワードプランを確認」�
    ```
 
 自動変換スクリプトは今回のPhase 1には含まれていない(手動での列名調整が必要)。
+
+## Phase 3C: 検索公開試験(30日間)の成果測定レポート(2026-09-17対応)
+
+検索公開試験(`keyword-research/search-trial-pages.json`)対象ページについて、
+「検索表示 → 検索クリック → ページ閲覧 → 楽天CTAクリック → 注文・成果報酬」の
+流れをページ単位で確認できるレポートを生成する、読み取り専用のローカルCLI。
+公開ページ・商品データ・`generate-site.js`・GitHub Actionsは一切変更しない。
+
+```bash
+npm run analytics:search-trial-report -- \
+  --from 2026-09-10 \
+  --to 2026-09-16 \
+  --run-id search-trial-report-2026-09-17-01 \
+  [--previous-run-id search-trial-report-2026-09-10-01]
+```
+
+- 対象ページは`search-trial-pages.json`(既存の`lib/search-trial-config.js`で
+  検証)から取得する(URL・slugをこのレポート機能側でハードコードしない)。
+- 出力先: `keyword-research/output/search-trial-reports/<runId>/`
+  (`report.md`・`report.json`・`run-metadata.json`。gitignore対象、コミットしない)。
+  同一runIdの出力が存在する場合は上書きせず非ゼロ終了する。
+- **fail closed**: 日付形式不正・`--from`が`--to`より後・対象期間が試験期間
+  (`search-trial-pages.json`の`startDate`〜`reviewDate`)の範囲外・runId不正・
+  設定JSON不正・対象ページ重複・GA4/Search Consoleのレスポンス形状が想定と異なる
+  場合は、非ゼロ終了しdocs/にも出力先にも一切書き込まない(検証とデータ取得を
+  すべてメモリ上で終えてから、最後にまとめて書き込む設計)。
+- **一方のAPIが権限不足・データ未反映の場合**は、その項目だけを`NOT_AVAILABLE`
+  (URLインデックス状況は`INDEX_STATUS_NOT_AVAILABLE`)として記録し、処理全体は
+  失敗させない(取得できた他の事実まで失わない)。
+- **楽天成果(注文件数・売上金額・成果報酬・成約率)は常に`NOT_CONNECTED`**。
+  既存リポジトリには楽天の注文・成果報酬を安全に取得する仕組みが無く、
+  楽天管理画面への自動ログイン・スクレイピング・新規認証情報の追加は行わない。
+  `0`件と誤解されないよう、数値の0とは明確に区別して表示する。将来、人が
+  Affiliate管理画面から手動でエクスポートしたCSVを読み込む拡張ポイントを
+  `keyword-research/search-trial-analytics-clients.js`の`fetchRakutenPerformance()`
+  に用意している(未実装、戻り値の形だけ他コードから独立させてある)。
+- **楽天CTAクリック率** = `affiliate_click`のeventCount ÷ `screenPageViews` × 100。
+  `screenPageViews`が0の場合は`0%`ではなく`NOT_CALCULABLE`とする。
+- **GA4カスタムディメンション(`item_rank`/`animal_type`/`selection_type`/
+  `page_type`)**: GA4 Metadata API(読み取り専用)で登録済みかを確認し、
+  未登録の場合は推測せず`CUSTOM_DIMENSION_NOT_REGISTERED`と記録する。GA4 Admin
+  APIによる新規登録は行わない(登録するには人がGA4管理画面で作業する必要がある)。
+- **QA確認クリックの扱い**: 2026-09-10(PR #12マージ後の本番動作確認)にCTAを
+  実際にクリックしたことがある。対象期間にこの日を含む場合、レポートへ
+  「2026年9月10日の計測値には、本番動作確認用クリックが含まれる可能性があります。」
+  と自動的に注記する(`search-trial-report-build.js`の`QA_VERIFICATION_NOTICE`)。
+  取得値からの自動的な差し引きは行わない。**後から確認済みQAイベントを安全に
+  除外する設計案(未実装)**: (a) `keyword-research/search-trial-qa-exclusions.json`
+  のような追跡対象ファイルに、確認済みQAイベントのタイムスタンプ・GA4クライアント
+  ID等を記録し、レポート生成時に読み込んで該当イベントだけを除外して計算し直す
+  (影響範囲がこのレポート機能内に閉じる)、または (b) GA4管理画面の
+  「内部トラフィックの定義」機能でQA用の固定IPアドレスを登録し、GA4側の
+  フィルタで最初から計測対象外にする(GA4管理画面での人手の作業が必要、
+  Admin APIによる自動設定は行わない)。
+- **暫定判定基準**(業界標準ではなく今回の試験用の暫定基準、複数該当時はすべて表示):
+  表示回数100未満またはPV20未満→`INSUFFICIENT_DATA`。表示回数100以上かつ検索
+  クリック0→`SEARCH_SNIPPET_REVIEW`。PV20以上かつ`affiliate_click`0→
+  `PAGE_CONVERSION_REVIEW`。`affiliate_click`10件以上で楽天注文0件(楽天成果が
+  取得できる場合のみ)→`PRODUCT_OFFER_REVIEW`。楽天成果報酬1件以上→
+  `MONETIZATION_SIGNAL_DETECTED`。
+- **既存のGA4/Search Console接続の再利用**: `credentials/ga-search-console-key.json`
+  (`test-analytics.js`・`keyword-research/sources/search-console.js`と同じ)を
+  再利用する。新しいGA4プロパティ・サービスアカウントは作成しない。
+
+### ライブ実行ゲート(2026-09-11監査対応)
+
+開発・テスト中に、ローカルに実在する`credentials/ga-search-console-key.json`経由で
+実際のGA4/Search Console APIへ複数回、意図せず読み取りアクセスしてしまう事故が
+発生した(詳細は本機能追加時のPR説明・commitメッセージを参照)。これを受け、
+実APIへの接続には次の3つをすべて明示的に指定することを必須にした。1つでも
+欠ける場合はGoogle APIクライアントを生成する前に非ゼロ終了し、API呼び出しは
+0件のままになる(**認証ファイルの既定パスへの自動fallbackは行わない**。
+`credentials/ga-search-console-key.json`が実在するだけでは接続できない):
+
+```bash
+npm run analytics:search-trial-report -- \
+  --from 2026-09-10 --to 2026-09-16 --run-id <runId> \
+  --live
+# かつ環境変数
+SEARCH_TRIAL_ANALYTICS_LIVE_ENABLED=true
+GA_SEARCH_CONSOLE_KEY_FILE=/path/to/実在する有効なサービスアカウントJSON
+```
+
+- `keyword-research/search-trial-live-gate.js`の`assertLiveExecutionAllowed()`が
+  4条件(`--live`・feature flag・認証パスの環境変数・そのパスが実在し
+  `client_email`/`private_key`を含む有効なJSONであること)をすべて検証してから、
+  検証済みの`keyFilePath`だけを返す。この関数自体はGoogle APIクライアントを
+  一切生成しない(fsの存在確認・JSON解析のみ)。
+- `keyword-research/search-trial-analytics-clients.js`の各fetch関数(Search
+  Console/GA4/URL Inspection/GA4 Metadata)は、Google APIクライアントの
+  インスタンスを引数として**必須**で受け取る設計にした(クライアントが
+  渡されない場合は例外を投げ、暗黙にクライアントを生成することは一切ない)。
+  `createLiveGoogleClients({ keyFilePath })`が、ゲート通過後にのみ呼び出し側
+  (`keyword-research/search-trial-fetchers-resolver.js`)から呼ばれる、
+  実際のクライアント生成の唯一の入り口になっている。
+- テストでは、この`createLiveGoogleClients`を一切呼び出さず、常に明示的な
+  mock clientオブジェクトをfetch関数へ渡す(`search-trial-analytics-clients.test.js`)、
+  またはmockを返す`clientFactory`を`resolveLiveFetchers()`へ注入する
+  (`search-trial-fetchers-resolver.test.js`)ことで、実際の
+  `google.auth.GoogleAuth`には一切触れずに「ゲート通過後の正常系」まで検証する。
+  CLI統合テスト(`search-trial-report-cli.test.js`)では、日付・設定JSON等の
+  build層の検証(`search-trial-report-build.js`側でfetcher呼び出しより前に
+  実行される)を確認する場合に限り、fakeな(実サービスアカウントではない)
+  鍵ファイルでゲート自体は通過させるが、実際にfetcherへ到達する前にbuild層が
+  例外を投げるため、実ネットワークには到達しない。
+- ログ・成果物には認証情報の絶対パス・サービスアカウントのメールアドレスを
+  出力しない(`sanitizeErrorMessage()`で機械的に除去、ゲートのエラーメッセージも
+  認証ファイルの実際のパス・内容を含めない)。
+- 実装・テストではすべてmock/fixtureを使っており、外部API呼び出しは0件。
+  実データでのAPI実行は人からの別途明示指示を受けてから行う。
