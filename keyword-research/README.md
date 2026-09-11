@@ -554,10 +554,50 @@ npm run analytics:search-trial-report -- \
 - **既存のGA4/Search Console接続の再利用**: `credentials/ga-search-console-key.json`
   (`test-analytics.js`・`keyword-research/sources/search-console.js`と同じ)を
   再利用する。新しいGA4プロパティ・サービスアカウントは作成しない。
-  認証ファイルパスは`GA_SEARCH_CONSOLE_KEY_FILE`環境変数で上書き可能(既定は
-  上記の実ファイル)。**この上書きはテストが実際のAPIを呼ばないようにするため
-  のものであり、通常運用では設定しない**。
+
+### ライブ実行ゲート(2026-09-11監査対応)
+
+開発・テスト中に、ローカルに実在する`credentials/ga-search-console-key.json`経由で
+実際のGA4/Search Console APIへ複数回、意図せず読み取りアクセスしてしまう事故が
+発生した(詳細は本機能追加時のPR説明・commitメッセージを参照)。これを受け、
+実APIへの接続には次の3つをすべて明示的に指定することを必須にした。1つでも
+欠ける場合はGoogle APIクライアントを生成する前に非ゼロ終了し、API呼び出しは
+0件のままになる(**認証ファイルの既定パスへの自動fallbackは行わない**。
+`credentials/ga-search-console-key.json`が実在するだけでは接続できない):
+
+```bash
+npm run analytics:search-trial-report -- \
+  --from 2026-09-10 --to 2026-09-16 --run-id <runId> \
+  --live
+# かつ環境変数
+SEARCH_TRIAL_ANALYTICS_LIVE_ENABLED=true
+GA_SEARCH_CONSOLE_KEY_FILE=/path/to/実在する有効なサービスアカウントJSON
+```
+
+- `keyword-research/search-trial-live-gate.js`の`assertLiveExecutionAllowed()`が
+  4条件(`--live`・feature flag・認証パスの環境変数・そのパスが実在し
+  `client_email`/`private_key`を含む有効なJSONであること)をすべて検証してから、
+  検証済みの`keyFilePath`だけを返す。この関数自体はGoogle APIクライアントを
+  一切生成しない(fsの存在確認・JSON解析のみ)。
+- `keyword-research/search-trial-analytics-clients.js`の各fetch関数(Search
+  Console/GA4/URL Inspection/GA4 Metadata)は、Google APIクライアントの
+  インスタンスを引数として**必須**で受け取る設計にした(クライアントが
+  渡されない場合は例外を投げ、暗黙にクライアントを生成することは一切ない)。
+  `createLiveGoogleClients({ keyFilePath })`が、ゲート通過後にのみ呼び出し側
+  (`keyword-research/search-trial-fetchers-resolver.js`)から呼ばれる、
+  実際のクライアント生成の唯一の入り口になっている。
+- テストでは、この`createLiveGoogleClients`を一切呼び出さず、常に明示的な
+  mock clientオブジェクトをfetch関数へ渡す(`search-trial-analytics-clients.test.js`)、
+  またはmockを返す`clientFactory`を`resolveLiveFetchers()`へ注入する
+  (`search-trial-fetchers-resolver.test.js`)ことで、実際の
+  `google.auth.GoogleAuth`には一切触れずに「ゲート通過後の正常系」まで検証する。
+  CLI統合テスト(`search-trial-report-cli.test.js`)では、日付・設定JSON等の
+  build層の検証(`search-trial-report-build.js`側でfetcher呼び出しより前に
+  実行される)を確認する場合に限り、fakeな(実サービスアカウントではない)
+  鍵ファイルでゲート自体は通過させるが、実際にfetcherへ到達する前にbuild層が
+  例外を投げるため、実ネットワークには到達しない。
 - ログ・成果物には認証情報の絶対パス・サービスアカウントのメールアドレスを
-  出力しない(`sanitizeErrorMessage()`で機械的に除去)。
-- 実装・テストではすべてfake/fixtureの`fetchers`を注入しており、外部API呼び出しは
-  0件。実データでのAPI実行は人からの別途明示指示を受けてから行う。
+  出力しない(`sanitizeErrorMessage()`で機械的に除去、ゲートのエラーメッセージも
+  認証ファイルの実際のパス・内容を含めない)。
+- 実装・テストではすべてmock/fixtureを使っており、外部API呼び出しは0件。
+  実データでのAPI実行は人からの別途明示指示を受けてから行う。

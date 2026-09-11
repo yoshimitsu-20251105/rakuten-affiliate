@@ -20,6 +20,14 @@
 //
 // 一方のAPIが権限不足・データ未反映の場合は、その項目だけをNOT_AVAILABLE等として
 // 記録し、処理全体は失敗させない(取得できた他の事実まで失わない)。
+//
+// 【2026-09-11監査対応・ライブ実行ゲート】実際のGA4/Search Console APIへ接続するには、
+// 次の3つをすべて明示的に指定する必要がある。1つでも欠ける場合はGoogle APIクライアント
+// を生成する前に非ゼロ終了し、API呼び出しは0件のままになる(既定パスへの
+// 自動fallbackは行わない)。
+//   1. --live フラグ
+//   2. 環境変数 SEARCH_TRIAL_ANALYTICS_LIVE_ENABLED=true
+//   3. 環境変数 GA_SEARCH_CONSOLE_KEY_FILE(実在する有効なサービスアカウントJSONを指す)
 
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -28,6 +36,7 @@ import { parseArgs, nowJstIso } from "./args.js";
 import { getCodeCommit, sanitizeRunId, createExclusiveRunDir } from "./gkp-cli-common.js";
 import { buildSearchTrialReport } from "../search-trial-report-build.js";
 import { renderReportMarkdown, renderReportJson } from "../search-trial-report-render.js";
+import { resolveLiveFetchers } from "../search-trial-fetchers-resolver.js";
 
 const LOG = "[analytics:search-trial-report]";
 
@@ -57,6 +66,16 @@ async function main() {
   const docsDirPath = args["docs-dir"] ? `${args["docs-dir"].replace(/[\\/]+$/, "")}/` : DEFAULT_DOCS_DIR;
   const outputRoot = args["output-dir"] ? `${args["output-dir"].replace(/[\\/]+$/, "")}/` : DEFAULT_OUTPUT_ROOT;
 
+  // 【2026-09-11監査対応】同一runIdの出力有無・前回レポートの有無は、ネットワークを
+  // 伴わない軽量な確認のため、Google APIクライアント生成(ライブ実行ゲート)より
+  // 先に行う(無駄な接続試行を避け、失敗理由をより早く・正確に伝えるため)。
+  const outDir = `${outputRoot}${runId}/`;
+  if (existsSync(outDir)) {
+    console.error(`${LOG} 出力先が既に存在します(上書きしません): run-id=${runId}`);
+    process.exitCode = 1;
+    return;
+  }
+
   let previousReport = null;
   if (args["previous-run-id"]) {
     const previousPath = `${outputRoot}${args["previous-run-id"]}/report.json`;
@@ -74,6 +93,16 @@ async function main() {
     }
   }
 
+  // 【ライブ実行ゲート】この時点までGoogle APIクライアントは一切生成していない。
+  let fetchers;
+  try {
+    fetchers = resolveLiveFetchers({ liveFlag: args.live === true, env: process.env });
+  } catch (e) {
+    console.error(`${LOG} ${e.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   let report;
   try {
     report = await buildSearchTrialReport({
@@ -83,6 +112,7 @@ async function main() {
       searchTrialConfigPath,
       docsDirPath,
       previousReport,
+      fetchers,
     });
   } catch (e) {
     console.error(`${LOG} レポート生成を中止しました: ${e.message}`);
@@ -90,7 +120,6 @@ async function main() {
     return;
   }
 
-  const outDir = `${outputRoot}${runId}/`;
   try {
     await createExclusiveRunDir(outDir, outputRoot);
   } catch (e) {
