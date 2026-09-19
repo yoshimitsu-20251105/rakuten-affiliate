@@ -158,6 +158,13 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
   // それ以外(isDraft:trueを含む)は常にnoindex,nofollowを出力する(安全側デフォルト)。
   const robotsMeta = !isDraft && allowSearchIndex ? "" : '<meta name="robots" content="noindex,nofollow">\n';
 
+  // 【2026-09-17 検索流入監査対応】meta descriptionが未設定だった技術的な抜けを修正。
+  // 新しい文言は作らず、既存のintroText(呼び出し側が既に持つ、事実に基づく1文)を
+  // そのまま再利用する(誇大表現・未確認の効果効能を追加しない)。
+  const metaDescriptionTag = introText
+    ? `<meta name="description" content="${escapeHtml(introText)}">\n<meta property="og:description" content="${escapeHtml(introText)}">\n`
+    : "";
+
   const cards = products
     .map(
       (p) => `
@@ -201,7 +208,7 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${robotsMeta}<title>${isDraft ? "【下書き・非公開】" : ""}${escapeHtml(title)}</title>
-${canonicalTag}<style>
+${metaDescriptionTag}${canonicalTag}<style>
   :root { color-scheme: light dark; --bg:#fafaf8; --fg:#222; --card-bg:#fff; --border:#e2e2df; --accent:#bf0000; --accent-dark:#950000; --muted:#6a6a64; }
   @media (prefers-color-scheme: dark) { :root { --bg:#1a1a1a; --fg:#eee; --card-bg:#262626; --border:#3a3a3a; --muted:#a3a39c; } }
   * { box-sizing: border-box; }
