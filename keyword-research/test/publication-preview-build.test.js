@@ -1027,3 +1027,46 @@ test("GA_MEASUREMENT_ID未指定の場合、affiliate_click計測scriptは出力
     await cleanup(outputRoot);
   }
 });
+
+// =====================================================================
+// 【2026-09-17 検索流入監査対応】indexability回帰防止チェックリスト。
+// 検索公開試験ページ(isDraft:false かつ allowSearchIndex:true)が、noindex事故等で
+// 再び検索エンジンから見えなくなることを防ぐための最終防衛線。個別の性質は他の
+// テストでも部分的にカバーされているが、ここでは「検索エンジンに公開してよい状態か」
+// を一つのテストとしてまとめて確認する(テスト数を増やすこと自体を目的にしない)。
+// =====================================================================
+
+test("indexability回帰防止: 検索公開状態のページはnoindex無し・canonical自己参照・meta description・title・H1・広告開示・CTAをすべて満たす", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({
+      sourceRunDir: sourceRun.dir,
+      publicationApprovedFilePath: pubApprovalPath,
+      enrichmentRunDir: enrichmentRun.dir,
+      isDraft: false,
+      allowSearchIndex: true,
+      gaMeasurementId: "G-TEST12345",
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+
+    for (const slug of [DOG_SLUG, CAT_SLUG]) {
+      const html = result.drafts.find((d) => d.slug === slug).html;
+
+      assert.doesNotMatch(html, /<meta name="robots"/, `${slug}: noindexが残っていないこと`);
+
+      const canonicalMatch = html.match(/<link rel="canonical" href="([^"]+)">/);
+      assert.ok(canonicalMatch, `${slug}: canonicalが存在すること`);
+      assert.match(canonicalMatch[1], /^https:\/\//, `${slug}: canonicalが絶対https URLであること`);
+      assert.match(canonicalMatch[1], new RegExp(`/${slug}\\.html$`), `${slug}: canonicalが自己参照であること(別ページのURLでないこと)`);
+
+      assert.match(html, /<meta name="description" content="[^"]+"/, `${slug}: meta descriptionが存在すること`);
+      assert.match(html, /<title>[^<]+<\/title>/, `${slug}: titleが存在すること`);
+      assert.equal((html.match(/<h1[^>]*>/g) || []).length, 1, `${slug}: H1が1つだけ存在すること`);
+      assert.match(html, /広告・PR/, `${slug}: 広告開示表示があること`);
+      assert.match(html, /<a class="cta-button"/, `${slug}: 楽天CTAが存在すること`);
+      assert.doesNotMatch(html, /class="draft-banner"/, `${slug}: DRAFTバナーが無いこと`);
+    }
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
