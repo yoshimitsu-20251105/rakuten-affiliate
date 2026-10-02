@@ -1,0 +1,71 @@
+name: Instagram自動投稿(楽天ランキング)
+
+on:
+  schedule:
+    # 03:07 UTC = 12:07 JST。毎朝7:07 JSTのサイト更新が終わった後に動かす
+    - cron: "7 3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "1なら投稿せず下書きだけ作る"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instagramに投稿(Secret未設定なら下書きのみ)
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_GRAPH_HOST: ${{ vars.IG_GRAPH_HOST }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: node post-instagram.js
+
+      - name: 投稿履歴をcommit・push
+        run: |
+          git config user.name "rakuten-affiliate-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add instagram-post-history.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: $(date +'%Y-%m-%d') Instagram投稿履歴 (GitHub Actions)"
+            git pull --rebase
+            git push
+          else
+            echo "投稿なし(下書きモード、または投稿できるジャンルなし)。"
+          fi
+
+      - name: 投稿内容を保存(Actionsの画面からダウンロード可)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instagram-preview
+          path: instagram-preview.txt
+          if-no-files-found: ignore
+
+      - name: 失敗時の通知メール
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.GMAIL_ADDRESS }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "[rakuten-affiliate] 【要確認】Instagram自動投稿の失敗 - ${{ github.run_id }}"
+          to: ${{ secrets.GMAIL_ADDRESS }}
+          from: rakuten-affiliate automation <${{ secrets.GMAIL_ADDRESS }}>
+          body: |
+            Instagramへの自動投稿が失敗しました。よくある原因はアクセストークンの期限切れです。
+            実行ログ: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
