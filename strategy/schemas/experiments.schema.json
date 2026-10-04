@@ -15,12 +15,38 @@
     "targetKeywords": { "type": "array", "items": { "type": "string" } },
     "trafficSource": { "type": ["string", "null"] },
     "monetizationSource": { "type": ["string", "null"] },
-    "startDate": { "type": "string", "format": "date" },
-    "reviewDate": { "type": "string", "format": "date" },
-    "baseline": { "type": ["object", "null"] },
+    "startDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "実験を実際に開始した日(=本番公開日)。PLANNEDの間はnull。「ページを作成した日」ではなく「本番で実験を開始した日」を記録すること"
+    },
+    "reviewDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "実験のレビュー予定日。PLANNEDの間はnull。RUNNINGに遷移する際、実公開日+30日等で設定する"
+    },
+    "baseline": {
+      "type": ["object", "null"],
+      "description": "実験開始時点(startDate)の実測値。PLANNEDの間はnull(まだ観測できないため確定させない)"
+    },
     "successThreshold": { "type": ["object", "null"] },
     "killThreshold": { "type": ["object", "null"] },
-    "metrics": { "type": ["object", "null"] },
+    "metrics": {
+      "type": ["array", "null"],
+      "description": "途中観測値の配列。各要素は strategy/schemas/evidence.schema.json と同じ形(metric/value/sourceType/source/observedAt)。baselineとは別物(baselineは開始時点固定値、metricsは継続的な観測値)",
+      "items": {
+        "type": "object",
+        "required": ["metric", "value", "sourceType", "observedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "metric": { "type": "string", "minLength": 1 },
+          "value": {},
+          "sourceType": { "enum": ["api", "url", "user_verified", "estimate", "hypothesis"] },
+          "source": { "type": ["string", "null"] },
+          "observedAt": { "type": ["string", "null"], "format": "date" }
+        }
+      }
+    },
     "result": { "enum": ["SUCCESS", "FAILED", "INCONCLUSIVE", null] },
     "decision": { "enum": ["SCALE", "IMPROVE", "HOLD", "KILL", null] },
     "learnings": { "type": "array", "items": { "type": "string" } },

@@ -12,22 +12,42 @@
 
 ## Current Revenue Status
 
-FACT(CLAUDE.md「運用状況」セクション、2026年8月時点の記録): 収益はまだ発生していない(公開直後のため、インデックス反映待ち)。この記録以降、本リポジトリ内で収益額を更新した記録はない。**現時点の正確な収益額はUNKNOWN**(楽天の管理画面側のデータであり、リポジトリからは確認できない)。
+FACT(GitHub由来、CLAUDE.md「運用状況」セクション、2026年8月時点の記録): 収益はまだ発生していない(公開直後のため、インデックス反映待ち)。この記録以降、本リポジトリ内で収益額を更新した記録はない。**現時点の正確な収益額はUNKNOWN**(楽天の管理画面側のデータであり、リポジトリからは確認できない)。
 
 ## Current Traffic Status
 
-UNKNOWN。Search Console/GA4の実測値は `keyword-research/output/`(gitignore対象)に出力されるため、リポジトリからは確認できない。直近の実行記録は `keyword-research/search-trial-pages.json` の `reviewDate` 等のメタデータのみ。
+「最後に確認できた実測値」として記録する(GSC/GA4由来のFACT、取得日時つき。外部データだからという理由だけでUNKNOWNに戻さない)。詳細・出典は `strategy/experiments.json` の各experimentの `metrics[]` を参照。
+
+| ページ | 観測日 | Search Console impressions | clicks | avg position | URL Inspection | GA4 sessions | GA4 views | affiliate_click |
+|---|---|---|---|---|---|---|---|---|
+| senior-dog-pork.html | 2026-09-30 | 1 | 0 | 13 | Submitted and indexed | 8 | 9 | 0 |
+| grain-free-cat-food.html | 2026-09-30 | 0 | 0 | - | URL is unknown to Google | 9 | 9 | 0 |
+
+出典: google_search_console_data_api / google_search_console_url_inspection_api / ga4_data_api(いずれも `keyword-research/cli/search-trial-report.js` の安全ゲート付きCLI経由)。2026-10-05時点でこれより新しい観測は未実施(UNKNOWN)。
+
+PR #17(未マージ)の新規3ページ(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)は本番未公開のため、トラフィックデータは存在しない(UNKNOWNではなく「まだ観測対象ではない」)。
 
 ## Active Experiments
 
-- `exp-2026-10-05-senior-cat-food`(`strategy/experiments.json`): status RUNNING、reviewDate 2026-11-04
+`strategy/experiments.json` 参照。
+
+**RUNNING(本番公開済み)**:
+
+- `exp-2026-09-10-senior-dog-pork` — startDate 2026-09-10 / reviewDate 2026-10-10
+- `exp-2026-09-10-grain-free-cat-food` — startDate 2026-09-10 / reviewDate 2026-10-10
+
+**PLANNED(PR #17未マージのため未公開。startDate/reviewDateは本番公開後に確定)**:
+
+- `exp-2026-10-05-grain-free-dog-food`
+- `exp-2026-10-05-senior-cat-food`
+- `exp-2026-10-05-domestic-additive-free-dog-treats`
 
 ## Active PRs
 
 GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 
-- PR #16 `feature/instagram-auto-post` — Instagram自動投稿機能(Secret未設定の間は下書きモード)。本プロジェクト(strategy/配下の作業)とは無関係
-- PR #17 `feature/search-trial-3-new-pages` — 新規検索流入テスト3ページ(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)。**未マージのため、master/本ブランチの `keyword-research/search-trial-pages.json` にはまだ反映されていない**
+- PR #16 `feature/instagram-auto-post` — Instagram自動投稿機能(Secret未設定の間は下書きモード)。承認済みのImplementation Briefがないため、**MERGE RECOMMENDATION = HOLD**(内容の変更・クローズはしていない)
+- PR #17 `feature/search-trial-3-new-pages` — 新規検索流入テスト3ページ。**未マージのため、master/本ブランチの`docs/`・`keyword-research/search-trial-pages.json`にはまだ反映されていない**
 - PR #18 `feature/affiliate-agent-operating-system` — 本ファイルを含むAI Agent Operating System基盤(このPR自体)
 
 ## Current Opportunities
@@ -42,6 +62,7 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 ## Current Hypotheses
 
 - `strategy/opportunities.json` の `senior-cat-food-jp.hypothesis` 参照
+- `strategy/experiments.json` の各experimentの `hypothesis` 参照
 
 ## Confirmed Learnings
 
@@ -54,8 +75,8 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 ## Top 3 Priorities
 
 1. PR #17・PR #18のレビュー・マージ判断
-2. マージ後、新規3ページのSearch Console/GA4ベースライン記録
-3. Daily/Weekly Agentの実接続方法の検討
+2. マージ後、`exp-2026-10-05-*` の3実験をPLANNED→RUNNINGへ更新(実公開日をstartDateに記録)
+3. 2026-10-10(既存2実験のreviewDate)に向けたSearch Console/GA4の再観測準備
 
 ## Waiting For
 
@@ -63,4 +84,6 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 
 ## Next Review
 
-2026-11-04(`exp-2026-10-05-senior-cat-food` の reviewDate)
+**2026-10-10**(`exp-2026-09-10-senior-dog-pork` / `exp-2026-09-10-grain-free-cat-food` のreviewDate。既存の本番公開済み実験が優先)
+
+次点: 2026-11-04(PR #17マージ・公開後、新規3実験のreviewDateが startDate+30日 で確定する想定)

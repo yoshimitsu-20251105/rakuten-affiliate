@@ -4,12 +4,17 @@
   "title": "Seasonality Record",
   "description": "季節型Revenue Engineの管理。数値を捏造しない。未確認値は必ずnull。",
   "type": "object",
-  "required": ["id", "theme", "category", "peakMonths", "leadTimeDays", "lastReviewedAt"],
+  "required": ["id", "theme", "category", "confidence", "peakMonths", "leadTimeDays", "lastReviewedAt"],
   "additionalProperties": false,
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "theme": { "type": "string", "minLength": 1 },
     "category": { "type": "string", "minLength": 1 },
+    "confidence": {
+      "enum": ["FACT", "ESTIMATE", "HYPOTHESIS", "UNKNOWN"],
+      "description": "peakMonths等の季節性データがどの段階の情報か。Research Agentが実際に検証するまではHYPOTHESISのままにし、FACTへ格上げしない"
+    },
+    "notes": { "type": ["string", "null"], "description": "何がどこまで確認済みで、何が未確認かの補足" },
     "peakMonths": {
       "type": "array",
       "items": { "type": "integer", "minimum": 1, "maximum": 12 }

@@ -16,6 +16,7 @@
 - [`CURRENT_STATE.md`](CURRENT_STATE.md) — プロジェクト全体の現在地を1ファイルで把握する(履歴は書かない)
 - [`daily-reports/`](daily-reports/) — 日次の作業記録(事実中心、`YYYY-MM-DD.md`)
 - [`GLOSSARY.md`](GLOSSARY.md) — 専門用語集(非エンジニア向け)
+- [`tooling-registry.md`](tooling-registry.md) — 外部ツール・API・ASPの接続状況一覧(CONNECTED/NOT_CONNECTED)
 
 新しい調査・実装を始める前に、必ず `CURRENT_STATE.md`・`decisions.json`・`experiments.json`・`daily-reports/`・`opportunities.json` を確認し、同じ調査・実装の繰り返しを避けること(CLAUDE.mdの「重複作業防止ルール」参照)。
 

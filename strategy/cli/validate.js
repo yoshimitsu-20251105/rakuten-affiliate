@@ -11,14 +11,23 @@
 //   2. 各要素がスキーマの必須項目・型・enum・日付形式を満たすか
 //   3. ファイル内でID(idFieldで指定したキー)が重複していないか
 //   4. decisions.json の relatedExperimentIds が experiments.json に実在するか(相互参照)
+//   5. experiments.json の status(PLANNED/RUNNING/終了状態)と startDate/reviewDate/
+//      baseline/targetUrls/result/decision/metrics の整合性(意味的検証、
+//      validateExperimentLifecycle参照)。RUNNINGの場合はtargetUrlsが
+//      docs/配下に実在するファイルを指しているかも確認する(ファイルシステムの
+//      読み取りのみ、ネットワークアクセスはしない)
 //
 // 外部API呼び出しは一切行わない。
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { SITE_URL } from "../../lib/site-config.js";
 
 const STRATEGY_DIR = fileURLToPath(new URL("../", import.meta.url));
+const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 export const SCHEMAS_DIR = `${STRATEGY_DIR}schemas/`;
+
+const TERMINAL_EXPERIMENT_STATUSES = new Set(["SUCCESS", "FAILED", "INCONCLUSIVE", "STOPPED"]);
 
 // ファイル名・対応スキーマ・ID重複チェックに使うキーの対応表。
 export const DATA_FILES = [
@@ -179,11 +188,82 @@ export function validateDataFile(dataPath, schemaPath, idField) {
 }
 
 /**
+ * 実験のライフサイクル(status)と他フィールドの意味的な整合性を検証する。
+ * スキーマ検証(型・enum等)だけでは防げない「RUNNINGなのに未公開」
+ * 「PLANNEDなのに実測baselineが確定済み扱い」等の矛盾を防ぐ。
+ *
+ * - PLANNED: startDate/reviewDate/baseline は null であること(「ページを作成した日」と
+ *   「本番で実験を開始した日」を区別する。未公開の間は実測値を確定させない)
+ * - RUNNING: startDateが必須。targetUrlsが1件以上あり、SITE_URL配下のパスであれば
+ *   対応するdocs/配下のファイルが実在すること(=本番公開されていることの裏付け)
+ * - SUCCESS/FAILED/INCONCLUSIVE/STOPPED(終了状態): result・decision・metrics が
+ *   揃っていること(実験結果に必要な情報が存在することの確認)
+ *
+ * @param {any[]} experiments
+ * @param {{ projectRoot?: string, siteUrl?: string }} [options]
+ * @returns {string[]} errors
+ */
+export function validateExperimentLifecycle(experiments, { projectRoot = PROJECT_ROOT, siteUrl = SITE_URL } = {}) {
+  const errors = [];
+
+  experiments.forEach((exp, i) => {
+    const prefix = `experiments.json items[${i}](${exp?.experimentId ?? "?"})`;
+    const status = exp?.status;
+
+    if (status === "PLANNED") {
+      if (exp.startDate !== null && exp.startDate !== undefined) {
+        errors.push(`${prefix}: status=PLANNEDの場合、startDateはnullである必要があります(実際: ${JSON.stringify(exp.startDate)})。「ページを作成した日」と「本番で実験を開始した日」を区別すること`);
+      }
+      if (exp.reviewDate !== null && exp.reviewDate !== undefined) {
+        errors.push(`${prefix}: status=PLANNEDの場合、reviewDateはnullである必要があります(実際: ${JSON.stringify(exp.reviewDate)})`);
+      }
+      if (exp.baseline !== null && exp.baseline !== undefined) {
+        errors.push(`${prefix}: status=PLANNEDの場合、baselineはnullである必要があります(未公開のため実測できない)`);
+      }
+    }
+
+    if (status === "RUNNING") {
+      if (typeof exp.startDate !== "string" || exp.startDate === "") {
+        errors.push(`${prefix}: status=RUNNINGの場合、startDate(実際に公開・開始した日)が必須です`);
+      }
+      const targetUrls = Array.isArray(exp.targetUrls) ? exp.targetUrls : [];
+      if (targetUrls.length === 0) {
+        errors.push(`${prefix}: status=RUNNINGの場合、targetUrlsが1件以上必要です`);
+      }
+      for (const url of targetUrls) {
+        if (typeof url === "string" && url.startsWith(`${siteUrl}/`)) {
+          const relativePath = url.slice(siteUrl.length + 1);
+          const filePath = `${projectRoot}docs/${relativePath}`;
+          if (!existsSync(filePath)) {
+            errors.push(`${prefix}: status=RUNNINGですが対象ファイルが存在しません(未公開の可能性があります): docs/${relativePath}`);
+          }
+        }
+      }
+    }
+
+    if (TERMINAL_EXPERIMENT_STATUSES.has(status)) {
+      if (exp.result === null || exp.result === undefined) {
+        errors.push(`${prefix}: status=${status}の場合、result(SUCCESS/FAILED/INCONCLUSIVE)が必須です`);
+      }
+      if (exp.decision === null || exp.decision === undefined) {
+        errors.push(`${prefix}: status=${status}の場合、decision(SCALE/IMPROVE/HOLD/KILL)が必須です`);
+      }
+      if (!Array.isArray(exp.metrics) || exp.metrics.length === 0) {
+        errors.push(`${prefix}: status=${status}の場合、metrics(観測値)が1件以上必要です`);
+      }
+    }
+  });
+
+  return errors;
+}
+
+/**
  * strategy/配下の全データファイルを検証する(プログラム的に呼び出し可能なエントリ、テスト用)。
  * @param {string} strategyDir
+ * @param {{ projectRoot?: string, siteUrl?: string }} [options]
  * @returns {{ valid: boolean, fileResults: Record<string, { valid: boolean, errors: string[] }> }}
  */
-export function validateAll(strategyDir = STRATEGY_DIR) {
+export function validateAll(strategyDir = STRATEGY_DIR, { projectRoot = PROJECT_ROOT, siteUrl = SITE_URL } = {}) {
   const fileResults = {};
   const byFile = {};
 
@@ -206,6 +286,13 @@ export function validateAll(strategyDir = STRATEGY_DIR) {
   if (decisionErrors.length > 0) {
     fileResults["decisions.json"].valid = false;
     fileResults["decisions.json"].errors.push(...decisionErrors);
+  }
+
+  // 実験ライフサイクルの意味的検証(PLANNED/RUNNING/終了状態の整合性)。
+  const lifecycleErrors = validateExperimentLifecycle(byFile["experiments.json"] ?? [], { projectRoot, siteUrl });
+  if (lifecycleErrors.length > 0) {
+    fileResults["experiments.json"].valid = false;
+    fileResults["experiments.json"].errors.push(...lifecycleErrors);
   }
 
   const valid = Object.values(fileResults).every((r) => r.valid);

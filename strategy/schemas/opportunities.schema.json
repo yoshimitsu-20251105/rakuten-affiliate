@@ -29,6 +29,22 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "evidence": {
+      "type": "array",
+      "description": "searchVolume/serpDifficulty等の数値・観測の出典。strategy/schemas/evidence.schema.jsonと同じ形。推測値(estimate/hypothesis)にFACTであるかのようなsourceを付けないこと",
+      "items": {
+        "type": "object",
+        "required": ["metric", "value", "sourceType", "observedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "metric": { "type": "string", "minLength": 1 },
+          "value": {},
+          "sourceType": { "enum": ["api", "url", "user_verified", "estimate", "hypothesis"] },
+          "source": { "type": ["string", "null"] },
+          "observedAt": { "type": ["string", "null"], "format": "date" }
+        }
+      }
+    },
     "hypothesis": { "type": "string", "minLength": 1 },
     "counterEvidence": {
       "type": "array",

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "evidence.schema.json",
+  "title": "Evidence(FACTの出典を記録する共通の型)",
+  "description": "検索ボリューム・SERP観測・報酬・GA4・Search Console・ASP情報等、重要なFACTには必ずこの形でsource/observedAtを記録する。この定義は strategy/schemas/experiments.schema.json の metrics[] と strategy/schemas/opportunities.schema.json の evidence[] に同じ形で埋め込んで使う(このリポジトリのvalidate.jsは$refを解決しないため、埋め込み先の各スキーマに同一の形を複製している。この ファイルは人間・AI Agent向けの正本定義)。",
+  "type": "object",
+  "required": ["metric", "value", "sourceType", "observedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "metric": { "type": "string", "minLength": 1, "description": "何についてのFACTか(例: search_console_impressions, ga4_sessions, commission_rate)" },
+    "value": { "description": "観測値そのもの(型は指標により様々なので制約しない)" },
+    "sourceType": {
+      "enum": ["api", "url", "user_verified", "estimate", "hypothesis"],
+      "description": "api=公式APIから取得, url=特定ページのURLを目視確認, user_verified=ユーザーが確認して提供, estimate=推定値, hypothesis=未検証の仮説。推測値(estimate/hypothesis)にはFACTであるかのようなsourceを付けない"
+    },
+    "source": { "type": ["string", "null"], "description": "URL、API/レポート名、または user_verified 等。推測値はnullでよい" },
+    "observedAt": { "type": ["string", "null"], "format": "date", "description": "この値をいつ確認したか(YYYY-MM-DD)。推測値はnullでよい" }
+  }
+}

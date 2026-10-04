@@ -19,6 +19,10 @@
     "uniqueValue": { "type": ["string", "null"] },
     "monetizationObserved": { "type": "array", "items": { "type": "string" } },
     "contentFormat": { "type": ["string", "null"] },
+    "sourceType": {
+      "enum": ["api", "url", "user_verified", "estimate", "hypothesis", null],
+      "description": "このpageUrl/serpPositionObservedをどう確認したか。実際にURLを開いて確認した場合はurl"
+    },
     "observedAt": { "type": "string", "format": "date" }
   }
 }
