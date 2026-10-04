@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "decisions.schema.json",
+  "title": "Decision Record",
+  "description": "重要判断の履歴。詳細なchain-of-thoughtは不要。事実・前提・選択肢・結論だけを残す。",
+  "type": "object",
+  "required": ["decisionId", "date", "topic", "decision", "facts", "reasoningSummary", "reviewDate"],
+  "additionalProperties": false,
+  "properties": {
+    "decisionId": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "format": "date" },
+    "topic": { "type": "string", "minLength": 1 },
+    "decision": { "type": "string", "minLength": 1 },
+    "facts": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "alternativesConsidered": { "type": "array", "items": { "type": "string" } },
+    "reasoningSummary": { "type": "string", "minLength": 1 },
+    "expectedImpact": { "type": ["string", "null"] },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "reviewDate": { "type": "string", "format": "date" },
+    "relatedExperimentIds": { "type": "array", "items": { "type": "string" } }
+  }
+}

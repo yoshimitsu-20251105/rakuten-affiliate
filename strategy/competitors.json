@@ -1,0 +1,4 @@
+{
+  "description": "競合調査結果。SERP順位は時間で変わるため observedAt は必須。スキーマ: strategy/schemas/competitors.schema.json。pageUrlは実際に確認した正確なページURLのみ保存する(検索結果一覧のトップドメインURL等、不正確なURLは保存しない)。",
+  "items": []
+}

@@ -6,6 +6,90 @@
 - リポジトリ: https://github.com/yoshimitsu-20251105/rakuten-affiliate
 - GitHubアカウント: yoshimitsu-20251105
 
+## AI Agent Operating System(2026-10-05導入、恒久運用ルール)
+
+このプロジェクトは今後、以下の4層で運用する。詳細は `strategy/README.md` を参照。
+
+1. **Revenue Strategy / Research Agent** — 市場調査・検索需要・SERP・ASP・報酬・競合・季節性・収益機会・反証を担当
+2. **Editorial Agent** — 承認されたテーマをSEO記事/note/X/TikTok/YouTube Shorts等へ変換
+3. **Analytics / Experiment Agent** — Search Console・GA4・affiliate click・conversion・revenueを分析し、SCALE/IMPROVE/HOLD/KILLを判断
+4. **Claude Code(Implementation Agent)** — 上記で決定された内容を実装する。戦略を独断で決めない
+
+### 最終目的
+
+目的は、記事数・ページ数・コード量・自動化率ではない。
+
+目的は、Revenue / Approved Revenue / Profit / EPC / Conversion Rate / Affiliate CTR / Organic Traffic を持続的に増加させることである。
+
+### 基本サイクル
+
+Research → Hypothesis → Falsification → Experiment → Measurement → Scale / Improve / Hold / Kill
+
+### 事実区分(必須)
+
+あらゆる記述は以下のいずれかに区別する。**UNKNOWNを推測で埋めない。**
+
+- `FACT` — 実データ・実測値で裏付けられている
+- `ESTIMATE` — 推定値(根拠・前提を明記する)
+- `HYPOTHESIS` — まだ検証していない仮説
+- `UNKNOWN` — 未確認・不明(nullのまま残す。埋めない)
+
+### Claude Codeの役割
+
+Claude CodeはImplementation Agentである。戦略判断を独断で行わない。
+
+大きな戦略変更(新規ページの大量作成、収益化ロジックの変更、ターゲットキーワードの大幅な方針転換等)は、Research / Strategy側の承認済み Implementation Brief(`strategy/templates/implementation-brief.md`)を必要とする。Implementation Briefがない戦略的変更は実装しない。
+
+### 禁止事項
+
+- 検索需要確認なしの大量記事生成
+- 成果KPIに紐づかない開発
+- 大量noindex
+- 大量削除
+- master直接push
+- 実験途中のtitle/H1等の頻繁な変更
+- 確認できない商品性能の生成
+- 医療効果等の断定
+- テスト成功だけを成果とみなすこと
+
+### 最重要ルール
+
+**「自動化すること」が目的ではない。「再現可能な収益を自動で増やすこと」が目的である。**
+
+### 重複作業防止ルール
+
+新しい調査・実装を開始する前に、必ず以下を確認すること:
+
+- `strategy/CURRENT_STATE.md`
+- `strategy/decisions.json`
+- `strategy/experiments.json`
+- `strategy/daily-reports/`
+- `strategy/opportunities.json`
+
+確認する観点:
+
+- 同じ作業を過去に実施していないか
+- 同じキーワードを既に調査していないか
+- 同じ仮説を以前テストしていないか
+- 以前KILLされた施策ではないか
+- 既存PRと内容が重複しないか
+
+重複がある場合、「過去に○月○日に実施済み」と報告する。新しい情報や条件変更がない場合、同じ調査を最初から繰り返さない。
+
+再調査する場合は、`WHY_REVISIT` として再調査理由を明示する。例: 検索需要が変化/ASP報酬変更/季節需要接近/Google順位変化/新しい競合出現/過去データが古い。
+
+### 情報の役割分担(同じ情報を何度も大量コピーしない)
+
+- **Daily Report**(`strategy/daily-reports/`) = その日に何をしたか
+- **CURRENT_STATE**(`strategy/CURRENT_STATE.md`) = 現在どうなっているか
+- **Decisions**(`strategy/decisions.json`) = なぜそう決めたか
+- **Experiments**(`strategy/experiments.json`) = 仮説を試した結果
+- **Glossary**(`strategy/GLOSSARY.md`) = 用語の意味
+
+### 完了報告のルール
+
+Claude Codeがまとまった作業を完了した場合、完了報告の最後に「日報に追加すべき内容」を示す。戦略判断を伴う場合は `strategy/decisions.json` への追加候補を、実験の開始・終了時は `strategy/experiments.json` の更新候補を、新しい専門用語を使った場合は `strategy/GLOSSARY.md` への追加候補を示す。ただし、これらのファイルを自動的に書き換えて過去の判断を上書きしない(候補の提示に留め、採用判断は人間が行う)。
+
 ## 全体アーキテクチャ
 
 1. `select-products.js` — 楽天APIから商品を検索・選定し `selected-products.json` に保存

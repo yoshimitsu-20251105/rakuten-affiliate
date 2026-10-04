@@ -1,0 +1,33 @@
+{
+  "description": "市場・テーマ・キーワード単位の収益機会。スキーマ: strategy/schemas/opportunities.schema.json",
+  "items": [
+    {
+      "id": "senior-cat-food-jp",
+      "name": "シニア猫向けフード(国産縛りなし)",
+      "category": "pet-food",
+      "revenueEngines": ["VOLUME"],
+      "status": "TEST",
+      "trafficScore": null,
+      "moneyScore": null,
+      "executionScore": null,
+      "durabilityScore": null,
+      "opportunityScore": null,
+      "searchVolume": 5000,
+      "searchIntent": "CONDITION_PURCHASE(Google Keyword Planner実測、2025-08〜2026-07)",
+      "serpDifficulty": "ESTIMATE: 大手比較サイト(マイベスト/オズモール)と個人・専門メディアが混在、EC/メーカー単独占有ではない(2026-10-04 SERP目視確認)",
+      "seasonality": null,
+      "monetizationOptions": ["rakuten_affiliate"],
+      "hypothesis": "楽天ELIGIBLE商品3件以上・SAFE/VALID判定済みで、SERP上に個人・専門メディアの参入余地があるため、新規専用ページで検索流入を獲得できる",
+      "counterEvidence": [
+        "select-products.jsに概念的に近いキーワード「シニア猫 国産 無添加」が2026-08-28から既に設定されており、需要の一部は既存の素材蓄積(petfood-sougou経由)と重複する可能性がある"
+      ],
+      "unknowns": [
+        "実際のCVR(コンバージョン率)",
+        "楽天の承認済み成果(Approved Revenue)が発生するまでの期間",
+        "このテーマの季節性の有無"
+      ],
+      "nextAction": "experiments.json の exp-2026-10-05-senior-cat-food の reviewDate(2026-11-04)まで Search Console / GA4 を観測する",
+      "reviewDate": "2026-11-04"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "seasonality.schema.json",
+  "title": "Seasonality Record",
+  "description": "季節型Revenue Engineの管理。数値を捏造しない。未確認値は必ずnull。",
+  "type": "object",
+  "required": ["id", "theme", "category", "confidence", "peakMonths", "leadTimeDays", "lastReviewedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "theme": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "minLength": 1 },
+    "confidence": {
+      "enum": ["FACT", "ESTIMATE", "HYPOTHESIS", "UNKNOWN"],
+      "description": "peakMonths等の季節性データがどの段階の情報か。Research Agentが実際に検証するまではHYPOTHESISのままにし、FACTへ格上げしない"
+    },
+    "notes": { "type": ["string", "null"], "description": "何がどこまで確認済みで、何が未確認かの補足" },
+    "peakMonths": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1, "maximum": 12 }
+    },
+    "leadTimeDays": { "type": ["integer", "null"], "minimum": 0 },
+    "normalDemand": { "type": ["number", "null"] },
+    "peakDemand": { "type": ["number", "null"] },
+    "peakRatio": { "type": ["number", "null"] },
+    "recommendedResearchDate": { "type": ["string", "null"], "format": "date" },
+    "recommendedPublishDate": { "type": ["string", "null"], "format": "date" },
+    "recommendedUpdateDate": { "type": ["string", "null"], "format": "date" },
+    "monetizationOptions": { "type": "array", "items": { "type": "string" } },
+    "regulatoryRisk": { "type": ["string", "null"] },
+    "inventoryRisk": { "type": ["string", "null"] },
+    "lastReviewedAt": { "type": "string", "format": "date" }
+  }
+}

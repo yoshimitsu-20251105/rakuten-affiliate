@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "monetization-sources.schema.json",
+  "title": "Monetization Source",
+  "description": "広告・ASP・ECの統一管理。未取得値はnull。推測値を入れない。",
+  "type": "object",
+  "required": ["id", "name", "type", "lastVerifiedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "type": { "enum": ["MARKETPLACE", "ASP", "SUBSCRIPTION", "LEAD", "SOCIAL_COMMERCE"] },
+    "commissionType": { "type": ["string", "null"] },
+    "commissionRate": { "type": ["number", "null"], "minimum": 0 },
+    "fixedCommission": { "type": ["number", "null"], "minimum": 0 },
+    "recurringCommission": { "type": ["number", "null"], "minimum": 0 },
+    "epc": { "type": ["number", "null"], "minimum": 0 },
+    "approvalRate": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+    "cookieWindow": { "type": ["number", "null"], "minimum": 0 },
+    "dataSource": { "type": ["string", "null"], "description": "この数値の出典(公式レート表のURL等)" },
+    "lastVerifiedAt": { "type": ["string", "null"], "format": "date" }
+  }
+}
