@@ -48,7 +48,6 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 
 - PR #16 `feature/instagram-auto-post` — Instagram自動投稿機能(Secret未設定の間は下書きモード)。承認済みのImplementation Briefがないため、**MERGE RECOMMENDATION = HOLD**(内容の変更・クローズはしていない)
 - PR #17 `feature/search-trial-3-new-pages` — 新規検索流入テスト3ページ。**未マージのため、master/本ブランチの`docs/`・`keyword-research/search-trial-pages.json`にはまだ反映されていない**
-- PR #18 `feature/affiliate-agent-operating-system` — 本ファイルを含むAI Agent Operating System基盤(このPR自体)
 
 ## Current Opportunities
 
@@ -74,13 +73,13 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 
 ## Top 3 Priorities
 
-1. PR #17・PR #18のレビュー・マージ判断
-2. マージ後、`exp-2026-10-05-*` の3実験をPLANNED→RUNNINGへ更新(実公開日をstartDateに記録)
-3. 2026-10-10(既存2実験のreviewDate)に向けたSearch Console/GA4の再観測準備
+1. PR #17を最新masterへ合わせ、不要な大量差分を除去して品質レビューする
+2. 2026-10-10(既存2実験のreviewDate)に向けたSearch Console/GA4の再観測準備
+3. Daily Intelligence / Analytics Agentの接続準備
 
 ## Waiting For
 
-- PR #17・PR #18ともに人間のレビュー・マージ待ち
+- PR #17のレビュー・修正・公開承認待ち
 
 ## Next Review
 
