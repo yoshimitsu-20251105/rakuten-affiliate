@@ -56,6 +56,40 @@ Claude CodeはImplementation Agentである。戦略判断を独断で行わな�
 
 **「自動化すること」が目的ではない。「再現可能な収益を自動で増やすこと」が目的である。**
 
+### 重複作業防止ルール
+
+新しい調査・実装を開始する前に、必ず以下を確認すること:
+
+- `strategy/CURRENT_STATE.md`
+- `strategy/decisions.json`
+- `strategy/experiments.json`
+- `strategy/daily-reports/`
+- `strategy/opportunities.json`
+
+確認する観点:
+
+- 同じ作業を過去に実施していないか
+- 同じキーワードを既に調査していないか
+- 同じ仮説を以前テストしていないか
+- 以前KILLされた施策ではないか
+- 既存PRと内容が重複しないか
+
+重複がある場合、「過去に○月○日に実施済み」と報告する。新しい情報や条件変更がない場合、同じ調査を最初から繰り返さない。
+
+再調査する場合は、`WHY_REVISIT` として再調査理由を明示する。例: 検索需要が変化/ASP報酬変更/季節需要接近/Google順位変化/新しい競合出現/過去データが古い。
+
+### 情報の役割分担(同じ情報を何度も大量コピーしない)
+
+- **Daily Report**(`strategy/daily-reports/`) = その日に何をしたか
+- **CURRENT_STATE**(`strategy/CURRENT_STATE.md`) = 現在どうなっているか
+- **Decisions**(`strategy/decisions.json`) = なぜそう決めたか
+- **Experiments**(`strategy/experiments.json`) = 仮説を試した結果
+- **Glossary**(`strategy/GLOSSARY.md`) = 用語の意味
+
+### 完了報告のルール
+
+Claude Codeがまとまった作業を完了した場合、完了報告の最後に「日報に追加すべき内容」を示す。戦略判断を伴う場合は `strategy/decisions.json` への追加候補を、実験の開始・終了時は `strategy/experiments.json` の更新候補を、新しい専門用語を使った場合は `strategy/GLOSSARY.md` への追加候補を示す。ただし、これらのファイルを自動的に書き換えて過去の判断を上書きしない(候補の提示に留め、採用判断は人間が行う)。
+
 ## 全体アーキテクチャ
 
 1. `select-products.js` — 楽天APIから商品を検索・選定し `selected-products.json` に保存

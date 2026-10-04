@@ -11,6 +11,14 @@
 | **Analytics / Experiment Agent** | Search Console・GA4・affiliate click・conversion・revenueを分析し、SCALE/IMPROVE/HOLD/KILLを判断する |
 | **Claude Code(Implementation Agent)** | 上記で決定された内容を実装する。戦略を独断で決めない |
 
+## 「今どうなっているか」をすぐ把握するには
+
+- [`CURRENT_STATE.md`](CURRENT_STATE.md) — プロジェクト全体の現在地を1ファイルで把握する(履歴は書かない)
+- [`daily-reports/`](daily-reports/) — 日次の作業記録(事実中心、`YYYY-MM-DD.md`)
+- [`GLOSSARY.md`](GLOSSARY.md) — 専門用語集(非エンジニア向け)
+
+新しい調査・実装を始める前に、必ず `CURRENT_STATE.md`・`decisions.json`・`experiments.json`・`daily-reports/`・`opportunities.json` を確認し、同じ調査・実装の繰り返しを避けること(CLAUDE.mdの「重複作業防止ルール」参照)。
+
 ## 運用フロー
 
 ```
