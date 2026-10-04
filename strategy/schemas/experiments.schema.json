@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "experiments.schema.json",
+  "title": "Revenue Experiment",
+  "description": "収益化実験の履歴。失敗した実験も削除せず、同じ失敗を再提案しないための知識資産として残す。",
+  "type": "object",
+  "required": ["experimentId", "title", "hypothesis", "falsificationCondition", "startDate", "reviewDate", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "experimentId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "hypothesis": { "type": "string", "minLength": 1 },
+    "falsificationCondition": { "type": "string", "minLength": 1, "description": "この条件が観測されたら仮説は反証されたとみなす、という事前定義" },
+    "targetUrls": { "type": "array", "items": { "type": "string" } },
+    "targetKeywords": { "type": "array", "items": { "type": "string" } },
+    "trafficSource": { "type": ["string", "null"] },
+    "monetizationSource": { "type": ["string", "null"] },
+    "startDate": { "type": "string", "format": "date" },
+    "reviewDate": { "type": "string", "format": "date" },
+    "baseline": { "type": ["object", "null"] },
+    "successThreshold": { "type": ["object", "null"] },
+    "killThreshold": { "type": ["object", "null"] },
+    "metrics": { "type": ["object", "null"] },
+    "result": { "enum": ["SUCCESS", "FAILED", "INCONCLUSIVE", null] },
+    "decision": { "enum": ["SCALE", "IMPROVE", "HOLD", "KILL", null] },
+    "learnings": { "type": "array", "items": { "type": "string" } },
+    "status": { "enum": ["PLANNED", "RUNNING", "SUCCESS", "FAILED", "INCONCLUSIVE", "STOPPED"] }
+  }
+}

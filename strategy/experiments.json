@@ -1,0 +1,25 @@
+{
+  "description": "収益化実験の履歴。失敗した実験も削除しない。スキーマ: strategy/schemas/experiments.schema.json",
+  "items": [
+    {
+      "experimentId": "exp-2026-10-05-senior-cat-food",
+      "title": "シニア猫向けフード新規ページの検索流入テスト",
+      "hypothesis": "既存の2つのコントロールページと重複しない新規テーマでも、30日以内にSearch Console impressionsが観測できる",
+      "falsificationCondition": "公開から30日(2026-11-04)経過してもimpressionsが0件のままの場合、この仮説は反証される",
+      "targetUrls": ["https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html"],
+      "targetKeywords": ["シニア猫 フード", "高齢猫 フード"],
+      "trafficSource": "organic_search",
+      "monetizationSource": "rakuten",
+      "startDate": "2026-10-05",
+      "reviewDate": "2026-11-04",
+      "baseline": { "impressions": 0, "clicks": 0, "affiliateClicks": 0, "observedAt": "2026-10-05" },
+      "successThreshold": { "impressionsCumulative": 10 },
+      "killThreshold": { "impressionsCumulativeAtReviewDate": 0 },
+      "metrics": null,
+      "result": null,
+      "decision": null,
+      "learnings": [],
+      "status": "RUNNING"
+    }
+  ]
+}

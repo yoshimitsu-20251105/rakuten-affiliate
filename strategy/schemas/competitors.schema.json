@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "competitors.schema.json",
+  "title": "Competitor Observation",
+  "description": "競合調査結果。SERP順位は時間で変わるため observedAt は必須。",
+  "type": "object",
+  "required": ["id", "market", "keyword", "domain", "pageUrl", "observedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "market": { "type": "string", "minLength": 1 },
+    "keyword": { "type": "string", "minLength": 1 },
+    "domain": { "type": "string", "minLength": 1 },
+    "pageUrl": { "type": "string", "minLength": 1 },
+    "pageType": { "type": ["string", "null"] },
+    "serpPositionObserved": { "type": ["integer", "null"], "minimum": 1 },
+    "strengths": { "type": "array", "items": { "type": "string" } },
+    "weaknesses": { "type": "array", "items": { "type": "string" } },
+    "uniqueValue": { "type": ["string", "null"] },
+    "monetizationObserved": { "type": "array", "items": { "type": "string" } },
+    "contentFormat": { "type": ["string", "null"] },
+    "observedAt": { "type": "string", "format": "date" }
+  }
+}

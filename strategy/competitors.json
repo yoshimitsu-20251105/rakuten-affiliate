@@ -1,0 +1,20 @@
+{
+  "description": "競合調査結果。SERP順位は時間で変わるため observedAt は必須。スキーマ: strategy/schemas/competitors.schema.json",
+  "items": [
+    {
+      "id": "comp-2026-10-04-my-best-grain-free-dog",
+      "market": "JP",
+      "keyword": "グレインフリー ドッグフード おすすめ",
+      "domain": "my-best.com",
+      "pageUrl": "https://my-best.com/",
+      "pageType": "comparison_media",
+      "serpPositionObserved": 3,
+      "strengths": ["複数ブランドを横断比較するランキング形式", "定期的に更新されている(2026-10-04時点で「5日前」更新表記)"],
+      "weaknesses": [],
+      "uniqueValue": "大手比較サイトとしての網羅性・ブランド信頼性",
+      "monetizationObserved": [],
+      "contentFormat": "ranking_list",
+      "observedAt": "2026-10-04"
+    }
+  ]
+}

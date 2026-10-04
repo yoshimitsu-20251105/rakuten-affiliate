@@ -1,0 +1,73 @@
+{
+  "description": "季節型Revenue Engineの管理。数値は捏造しない。未確認値はnull。スキーマ: strategy/schemas/seasonality.schema.json",
+  "items": [
+    {
+      "id": "furusato-nouzei",
+      "theme": "ふるさと納税",
+      "category": "finance-gift",
+      "peakMonths": [9, 10, 11, 12],
+      "leadTimeDays": null,
+      "normalDemand": null,
+      "peakDemand": null,
+      "peakRatio": null,
+      "recommendedResearchDate": null,
+      "recommendedPublishDate": null,
+      "recommendedUpdateDate": null,
+      "monetizationOptions": ["rakuten_affiliate"],
+      "regulatoryRisk": "返礼品の調達価格・表示等について総務省告示の対象(FACT: select-products.jsのふるさと納税枠は既存運用で確認済み)",
+      "inventoryRisk": null,
+      "lastReviewedAt": "2026-10-05"
+    },
+    {
+      "id": "mothers-day",
+      "theme": "母の日",
+      "category": "gift",
+      "peakMonths": [5],
+      "leadTimeDays": null,
+      "normalDemand": null,
+      "peakDemand": null,
+      "peakRatio": null,
+      "recommendedResearchDate": null,
+      "recommendedPublishDate": null,
+      "recommendedUpdateDate": null,
+      "monetizationOptions": [],
+      "regulatoryRisk": null,
+      "inventoryRisk": null,
+      "lastReviewedAt": "2026-10-05"
+    },
+    {
+      "id": "fathers-day",
+      "theme": "父の日",
+      "category": "gift",
+      "peakMonths": [6],
+      "leadTimeDays": null,
+      "normalDemand": null,
+      "peakDemand": null,
+      "peakRatio": null,
+      "recommendedResearchDate": null,
+      "recommendedPublishDate": null,
+      "recommendedUpdateDate": null,
+      "monetizationOptions": [],
+      "regulatoryRisk": null,
+      "inventoryRisk": null,
+      "lastReviewedAt": "2026-10-05"
+    },
+    {
+      "id": "black-friday",
+      "theme": "ブラックフライデー",
+      "category": "seasonal-sale",
+      "peakMonths": [11],
+      "leadTimeDays": null,
+      "normalDemand": null,
+      "peakDemand": null,
+      "peakRatio": null,
+      "recommendedResearchDate": null,
+      "recommendedPublishDate": null,
+      "recommendedUpdateDate": null,
+      "monetizationOptions": [],
+      "regulatoryRisk": null,
+      "inventoryRisk": null,
+      "lastReviewedAt": "2026-10-05"
+    }
+  ]
+}

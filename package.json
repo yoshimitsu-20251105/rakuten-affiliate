@@ -22,7 +22,8 @@
     "keywords:enrich-publication-products": "node --env-file-if-exists=.env keyword-research/cli/enrich-publication-products.js",
     "keywords:build-publication-preview": "node keyword-research/cli/build-publication-preview.js",
     "keywords:publish-approved-pages": "node --env-file-if-exists=.env keyword-research/cli/publish-approved-pages.js",
-    "analytics:search-trial-report": "node --env-file-if-exists=.env keyword-research/cli/search-trial-report.js"
+    "analytics:search-trial-report": "node --env-file-if-exists=.env keyword-research/cli/search-trial-report.js",
+    "strategy:validate": "node strategy/cli/validate.js"
   },
   "repository": {
     "type": "git",
