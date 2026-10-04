@@ -3,7 +3,8 @@
 // Phase 3Aのキーワード必須属性(requiredAttributes、rakuten-matches.csv由来)は
 // 「犬用・シニア」中心であり、公開タイトルが要求する「豚肉・主食」までは固定していない。
 // Phase 3Bでは公開ページごとに、より厳格な必須属性集合を明示する。
-// 対象は今回のPhase 3B対象2ページに限定する(汎用フレームワーク化は対象外)。
+// 対象はPhase 3B公開済み2ページ+2026-10-05追加の新規検索流入テスト3ページに限定する
+// (汎用フレームワーク化は対象外)。
 
 export const PUBLICATION_PAGE_REQUIREMENTS = {
   "senior-dog-pork": {
@@ -13,6 +14,20 @@ export const PUBLICATION_PAGE_REQUIREMENTS = {
   "grain-free-cat-food": {
     normalizedKeyword: "キャットフード グレインフリー",
     requiredAttributes: ["species:cat", "productType:staple", "feature:grain-free"],
+  },
+  // 【2026-10-05 新規検索流入テスト】既存2ページ(シニア犬×豚肉、猫×グレインフリー)とは
+  // 検索意図が重複しない3テーマを追加。
+  "grain-free-dog-food": {
+    normalizedKeyword: "グレインフリー ドッグフード",
+    requiredAttributes: ["species:dog", "productType:staple", "feature:grain-free"],
+  },
+  "senior-cat-food": {
+    normalizedKeyword: "シニア フード 猫",
+    requiredAttributes: ["species:cat", "lifeStage:senior", "productType:staple"],
+  },
+  "domestic-additive-free-dog-treats": {
+    normalizedKeyword: "おやつ 国産 無添加 犬",
+    requiredAttributes: ["species:dog", "productType:treat", "feature:domestic", "feature:additive-free"],
   },
 };
 

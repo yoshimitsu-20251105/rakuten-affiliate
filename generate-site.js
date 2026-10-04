@@ -21,6 +21,14 @@ const DOCS_DIR_PATH = DOCS_DIR.pathname.replace(/^\/([A-Za-z]):/, "$1:");
 // 参照先HTML不在・日付形式不正等)は lib/search-trial-config.js が例外を投げ、
 // main()側でdocs/への書き込みを一切行わずに非ゼロ終了する。
 const SEARCH_TRIAL_CONFIG_PATH = new URL("./keyword-research/search-trial-pages.json", import.meta.url).pathname.replace(/^\/([A-Za-z]):/, "$1:");
+// 【2026-10-05 新規検索流入テスト対応】検索公開試験ページ(search-trial-pages.json)を
+// 内容的に関連する既存ジャンルページ(rankingGroupsのslug)へ紐づける手動管理の対応表。
+// ここに挙げたslugの既存ページの末尾にだけ「関連ランキング」リンクを追加する
+// (全ジャンルへ機械的にリンクを増やす=不自然な大量内部リンクを避けるため)。
+const RELATED_SEARCH_TRIAL_SLUGS_BY_GROUP_SLUG = {
+  "petfood-sougou": ["grain-free-dog-food", "senior-cat-food", "domestic-additive-free-dog-treats"],
+  "国産_無添加_ドッグフード": ["grain-free-dog-food", "domestic-additive-free-dog-treats"],
+};
 const NOW = new Date();
 const TODAY_ISO = NOW.toISOString().slice(0, 10);
 const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
@@ -413,7 +421,23 @@ function rankingRows(items, pathPrefix, limit) {
     .join("\n");
 }
 
-function rankingPage(groupTitle, groupSlug, items) {
+// 【2026-10-05 新規検索流入テスト対応】内容的に関連する既存ジャンルページから、
+// 検索公開試験ページへ通常の<a href>リンクを1本追加する(sitemap.xml取得失敗時にも
+// 機能する内部リンク経路を増やすため)。新しい中間ハブページは作らず、既存の
+// ranking-linksスタイルを再利用して末尾に小さなブロックを足すだけにする。
+function relatedSearchTrialBlock(pages) {
+  if (!pages.length) return "";
+  const links = pages
+    .map((p) => `<a href="${escapeHtml(p.slug)}.html" class="ranking-link">🔍 ${escapeHtml(p.title)}</a>`)
+    .join("\n");
+  return `
+<section class="hub-section search-trial-section">
+<h2>関連ランキング</h2>
+<div class="ranking-links">${links}</div>
+</section>`;
+}
+
+function rankingPage(groupTitle, groupSlug, items, relatedSearchTrialPages = []) {
   const rows = rankingRows(items, "../articles/");
   const topItem = items.map((item) => ({ item, score: scoreItem(item) })).sort((a, b) => b.score - a.score)[0]?.item;
   const topImage = topItem ? imageUrls(topItem, 500, 1)[0] : undefined;
@@ -429,6 +453,7 @@ function rankingPage(groupTitle, groupSlug, items) {
 </div>
 <p class="micro-copy">${SCORE_DISCLOSURE_TEXT}</p>
 ${faq.html}
+${relatedSearchTrialBlock(relatedSearchTrialPages)}
 <p><a href="all.html">← ジャンル別ランキングまとめ一覧に戻る</a></p>
 `;
   return pageShell({
@@ -694,7 +719,9 @@ async function main() {
   }
 
   for (const g of rankingGroups) {
-    await writeFile(new URL(g.slug + ".html", RANKING_DIR), rankingPage(g.title, g.slug, g.items));
+    const relatedSlugs = RELATED_SEARCH_TRIAL_SLUGS_BY_GROUP_SLUG[g.slug] ?? [];
+    const relatedSearchTrialPages = searchTrialPages.filter((p) => p.internalLinkEnabled && relatedSlugs.includes(p.slug));
+    await writeFile(new URL(g.slug + ".html", RANKING_DIR), rankingPage(g.title, g.slug, g.items, relatedSearchTrialPages));
   }
 
   if (rankingGroups.length) {

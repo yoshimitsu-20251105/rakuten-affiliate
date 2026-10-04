@@ -234,6 +234,46 @@ test("generate-site.js: 検索公開試験ページを追加しても、既存�
   }
 });
 
+test("generate-site.js: 関連性の高い既存ジャンルページ(国産_無添加_ドッグフード・petfood-sougou)には、対応する検索公開試験ページへの関連リンクが追加される", async () => {
+  const dir = await setupIsolatedCopy();
+  try {
+    // matchedKeyword「国産 無添加 ドッグフード」は通常のジャンル別ページ(slug=国産_無添加_ドッグフード)と
+    // petfood-sougou(ペットフード総合)の両方に集計される既存キーワード。
+    const items = [1, 2, 3].map((i) => ({ ...makeItem(i), matchedKeyword: "国産 無添加 ドッグフード" }));
+    await writeFile(join(dir, "selected-products.json"), JSON.stringify(items, null, 2), "utf-8");
+    await writeFile(join(dir, "docs", "rankings", "grain-free-dog-food.html"), MINIMAL_PAGE_HTML, "utf-8");
+    await writeSearchTrialConfig(dir, {
+      pages: [validPage({ slug: "grain-free-dog-food", path: "rankings/grain-free-dog-food.html" })],
+    });
+    const result = runGenerateSite(dir);
+    assert.equal(result.status, 0, result.stderr);
+
+    const genreHtml = await readFile(join(dir, "docs", "rankings", "国産_無添加_ドッグフード.html"), "utf-8");
+    assert.match(genreHtml, /関連ランキング/);
+    assert.match(genreHtml, /href="grain-free-dog-food\.html"/);
+
+    const petfoodHtml = await readFile(join(dir, "docs", "rankings", "petfood-sougou.html"), "utf-8");
+    assert.match(petfoodHtml, /関連ランキング/);
+    assert.match(petfoodHtml, /href="grain-free-dog-food\.html"/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("generate-site.js: 関連リンクの対応表に無いジャンルページには関連リンクを追加しない(不自然な大量内部リンクを避ける)", async () => {
+  const dir = await setupIsolatedCopy();
+  try {
+    await writeFile(join(dir, "docs", "rankings", "senior-dog-pork.html"), MINIMAL_PAGE_HTML, "utf-8");
+    await writeSearchTrialConfig(dir, { pages: [validPage()] });
+    const result = runGenerateSite(dir);
+    assert.equal(result.status, 0, result.stderr);
+    const rankingHtml = await readFile(join(dir, "docs", "rankings", "テストジャンル.html"), "utf-8");
+    assert.doesNotMatch(rankingHtml, /関連ランキング/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("generate-site.js: 外部API呼び出しに使われるモジュール(googleapis等)をimportしない", async () => {
   const source = await readFile(join(PROJECT_ROOT, "generate-site.js"), "utf-8");
   assert.doesNotMatch(source, /googleapis/);
