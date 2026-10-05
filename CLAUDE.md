@@ -56,6 +56,14 @@ Claude CodeはImplementation Agentである。戦略判断を独断で行わな�
 
 **「自動化すること」が目的ではない。「再現可能な収益を自動で増やすこと」が目的である。**
 
+### ツール接続と自動実行を混同しない
+
+外部ツールの `CONNECTED`（接続・データ取得ができる状態）と `READY`（人間操作なしで最後まで定期実行できる状態）は同義ではない。
+
+自動化へ組み込む前に `strategy/tooling-registry.md` の Automation Readiness を確認すること。 `INTERACTIVE_ONLY` のツールを無人のDaily Agent等から当然に実行できる前提で設計しない。
+
+Automation Readinessを `READY` に変更するには、実際に人間操作なしで最後まで完了した実行証拠を必要とする。
+
 ### 重複作業防止ルール
 
 新しい調査・実装を開始する前に、必ず以下を確認すること:
