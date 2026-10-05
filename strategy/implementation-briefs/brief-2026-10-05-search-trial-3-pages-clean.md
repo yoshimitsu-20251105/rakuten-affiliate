@@ -51,6 +51,10 @@ Organic Search Impressions / Organic Search Clicks / Affiliate CTR / Affiliate C
 - `keyword-research/publication-preview-template.js`
 - `keyword-research/test/*`(関連テスト追加・更新)
 - `strategy/experiments.json`(PLANNED維持、本番公開確認後にRUNNINGへ)
+- `keyword-research/rakuten-match.js` — itemCode指定のAvailability Verification(`searchRakutenItemByCode()`)を追加するため(2026-10-05、実装中に必要性が判明し、ユーザー承認を得て追加)
+- `keyword-research/publication-enrichment-run.js` — Discovery(keyword検索)で見つからない承認済み商品を商品コードで再確認するフォールバック(`itemLookupFn`)を追加するため(同上)
+- `keyword-research/cli/enrich-publication-products.js` — liveの商品コード照会関数(`searchRakutenItemByCode`)を注入するため(同上)
+- `strategy/decisions.json` — Discovery/Availability分離の意思決定記録を追加するため(同上)
 
 ## Files Not Allowed To Change
 
@@ -80,7 +84,7 @@ Organic Search Impressions / Organic Search Clicks / Affiliate CTR / Affiliate C
 
 ## Success Criteria
 
-reviewDate(本番公開日+30日、公開確定後に設定)までに、各ページでSearch Console impressionsが累計5件以上。
+reviewDate(本番公開日+30日、公開確定後に設定)までに、各ページでSearch Console impressionsが累計10件以上(正式な実験台帳である`strategy/experiments.json`の`exp-2026-10-05-*`各件の`successThreshold.impressionsCumulative`と統一)。
 
 ## Kill Criteria
 
