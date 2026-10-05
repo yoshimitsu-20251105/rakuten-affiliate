@@ -22,32 +22,34 @@ FACT(GitHub由来、CLAUDE.md「運用状況」セクション、2026年8月時�
 |---|---|---|---|---|---|---|---|---|
 | senior-dog-pork.html | 2026-09-30 | 1 | 0 | 13 | Submitted and indexed | 8 | 9 | 0 |
 | grain-free-cat-food.html | 2026-09-30 | 0 | 0 | - | URL is unknown to Google | 9 | 9 | 0 |
+| grain-free-dog-food.html | 2026-10-05(Day0) | 0 | 0 | - | URL is unknown to Google | 0 | 0 | 0 |
+| senior-cat-food.html | 2026-10-05(Day0) | 0 | 0 | - | URL is unknown to Google | 0 | 0 | 0 |
+| domestic-additive-free-dog-treats.html | 2026-10-05(Day0) | 0 | 0 | - | URL is unknown to Google | 0 | 0 | 0 |
 
-出典: google_search_console_data_api / google_search_console_url_inspection_api / ga4_data_api(いずれも `keyword-research/cli/search-trial-report.js` の安全ゲート付きCLI経由)。2026-10-05時点でこれより新しい観測は未実施(UNKNOWN)。
-
-PR #17(未マージ)の新規3ページ(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)は本番未公開のため、トラフィックデータは存在しない(UNKNOWNではなく「まだ観測対象ではない」)。
+出典: google_search_console_data_api / google_search_console_url_inspection_api / ga4_data_api(いずれも `keyword-research/cli/search-trial-report.js` の安全ゲート付きCLI経由)。新規3ページのDay0行は公開同日の初回計測であり、「URL is unknown to Google」(未インデックス)の段階での実測値である点に注意(=「データなし」や「未反映」と、インデックス後に本当に0件だったことを混同しない)。
 
 ## Active Experiments
 
 `strategy/experiments.json` 参照。
 
-**RUNNING(本番公開済み)**:
+**RUNNING(本番公開済み、5件)**:
 
 - `exp-2026-09-10-senior-dog-pork` — startDate 2026-09-10 / reviewDate 2026-10-10
 - `exp-2026-09-10-grain-free-cat-food` — startDate 2026-09-10 / reviewDate 2026-10-10
+- `exp-2026-10-05-grain-free-dog-food` — startDate 2026-10-05 / reviewDate 2026-11-04
+- `exp-2026-10-05-senior-cat-food` — startDate 2026-10-05 / reviewDate 2026-11-04
+- `exp-2026-10-05-domestic-additive-free-dog-treats` — startDate 2026-10-05 / reviewDate 2026-11-04
 
-**PLANNED(PR #17未マージのため未公開。startDate/reviewDateは本番公開後に確定)**:
-
-- `exp-2026-10-05-grain-free-dog-food`
-- `exp-2026-10-05-senior-cat-food`
-- `exp-2026-10-05-domestic-additive-free-dog-treats`
+**PLANNED**: なし
 
 ## Active PRs
 
-GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
+GitHub上で確認できる事実(2026-10-05時点):
 
-- PR #16 `feature/instagram-auto-post` — Instagram自動投稿機能(Secret未設定の間は下書きモード)。承認済みのImplementation Briefがないため、**MERGE RECOMMENDATION = HOLD**(内容の変更・クローズはしていない)
-- PR #17 `feature/search-trial-3-new-pages` — 新規検索流入テスト3ページ。**未マージのため、master/本ブランチの`docs/`・`keyword-research/search-trial-pages.json`にはまだ反映されていない**
+- PR #16 `feature/instagram-auto-post` — Instagram自動投稿機能(Secret未設定の間は下書きモード)。承認済みのImplementation Briefがないため、**MERGE RECOMMENDATION = HOLD**(内容の変更・クローズはしていない、OPENのまま)
+- PR #17 `feature/search-trial-3-new-pages` — **CLOSED**(2026-10-05、PR #21でクリーン再構成して置き換え済みのためクローズ)
+- PR #21 `feature/search-trial-3-pages-clean` — **MERGED**(2026-10-05T09:23:18Z、master)。新規3ページ(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)を本番公開
+- PR #22 `fix/agent-os-brief-consistency` — **MERGED**(2026-10-05T09:40:15Z、master)。PR #21の記録整合性修正(Success Criteria統一・Files Allowed To Change追加・コメント更新)
 
 ## Current Opportunities
 
@@ -56,7 +58,7 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 ## Known Problems
 
 - FACT: `docs/sitemap.xml` のSearch Console取得失敗問題について、診断用の最小サイトマップ(`docs/sitemap-test.xml`、PR #15でマージ済み)を追加して切り分けを行った。現時点で問題自体が解決したという記録はリポジトリ内にない
-- FACT: `select-products.js` に2026-08-28時点で設定済みのキーワード(グレインフリー 国産 ドッグフード/シニア猫 国産 無添加/国産 無添加 犬 おやつ等)と、PR #17の新規3ページが概念的に重複している(`strategy/decisions.json` の `dec-2026-10-04-cannibalization-proceed` 参照)
+- FACT: `select-products.js` に2026-08-28時点で設定済みのキーワード(グレインフリー 国産 ドッグフード/シニア猫 国産 無添加/国産 無添加 犬 おやつ等)と、PR #21で本番公開した新規3ページが概念的に重複している(`strategy/decisions.json` の `dec-2026-10-04-cannibalization-proceed` 参照)
 
 ## Current Hypotheses
 
@@ -73,16 +75,16 @@ GitHub上で確認できる事実(2026-10-05時点、OPEN状態のみ):
 
 ## Top 3 Priorities
 
-1. PR #17を最新masterへ合わせ、不要な大量差分を除去して品質レビューする
-2. 2026-10-10(既存2実験のreviewDate)に向けたSearch Console/GA4の再観測準備
+1. 2026-10-10(既存2実験のreviewDate)に向けたSearch Console/GA4の再観測
+2. 新規3実験(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)のインデックス状況を定期確認(Day0時点で全て「URL is unknown to Google」)
 3. Daily Intelligence / Analytics Agentの接続準備
 
 ## Waiting For
 
-- PR #17のレビュー・修正・公開承認待ち
+- 新規3ページがGoogleにインデックスされるまでの経過観測(次回チェック推奨: 2026-10-12頃)
 
 ## Next Review
 
 **2026-10-10**(`exp-2026-09-10-senior-dog-pork` / `exp-2026-09-10-grain-free-cat-food` のreviewDate。既存の本番公開済み実験が優先)
 
-次点: 2026-11-04(PR #17マージ・公開後、新規3実験のreviewDateが startDate+30日 で確定する想定)
+次点: **2026-11-04**(`exp-2026-10-05-grain-free-dog-food` / `exp-2026-10-05-senior-cat-food` / `exp-2026-10-05-domestic-additive-free-dog-treats` のreviewDate、startDate 2026-10-05 + 30日で確定済み)
