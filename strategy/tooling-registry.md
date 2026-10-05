@@ -2,7 +2,13 @@
 
 外部ツール・API・サービスの接続状況を一元管理する。未接続は `NOT_CONNECTED`。料金は確認できたものだけ記載し、推測の金額は入れない(不明な場合は `UNKNOWN`)。
 
-各ツールは以下の項目で記録する: Tool / 日本語での用途 / Category / Purpose / Data Provided / Read or Write / Cost / Status / Limitations / When To Use / Replacement Candidate / Last Reviewed
+各ツールは以下の項目で記録する: Tool / 日本語での用途 / Category / Purpose / Data Provided / Read or Write / Cost / Usage Status / Access Status / Automation Readiness / Limitations / When To Use / Replacement Candidate / Last Reviewed
+
+- Usage Status: `ACTIVE` / `PLANNED` / `NOT_IN_USE`
+- Access Status: `CONNECTED` / `NOT_CONNECTED` / `NOT_APPLICABLE` / `UNKNOWN`
+- Automation Readiness: `READY` / `INTERACTIVE_ONLY` / `BLOCKED` / `NOT_APPLICABLE` / `UNKNOWN`
+
+**重要:** `CONNECTED` は「接続できる」、`READY` は「人間操作なしで最後まで自動実行できる」を意味し、同義ではない。
 
 ---
 
@@ -13,8 +19,11 @@
 - Data Provided: コード変更・テスト結果・調査結果
 - Read or Write: Read/Write(リポジトリに対して)
 - Cost: ユーザー契約のサブスクリプション(金額はUNKNOWN、本リポジトリからは確認できない)
-- Status: CONNECTED
-- Limitations: 戦略判断を独断で行わない(CLAUDE.md参照)。master直接pushは行わない
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: INTERACTIVE_ONLY
+
+- Limitations: 戦略判断を独断で行わない(CLAUDE.md参照)。master直接pushは行わない。過去にBash承認待ちで無人定期実行が停止したため、現時点ではREADY扱いしない
 - When To Use: 承認済みのImplementation Briefがある場合の実装・PR作成
 - Replacement Candidate: UNKNOWN
 - Last Reviewed: 2026-10-05
@@ -26,7 +35,10 @@
 - Data Provided: コミット履歴・PR状態・Issue
 - Read or Write: Read/Write
 - Cost: 公開リポジトリのため無料(FACT、CLAUDE.md記載)
-- Status: CONNECTED
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: INTERACTIVE_ONLY
+
 - Limitations: なし(現状の運用範囲内)
 - When To Use: 常時(全ての変更管理の基盤)
 - Replacement Candidate: UNKNOWN
@@ -39,7 +51,10 @@
 - Data Provided: 実行ログ、コミット履歴
 - Read or Write: Write(docs/・articles-data.json等への自動コミット)
 - Cost: 公開リポジトリのため無料・無制限(FACT、CLAUDE.md記載)
-- Status: CONNECTED
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: READY
+
 - Limitations: Secrets管理が必要(RAKUTEN_APP_ID等)。ワークフロー自体は今回のタスクで変更禁止対象
 - When To Use: 日次の商品選定・サイト更新(既存運用のまま)
 - Replacement Candidate: UNKNOWN
@@ -52,7 +67,10 @@
 - Data Provided: impressions, clicks, average position, URL Inspection状態
 - Read or Write: Read(読み取り専用。安全ゲート必須、keyword-research/search-trial-live-gate.js参照)
 - Cost: 無料(Googleの公式ツール)
-- Status: CONNECTED(連携済み、FACT。CLAUDE.md「運用状況」記載)
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: INTERACTIVE_ONLY
+
 - Limitations: `--live`フラグ+環境変数2つが揃わないと実行できない(事故防止のfail-closed設計)。低頻度クエリは匿名化され見えないことがある
 - When To Use: 検索流入実験のreviewDateでの観測(`keyword-research/cli/search-trial-report.js`)
 - Replacement Candidate: Bing Webmaster Tools(Google以外の検索エンジン向け、代替にはならず補完)
@@ -65,7 +83,10 @@
 - Data Provided: sessions, screenPageViews, affiliate_clickイベント数
 - Read or Write: Read(読み取り専用、同じ安全ゲート経由)
 - Cost: 無料(Googleの公式ツール)
-- Status: CONNECTED(連携済み、FACT)
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: INTERACTIVE_ONLY
+
 - Limitations: Google Search Consoleと同じライブ実行ゲートが必要
 - When To Use: 検索流入実験のreviewDateでの観測
 - Replacement Candidate: UNKNOWN
@@ -78,7 +99,10 @@
 - Data Provided: monthlySearches, competitionLevel/Index, trendIndex
 - Read or Write: Read(ただしAPI直接連携ではなく、手動エクスポートしたCSVを `keywords:import-gkp` で取込む運用)
 - Cost: Google広告アカウントに付随(個別の追加費用はUNKNOWN)
-- Status: CONNECTED(実データでの取込実績あり、FACT)
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: INTERACTIVE_ONLY
+
 - Limitations: competitionIndexは広告入札競合の指標であり、自然検索SERP競合とは別物(混同しないこと)
 - When To Use: 新規検索流入テーマの需要調査
 - Replacement Candidate: Ahrefs(現状NOT_CONNECTEDのため比較不可)
@@ -91,22 +115,28 @@
 - Data Provided: itemName, itemPrice, reviewCount, reviewAverage, affiliateUrl等
 - Read or Write: Read(商品検索のみ。書き込みAPIは使用していない)
 - Cost: 無料(楽天アフィリエイトプログラム参加のみで利用可能)
-- Status: CONNECTED(本プロジェクトの収益化の中核、FACT)
+- Usage Status: ACTIVE
+- Access Status: CONNECTED
+- Automation Readiness: READY
+
 - Limitations: 1秒1回のレート制限。APIバージョンが度々変わる(CLAUDE.md「既知の落とし穴」参照)
 - When To Use: 日次商品選定、公開ページの商品補完(enrich-publication-products.js等)
 - Replacement Candidate: Amazon Associates / PA-API(NOT_CONNECTED)
 - Last Reviewed: 2026-10-05
 
 ### ChatGPT
-- 日本語での用途: UNKNOWN(本プロジェクトでの利用実績は本セッションからは確認できない)
+- 日本語での用途: 市場調査・戦略・反証・Claude CodeへのImplementation Brief作成
 - Category: AI Agent
-- Purpose: UNKNOWN
+- Purpose: 収益機会の調査、仮説検証、優先順位付け、Claude Codeへの実装指示設計
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: ACTIVE
+- Access Status: NOT_APPLICABLE
+- Automation Readiness: NOT_APPLICABLE
+
 - Limitations: UNKNOWN
-- When To Use: UNKNOWN
+- When To Use: Research / Strategy / 反証 / 実装指示の作成
 - Replacement Candidate: UNKNOWN
 - Last Reviewed: 2026-10-05
 
@@ -117,7 +147,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: UNKNOWN
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -130,7 +163,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: Google Search Console(既存運用で直接利用中のため優先度低)
@@ -143,7 +179,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN(有料ツールであることは一般に知られるが、本プロジェクトとしての契約有無・金額はUNKNOWN)
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: Google Keyword Planner(需要調査の一部は代替中)
@@ -156,7 +195,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: Rakuten API(現行の主要データソース)
@@ -169,7 +211,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -182,7 +227,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -195,7 +243,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -208,7 +259,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: 無料(一般的に無料のツールとして知られるが、本プロジェクトでの契約状況はUNKNOWN)
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -221,7 +275,10 @@
 - Data Provided: N/A
 - Read or Write: Write(更新をプッシュ通知するのみ)
 - Cost: 無料
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: Googleのインデックス登録を直接促進するものではない(GLOSSARY.md参照)
 - When To Use: sitemap取得失敗問題への補助的な対策を検討する場合(ただしGoogle対策としての効果は限定的)
 - Replacement Candidate: UNKNOWN
@@ -234,7 +291,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED(本リポジトリの範囲では)
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -247,7 +307,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -260,7 +323,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: UNKNOWN
 - Cost: UNKNOWN
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
@@ -273,7 +339,10 @@
 - Data Provided: N/A
 - Read or Write: N/A
 - Cost: 無料(OSS)
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: 将来、公開ページのブラウザ上での自動確認(モバイル表示等)が必要になった場合
 - Replacement Candidate: 現状は手動のブラウザ確認(本セッションの検証workflow)で代替
@@ -286,7 +355,10 @@
 - Data Provided: UNKNOWN
 - Read or Write: N/A
 - Cost: 無料(Google製、OSS)
-- Status: NOT_CONNECTED
+- Usage Status: PLANNED
+- Access Status: NOT_CONNECTED
+- Automation Readiness: UNKNOWN
+
 - Limitations: UNKNOWN
 - When To Use: UNKNOWN
 - Replacement Candidate: UNKNOWN
