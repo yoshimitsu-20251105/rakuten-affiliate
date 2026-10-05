@@ -26,6 +26,43 @@ function buildIntroText(requiredAttributes) {
   return `${animal}用のおすすめ商品を、レビュー評価や商品情報をもとに人が内容を確認して選定しました。`;
 }
 
+// 【2026-10-05 検索流入テスト再構成対応】内容量(packageSize)から総グラム数を抽出する
+// 決定的なパーサー。"1.8kg"/"60g"/"35g×48袋"等に対応。重さを含まない表記
+// (例:「角ボトル3個」「選べる3袋セット」)はnullを返す(推測で単価を作らない)。
+export function parseGramsFromPackageSize(packageSize) {
+  if (typeof packageSize !== "string") return null;
+  const match = packageSize.match(/(\d+(?:\.\d+)?)\s*(kg|g)(?:\s*[×x]\s*(\d+))?/i);
+  if (!match) return null;
+  const [, amountStr, unit, multiplierStr] = match;
+  const amount = Number(amountStr);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const grams = unit.toLowerCase() === "kg" ? amount * 1000 : amount;
+  const multiplier = multiplierStr ? Number(multiplierStr) : 1;
+  if (!Number.isFinite(multiplier) || multiplier <= 0) return null;
+  return grams * multiplier;
+}
+
+// itemPrice・packageSizeの両方が確認できる場合のみ100gあたり価格を計算する
+// (どちらか欠けていれば、比較表の列ごと省略する=build側で判定)。
+export function computePricePerUnitLabel(packageSize, itemPrice) {
+  if (typeof itemPrice !== "number" || !Number.isFinite(itemPrice)) return null;
+  const grams = parseGramsFromPackageSize(packageSize);
+  if (grams === null) return null;
+  const pricePer100g = (itemPrice / grams) * 100;
+  return `¥${Math.round(pricePer100g).toLocaleString("ja-JP")}/100g`;
+}
+
+// 【2026-10-05 検索流入テスト再構成対応】比較表に出す任意の属性列。各ページで実際に
+// 値を持つ商品が1件以上ある列だけを表示する(確認できない項目は比較表から省略し、
+// UNKNOWNや推測値で埋めない)。価格・レビューは常に全商品で確定しているため常時表示。
+const OPTIONAL_COLUMN_DEFS = [
+  { key: "targetAge", label: "対象年齢" },
+  { key: "packageSize", label: "内容量" },
+  { key: "pricePerUnitLabel", label: "100gあたり" },
+  { key: "mainIngredient", label: "主原料" },
+  { key: "productFormat", label: "タイプ" },
+];
+
 // 【2026-09-10 CTAクリック計測対応】affiliate_clickイベントのanimal_type値(dog/cat)。
 // buildIntroText()と同じrequiredAttributes判定をそのまま再利用する(判定基準を1つに保つ)。
 function buildAnimalType(requiredAttributes) {
@@ -223,6 +260,13 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
       const flavorNoteRequired = needsFlavorSelectionNote(sourceItem.itemName);
       const displayNote = flavorNoteRequired ? FLAVOR_SELECTION_NOTE_TEXT : (typeof product.displayNote === "string" && product.displayNote.trim() !== "" ? product.displayNote.trim() : null);
 
+      // 【2026-10-05 検索流入テスト再構成対応】確認できる構造化属性のみ引き継ぐ
+      // (未指定ならnullのまま。推測で埋めない)。
+      const packageSize = typeof product.packageSize === "string" && product.packageSize.trim() !== "" ? product.packageSize.trim() : null;
+      const targetAge = typeof product.targetAge === "string" && product.targetAge.trim() !== "" ? product.targetAge.trim() : null;
+      const mainIngredient = typeof product.mainIngredient === "string" && product.mainIngredient.trim() !== "" ? product.mainIngredient.trim() : null;
+      const productFormat = typeof product.productFormat === "string" && product.productFormat.trim() !== "" ? product.productFormat.trim() : null;
+
       finalItems.push({
         itemCode: product.itemCode,
         displayName: product.displayName,
@@ -234,6 +278,11 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         affiliateUrl: enrichedItem.affiliateUrl,
         shopName: enrichedItem.shopName,
         selectionType: flavorNoteRequired ? "selectable" : "confirmed",
+        packageSize,
+        targetAge,
+        mainIngredient,
+        productFormat,
+        pricePerUnitLabel: computePricePerUnitLabel(packageSize, enrichedItem.itemPrice),
         qualityScore: sourceItem.qualityScore, // 内部ソート専用、HTMLには出力しない
         _sourceItemName: sourceItem.itemName, // 内部の類似度判定専用、HTMLには出力しない
       });
@@ -250,13 +299,16 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
     }
 
     // 【2026-09-08 表示順位改善】商品自体の内容が確定している商品(confirmed)を、
-    // 購入時にタイプ選択が必要な商品(selectable)より先に表示する。同じ区分内では
-    // 既存通りQuality Score降順(公開HTMLへQuality Score自体は出力しない)。
+    // 購入時にタイプ選択が必要な商品(selectable)より先に表示する。
+    // 【2026-10-05 表示順の客観性対応】同じ区分内の並び順は、非公開のQuality Score
+    // (内部指標)ではなく、ページ上にも開示しているレビュー件数の降順にする
+    // (「何を基準に並べているか」を読者が確認できる状態にする。恣意的な
+    // おすすめ順を作らないため)。
     finalItems.sort((a, b) => {
       if (a.selectionType !== b.selectionType) {
         return a.selectionType === "confirmed" ? -1 : 1;
       }
-      return (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
+      return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
     });
 
     const diversity = evaluateShopDiversity(finalItems.map((i) => ({ itemCode: i.itemCode, shopName: i.shopName })));
@@ -271,7 +323,15 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
     }
     if (errors.some((e) => e.startsWith(`[${page.slug}]`))) continue;
 
-    pageResults.push({ slug: page.slug, title: page.title, pageConfig, finalItems, enrichmentFetchedAt: enrichedItemsByCode.values().next().value?.fetchedAt });
+    pageResults.push({
+      slug: page.slug,
+      title: page.title,
+      introText: typeof page.introText === "string" && page.introText.trim() !== "" ? page.introText.trim() : null,
+      buyingGuideText: typeof page.buyingGuideText === "string" && page.buyingGuideText.trim() !== "" ? page.buyingGuideText.trim() : null,
+      pageConfig,
+      finalItems,
+      enrichmentFetchedAt: enrichedItemsByCode.values().next().value?.fetchedAt,
+    });
   }
 
   if (errors.length > 0) {
@@ -280,13 +340,18 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
 
   // --- 6. 決定的なHTML生成 ---
   const drafts = pageResults.map((p) => {
+    // 【2026-10-05 検索流入テスト再構成対応】そのページで実際に1件以上値を持つ
+    // 任意列だけを比較表に出す(確認できない項目は省略、推測で埋めない)。
+    const comparisonColumns = OPTIONAL_COLUMN_DEFS.filter((col) => p.finalItems.some((item) => item[col.key] !== null && item[col.key] !== undefined));
+
     const html = renderPublicationPreviewHtml({
       title: p.title,
-      introText: buildIntroText(p.pageConfig.requiredAttributes),
-      buyingGuideText: "",
+      introText: p.introText ?? buildIntroText(p.pageConfig.requiredAttributes),
+      buyingGuideText: p.buyingGuideText ?? "",
       dataRetrievedAtJa: formatJaDate(p.enrichmentFetchedAt ?? enrichmentMetadata.executedAt),
       canonicalUrl: `${SITE_URL}/rankings/${p.slug}.html`,
       animalType: buildAnimalType(p.pageConfig.requiredAttributes),
+      comparisonColumns,
       products: p.finalItems.map((item, idx) => ({
         rank: idx + 1,
         displayName: item.displayName,
@@ -298,6 +363,11 @@ export async function buildPublicationPreview({ sourceRunDir, publicationApprove
         affiliateUrl: item.affiliateUrl,
         shopName: item.shopName,
         selectionType: item.selectionType,
+        packageSize: item.packageSize,
+        targetAge: item.targetAge,
+        mainIngredient: item.mainIngredient,
+        productFormat: item.productFormat,
+        pricePerUnitLabel: item.pricePerUnitLabel,
         verifiedAttributeLabels: buildAttributeLabels(p.pageConfig.requiredAttributes),
       })),
     }, { isDraft, gaMeasurementId, allowSearchIndex, pageType });

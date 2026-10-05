@@ -24,6 +24,42 @@
       "sitemapEnabled": true,
       "internalLinkEnabled": true,
       "searchIndexEnabled": true
+    },
+    {
+      "slug": "grain-free-dog-food",
+      "path": "rankings/grain-free-dog-food.html",
+      "title": "グレインフリードッグフードを比較｜楽天で買える商品と選び方",
+      "status": "search_trial",
+      "startDate": "2026-10-05",
+      "reviewDate": "2026-11-04",
+      "pageType": "search_trial_ranking",
+      "sitemapEnabled": true,
+      "internalLinkEnabled": true,
+      "searchIndexEnabled": true
+    },
+    {
+      "slug": "senior-cat-food",
+      "path": "rankings/senior-cat-food.html",
+      "title": "シニア猫向けフードを比較｜年齢に合わせた選び方と楽天商品",
+      "status": "search_trial",
+      "startDate": "2026-10-05",
+      "reviewDate": "2026-11-04",
+      "pageType": "search_trial_ranking",
+      "sitemapEnabled": true,
+      "internalLinkEnabled": true,
+      "searchIndexEnabled": true
+    },
+    {
+      "slug": "domestic-additive-free-dog-treats",
+      "path": "rankings/domestic-additive-free-dog-treats.html",
+      "title": "国産・無添加の犬用おやつを比較｜選び方と楽天で買える商品",
+      "status": "search_trial",
+      "startDate": "2026-10-05",
+      "reviewDate": "2026-11-04",
+      "pageType": "search_trial_ranking",
+      "sitemapEnabled": true,
+      "internalLinkEnabled": true,
+      "searchIndexEnabled": true
     }
   ]
 }

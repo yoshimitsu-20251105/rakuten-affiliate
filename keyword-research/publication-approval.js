@@ -22,6 +22,8 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const MIN_PRODUCTS_PER_PAGE = 3;
 export const MAX_PRODUCTS_PER_PAGE = 5;
 const MAX_DISPLAY_NAME_LENGTH = 120;
+const MAX_SHORT_FIELD_LENGTH = 40;
+const MAX_LONG_TEXT_LENGTH = 200;
 const DEFAULT_SAFETY_CONFIG = { medicalTerms: MEDICAL_TERMS, healthTerms: HEALTH_TERMS };
 
 function isNonEmptyString(v) {
@@ -31,6 +33,34 @@ function isNonEmptyString(v) {
 function isSafeDisplayText(text, safetyConfig) {
   const { safetyStatus } = classifySafety(text, safetyConfig);
   return safetyStatus === "SAFE";
+}
+
+/**
+ * 【2026-10-05 検索流入テスト再構成対応】packageSize/targetAge/mainIngredient/
+ * productFormat/introText/buyingGuideText等、任意入力の短文フィールド共通の検証。
+ * 制御文字なし・安全性(医療/健康断定表現なし)・最大文字数のみを見る
+ * (未入力は許可、入力した場合だけ検証する)。
+ * @param {any} value
+ * @param {string} fieldLabel
+ * @param {number} maxLength
+ * @param {any} safetyConfig
+ * @param {string[]} errors
+ */
+function validateOptionalShortText(value, fieldLabel, maxLength, safetyConfig, errors) {
+  if (value === undefined || value === null) return;
+  const raw = typeof value === "string" ? value : "";
+  if (containsControlCharacters(raw)) {
+    errors.push(`${fieldLabel}に制御文字が含まれています`);
+    return;
+  }
+  const trimmed = raw.trim();
+  if (trimmed === "") return;
+  if (trimmed.length > maxLength) {
+    errors.push(`${fieldLabel}が${maxLength}文字を超えています(実際: ${trimmed.length}文字)`);
+  }
+  if (!isSafeDisplayText(trimmed, safetyConfig)) {
+    errors.push(`${fieldLabel}に医療・健康効果を断定する表現が含まれています`);
+  }
 }
 
 /**
@@ -99,6 +129,12 @@ export async function loadPublicationApprovalFile(filePath, { safetyConfig = DEF
         errors.push(`${pagePrefix}.requiredAttributesは1件以上の配列である必要があります`);
       }
 
+      // 【2026-10-05 検索流入テスト再構成対応】ページ固有のintroText(meta description兼用)・
+      // buyingGuideText(選び方・表示順の開示)。任意入力、未指定時はpublication-preview-build.js側の
+      // 既定テキスト(buildIntroText()・固定の選定基準文)にフォールバックする(既存2ページは無指定のまま)。
+      validateOptionalShortText(page.introText, `${pagePrefix}.introText`, MAX_LONG_TEXT_LENGTH, safetyConfig, errors);
+      validateOptionalShortText(page.buyingGuideText, `${pagePrefix}.buyingGuideText`, MAX_LONG_TEXT_LENGTH, safetyConfig, errors);
+
       if (!Array.isArray(page.products)) {
         errors.push(`${pagePrefix}.productsは配列である必要があります`);
         return;
@@ -145,6 +181,14 @@ export async function loadPublicationApprovalFile(filePath, { safetyConfig = DEF
         if (product.humanApproved !== true) {
           errors.push(`${productPrefix}.humanApprovedがtrueではありません(商品ごとに明示的な人間承認が必須です)`);
         }
+
+        // 【2026-10-05 検索流入テスト再構成対応】比較表・商品カードに表示する任意の構造化属性。
+        // 確認できない項目は未指定のままにする(publication-preview-build.js/templateは
+        // 未指定フィールドを比較表の列から自動的に省略する。推測で埋めない)。
+        validateOptionalShortText(product.packageSize, `${productPrefix}.packageSize`, MAX_SHORT_FIELD_LENGTH, safetyConfig, errors);
+        validateOptionalShortText(product.targetAge, `${productPrefix}.targetAge`, MAX_SHORT_FIELD_LENGTH, safetyConfig, errors);
+        validateOptionalShortText(product.mainIngredient, `${productPrefix}.mainIngredient`, MAX_SHORT_FIELD_LENGTH, safetyConfig, errors);
+        validateOptionalShortText(product.productFormat, `${productPrefix}.productFormat`, MAX_SHORT_FIELD_LENGTH, safetyConfig, errors);
       });
     });
   }

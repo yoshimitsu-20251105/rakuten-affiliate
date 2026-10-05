@@ -107,6 +107,72 @@ export async function searchRakutenItemsLive(keyword, { hits = 30, rateLimitMs =
 }
 
 /**
+ * 【2026-10-05 Discovery/Availability分離対応】
+ * keyword検索(Discovery=候補商品を探す処理)とは別の、商品コード指定での
+ * 販売状態確認(Availability Verification=既知の商品が今も販売中か確認する処理)。
+ * IchibaItem/Search APIの`itemCode`パラメータ(shopCode:itemCode形式)を使う、
+ * キーワード順位に依存しない単一商品の直接照会。
+ *
+ * 【背景】runPublicationEnrichment()は従来、承認済みitemCodeをkeyword検索
+ * (hits=30, sort=-reviewCount)の結果に含まれるかどうかだけで「在庫あり/なし」を
+ * 判定していた。しかし「検索結果の上位30件に入らない」ことと「商品が販売中ではない」
+ * ことは別問題であり、レビュー件数の変動等で特定のkeyword検索の上位30件から
+ * 一時的に外れただけの商品を誤って「在庫確認失敗」として除外してしまう欠陥があった。
+ * この関数はkeyword検索に頼らず、商品コードそのもので直接商品の現在の販売状態を確認する。
+ *
+ * @param {string} itemCode - "shopCode:itemCode"形式
+ * @param {{ rateLimitMs?: number, timeoutMs?: number }} [options]
+ * @returns {Promise<{ item: any|null, source: 'live' }>} 商品が現在取得できない場合はitem:null
+ */
+export async function searchRakutenItemByCode(itemCode, { rateLimitMs = RAKUTEN_RATE_LIMIT_MS, timeoutMs = 10000 } = {}) {
+  try {
+    const appId = process.env.RAKUTEN_APP_ID;
+    const accessKey = process.env.RAKUTEN_SECRET;
+    const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;
+    const APP_URL = "https://yoshimitsu-20251105.github.io/rakuten-affiliate/";
+    const APP_ORIGIN = "https://yoshimitsu-20251105.github.io";
+
+    const url = new URL("https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701");
+    url.searchParams.set("applicationId", appId);
+    url.searchParams.set("accessKey", accessKey);
+    if (affiliateId) url.searchParams.set("affiliateId", affiliateId);
+    url.searchParams.set("itemCode", itemCode);
+    url.searchParams.set("hits", "1");
+    url.searchParams.set("format", "json");
+
+    const res = await fetchWithRetry(url, {
+      headers: { accessKey, Authorization: `Bearer ${accessKey}`, Origin: APP_ORIGIN },
+      referrer: APP_URL,
+      referrerPolicy: "no-referrer-when-downgrade",
+      timeoutMs,
+      maxRetries: 2,
+      minRetryIntervalMs: rateLimitMs,
+    });
+    if (!res.ok) {
+      throw new Error(`楽天APIエラー: HTTP ${res.status}`);
+    }
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error(`楽天APIエラー: レスポンスのJSON解析に失敗(${e.message})`);
+    }
+    if (data.error || data.errors) {
+      const msg = data.error ? `${data.error} ${data.error_description ?? ""}` : `${data.errors.errorCode} ${data.errors.errorMessage ?? ""}`;
+      throw new Error(`楽天APIエラー: ${msg}`);
+    }
+    if (!Array.isArray(data.Items)) {
+      throw new Error("楽天APIエラー: レスポンスにItemsフィールドが存在しない、または配列ではない");
+    }
+    // itemCode指定検索は通常0件か1件。該当なし(販売終了・商品コード変更等)ならitem:null。
+    const item = data.Items.length > 0 ? data.Items[0].Item : null;
+    return { item, source: "live" };
+  } finally {
+    await sleep(rateLimitMs);
+  }
+}
+
+/**
  * fixtureフォールバック(楽天API未設定時)。単純なキーワード部分一致で候補を返す。
  */
 export async function searchRakutenItemsFixture(keyword) {

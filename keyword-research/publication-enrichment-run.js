@@ -19,11 +19,18 @@ import { sanitizeEnrichedItem } from "./publication-enrichment.js";
 const MIN_PRODUCTS_PER_PAGE = 3;
 
 /**
+ * 【2026-10-05 Discovery/Availability分離対応】
  * @param {{
  *   sourceRunDir: string,
  *   publicationApprovedFilePath: string,
  *   searchFn: (query: string) => Promise<{ items: any[], count: number, source: string }>,
- * }} params
+ *   itemLookupFn?: (itemCode: string) => Promise<{ item: any|null, source: string }>,
+ * }} params itemLookupFn: 承認済みitemCodeがsearchFn(keyword検索=Discovery)の結果に
+ *   見つからなかった場合の追加確認(商品コード指定=Availability Verification)。
+ *   未指定の場合は従来通りsearchFnの結果のみで判定する(後方互換)。
+ *   「keyword検索の上位N件に入らない」ことと「販売中ではない」ことは別問題であり、
+ *   レビュー件数変動等でkeyword検索の上位から一時的に外れただけの商品を
+ *   誤ってNOT_FOUND扱いしないようにする。
  * @returns {Promise<{
  *   ok: boolean, errors: string[],
  *   sourceRunId?: string, candidateSetHash?: string, publicationApprovedFileHash?: string,
@@ -32,7 +39,7 @@ const MIN_PRODUCTS_PER_PAGE = 3;
  *   logicalRakutenQueryCount: number, apiErrorCount: number,
  * }>}
  */
-export async function runPublicationEnrichment({ sourceRunDir, publicationApprovedFilePath, searchFn }) {
+export async function runPublicationEnrichment({ sourceRunDir, publicationApprovedFilePath, searchFn, itemLookupFn }) {
   let logicalRakutenQueryCount = 0;
   let apiErrorCount = 0;
 
@@ -92,10 +99,36 @@ export async function runPublicationEnrichment({ sourceRunDir, publicationApprov
     const pageErrors = [];
     const excludedItems = [];
     for (const itemCode of approvedItemCodes) {
-      const liveItem = liveItemsByCode.get(itemCode);
+      let liveItem = liveItemsByCode.get(itemCode);
+
+      // 【2026-10-05 Discovery/Availability分離対応】keyword検索(Discovery)の結果に
+      // 見つからなかった場合、itemLookupFnが渡されていれば商品コード指定での
+      // 直接照会(Availability Verification)を試みる。keyword検索の順位(hits上限・
+      // sort条件)に左右されない、商品そのものの現在の販売状態の確認。
+      let lookupAttempted = false;
+      if (!liveItem && itemLookupFn) {
+        lookupAttempted = true;
+        logicalRakutenQueryCount += 1;
+        try {
+          const lookupResult = await itemLookupFn(itemCode);
+          if (lookupResult.source !== "live") {
+            errors.push(`itemCode「${itemCode}」の商品コード指定確認の結果がlive以外です(fixture混入は許可しません、source=${lookupResult.source})`);
+            continue;
+          }
+          liveItem = lookupResult.item ?? undefined;
+        } catch (e) {
+          apiErrorCount += 1;
+          errors.push(`itemCode「${itemCode}」の商品コード指定確認でAPIエラー: ${e.message}`);
+          continue;
+        }
+      }
+
       if (!liveItem) {
-        pageErrors.push(`承認済みitemCode「${itemCode}」が最新の楽天検索結果に見つからないため掲載しません`);
-        excludedItems.push({ itemCode, reasonCode: "NOT_FOUND_IN_LIVE_RESULTS" });
+        pageErrors.push(
+          `承認済みitemCode「${itemCode}」が最新の楽天検索結果に見つからず` +
+            (lookupAttempted ? "、商品コード指定での確認でも取得できなかったため掲載しません" : "、商品コード指定での確認も行わなかったため掲載しません")
+        );
+        excludedItems.push({ itemCode, reasonCode: lookupAttempted ? "NOT_FOUND_BY_ITEM_CODE_LOOKUP" : "NOT_FOUND_IN_LIVE_RESULTS" });
         continue;
       }
       // 【重要】人間承認済み(page.products[].humanApproved=true)であっても、

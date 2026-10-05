@@ -360,3 +360,119 @@ test("runPublicationEnrichment: 猫4件中2件在庫なしだとページ全体�
     await cleanup(outputRoot);
   }
 });
+
+// =====================================================================
+// 【2026-10-05 Discovery/Availability分離対応】
+// keyword検索(Discovery=候補商品を探す処理)の結果に承認済みitemCodeが
+// 見つからなかった場合、商品コード指定の直接照会(Availability Verification=
+// 既知の商品が今も販売中か確認する処理)を試みる。「keyword検索の上位N件に
+// 入らない」ことと「販売中ではない」ことは別問題であり、レビュー件数変動等で
+// 特定keyword検索の上位から一時的に外れただけの商品を誤ってNOT_FOUND扱いしない。
+// =====================================================================
+
+test("itemLookupFn: keyword検索に見つからない商品も、商品コード指定確認(itemLookupFn)で見つかれば掲載される", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      // shop:d3だけがkeyword検索(Discovery)の上位に入らない想定
+      return { items: ["shop:d1", "shop:d2"].map((c) => liveApiItem(c)), count: 2, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  const lookedUpCodes = [];
+  const itemLookupFn = async (itemCode) => {
+    lookedUpCodes.push(itemCode);
+    if (itemCode === "shop:d3") {
+      return { item: liveApiItem("shop:d3"), source: "live" };
+    }
+    return { item: null, source: "live" };
+  };
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn, itemLookupFn });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    assert.deepEqual(lookedUpCodes, ["shop:d3"], "keyword検索に見つからなかったitemCodeだけを商品コード指定で確認すること");
+    const dogPage = result.pages.find((p) => p.slug === DOG_SLUG);
+    assert.equal(dogPage.items.length, 3);
+    assert.ok(dogPage.items.some((i) => i.itemCode === "shop:d3"), "商品コード指定確認で見つかった商品が掲載されること");
+    assert.equal(result.logicalRakutenQueryCount, 3, "keyword検索2回+商品コード指定確認1回=3回");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("itemLookupFn: 商品コード指定確認でも見つからない場合は、理由コードNOT_FOUND_BY_ITEM_CODE_LOOKUPで除外される", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return { items: ["shop:d1", "shop:d2"].map((c) => liveApiItem(c)), count: 2, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  const itemLookupFn = async () => ({ item: null, source: "live" });
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn, itemLookupFn });
+    assert.equal(result.ok, false);
+    const dogExclusions = result.pageExclusions.find((p) => p.slug === DOG_SLUG).excludedItems;
+    assert.deepEqual(dogExclusions, [{ itemCode: "shop:d3", reasonCode: "NOT_FOUND_BY_ITEM_CODE_LOOKUP" }]);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("itemLookupFnを渡さない場合は従来通りの挙動(NOT_FOUND_IN_LIVE_RESULTS)のままである(後方互換)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return { items: ["shop:d1", "shop:d2"].map((c) => liveApiItem(c)), count: 2, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn });
+    assert.equal(result.ok, false);
+    const dogExclusions = result.pageExclusions.find((p) => p.slug === DOG_SLUG).excludedItems;
+    assert.deepEqual(dogExclusions, [{ itemCode: "shop:d3", reasonCode: "NOT_FOUND_IN_LIVE_RESULTS" }]);
+    assert.equal(result.logicalRakutenQueryCount, 2, "itemLookupFn未指定の場合、追加の論理検索は発生しないこと");
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("itemLookupFnがfixtureソースを返した場合は拒否する(fixture混入は許可しない)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return { items: ["shop:d1", "shop:d2"].map((c) => liveApiItem(c)), count: 2, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  const itemLookupFn = async () => ({ item: liveApiItem("shop:d3"), source: "fixture" });
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn, itemLookupFn });
+    assert.equal(result.ok, false);
+    assert.match(result.errors.join(""), /fixture/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("itemLookupFnが例外を投げた場合はAPI_ERRORとして扱い拒否する", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath } = await setupFixtures();
+  const searchFn = async (query) => {
+    if (query === DOG_KEYWORD) {
+      return { items: ["shop:d1", "shop:d2"].map((c) => liveApiItem(c)), count: 2, source: "live" };
+    }
+    return { items: ["shop:c1", "shop:c2", "shop:c3"].map((c) => liveApiItem(c)), count: 3, source: "live" };
+  };
+  const itemLookupFn = async () => {
+    throw new Error("楽天APIエラー: HTTP 503");
+  };
+  try {
+    const result = await runPublicationEnrichment({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, searchFn, itemLookupFn });
+    assert.equal(result.ok, false);
+    assert.equal(result.apiErrorCount, 1);
+    assert.match(result.errors.join(""), /HTTP 503/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});

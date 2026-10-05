@@ -100,15 +100,19 @@ export function formatJaDate(isoString) {
  *     rank: number, displayName: string, displayNote?: string|null,
  *     imageUrl: string, itemPrice: number|null, reviewAverage: number|null, reviewCount: number|null,
  *     shopName?: string|null, selectionType: "confirmed"|"selectable",
+ *     packageSize?: string|null, targetAge?: string|null, mainIngredient?: string|null,
+ *     productFormat?: string|null, pricePerUnitLabel?: string|null,
  *     verifiedAttributeLabels: string[], affiliateUrl: string,
  *   }>,
+ *   comparisonColumns?: Array<{ key: string, label: string }>,
  *   canonicalUrl?: string, animalType?: "dog"|"cat",
- * }} data
+ * }} data comparisonColumns: 比較表に追加で出す任意列(そのページの商品で実際に
+ *   値がある列だけを呼び出し側が渡す。未指定時は価格・レビューのみの表になる)。
  * @param {{ isDraft?: boolean, gaMeasurementId?: string, allowSearchIndex?: boolean, pageType?: string }} [options]
  * @returns {string} 完全なHTML文書
  */
 export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasurementId = "", allowSearchIndex = false, pageType = "search_trial_ranking" } = {}) {
-  const { title, introText, buyingGuideText, dataRetrievedAtJa, products, canonicalUrl = "", animalType = "" } = data;
+  const { title, introText, buyingGuideText, dataRetrievedAtJa, products, canonicalUrl = "", animalType = "", comparisonColumns = [] } = data;
 
   // 既存サイト(generate-site.js)と同一のgtag.js読込・dataLayer初期化パターン。
   // DRAFT中は内部レビュー閲覧を実際の計測に混入させないため常に空にする。
@@ -165,11 +169,15 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
     ? `<meta name="description" content="${escapeHtml(introText)}">\n<meta property="og:description" content="${escapeHtml(introText)}">\n`
     : "";
 
+  // 【2026-10-05 検索流入テスト再構成対応】対象年齢・内容量・主原料・タイプ・
+  // 100gあたり価格は、確認できた商品だけ表示する(未確認はdl自体を出さない。
+  // 「位」(順位)は客観的な品質ランキングと誤解されるため「No.」(掲載順の通し番号、
+  // 並び順はレビュー件数降順であることをcriteria-boxで開示)に変更した。
   const cards = products
     .map(
       (p) => `
       <article class="product-card">
-        <div class="rank-badge">${p.rank}位</div>
+        <div class="rank-badge">No.${p.rank}</div>
         <div class="product-media">
           <img class="product-image" src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.displayName)}" width="200" height="200" loading="lazy">
         </div>
@@ -178,10 +186,14 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
           ${p.verifiedAttributeLabels.length > 0 ? `<ul class="product-attrs">${p.verifiedAttributeLabels.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>` : ""}
           <dl class="product-specs">
             ${p.shopName ? `<div><dt>店舗</dt><dd>${escapeHtml(p.shopName)}</dd></div>` : ""}
+            ${p.targetAge ? `<div><dt>対象年齢</dt><dd>${escapeHtml(p.targetAge)}</dd></div>` : ""}
+            ${p.packageSize ? `<div><dt>内容量</dt><dd>${escapeHtml(p.packageSize)}</dd></div>` : ""}
+            ${p.mainIngredient ? `<div><dt>主原料</dt><dd>${escapeHtml(p.mainIngredient)}</dd></div>` : ""}
+            ${p.productFormat ? `<div><dt>タイプ</dt><dd>${escapeHtml(p.productFormat)}</dd></div>` : ""}
             <div><dt>在庫</dt><dd>在庫確認済み(取得時点)</dd></div>
             <div><dt>購入方式</dt><dd>${escapeHtml(formatSelectionType(p.selectionType))}</dd></div>
           </dl>
-          <p class="product-price">${formatPrice(p.itemPrice)}</p>
+          <p class="product-price">${formatPrice(p.itemPrice)}${p.pricePerUnitLabel ? `<span class="price-per-unit"> (${escapeHtml(p.pricePerUnitLabel)})</span>` : ""}</p>
           <p class="product-review">レビュー: ${formatReview(p.reviewAverage, p.reviewCount)}</p>
           ${p.displayNote ? `<p class="product-note">※ ${escapeHtml(p.displayNote)}</p>` : ""}
           <a class="cta-button" href="${escapeHtml(p.affiliateUrl)}" target="_blank" rel="sponsored noopener noreferrer" data-item-rank="${p.rank}" data-animal-type="${escapeHtml(animalType)}" data-selection-type="${ctaSelectionType(p.selectionType)}" data-page-type="${escapeHtml(pageType)}">楽天市場で在庫・価格を確認してください</a>
@@ -190,16 +202,24 @@ export function renderPublicationPreviewHtml(data, { isDraft = true, gaMeasureme
     )
     .join("\n");
 
+  const tableHeaderCells = ["順位", "商品名", ...comparisonColumns.map((c) => c.label), "価格", "レビュー"]
+    .map((label) => `<th>${escapeHtml(label)}</th>`)
+    .join("");
+
   const tableRows = products
-    .map(
-      (p) => `
+    .map((p) => {
+      const extraCells = comparisonColumns
+        .map((c) => `<td data-label="${escapeHtml(c.label)}">${p[c.key] ? escapeHtml(p[c.key]) : "—"}</td>`)
+        .join("");
+      return `
         <tr>
-          <td data-label="順位">${p.rank}</td>
+          <td data-label="順位">No.${p.rank}</td>
           <td data-label="商品名">${escapeHtml(p.displayName)}</td>
+          ${extraCells}
           <td data-label="価格">${formatPrice(p.itemPrice)}</td>
           <td data-label="レビュー">${formatReview(p.reviewAverage, p.reviewCount)}</td>
-        </tr>`
-    )
+        </tr>`;
+    })
     .join("\n");
 
   return `<!doctype html>
@@ -246,6 +266,7 @@ ${metaDescriptionTag}${canonicalTag}<style>
   .product-specs dt { font-weight:bold; flex:0 0 auto; }
   .product-specs dd { margin:0; }
   .product-price { font-size:1.1rem; font-weight:bold; margin:0.3rem 0 0.1rem; }
+  .price-per-unit { font-size:0.78rem; font-weight:normal; color:var(--muted); }
   .product-review { font-size:0.85rem; color:var(--muted); margin:0.1rem 0; }
   .product-note { font-size:0.8rem; color:var(--accent); font-weight:bold; margin:0.5rem 0; }
   .cta-button { display:inline-block; margin-top:0.5rem; background:var(--accent); color:#fff; text-decoration:none; padding:0.7rem 1.4rem; border-radius:8px; font-weight:bold; font-size:0.9rem; max-width:100%; }
@@ -283,13 +304,13 @@ ${isDraft ? '<div class="draft-banner">⚠ DRAFT — 公開前確認用ページ
 
 <div class="disclosure-box">
   <strong class="ad-label">広告・PR</strong>
-  本ページには楽天アフィリエイトプログラムのリンクを含みます。紹介する商品は、人間が内容を確認したうえで掲載しています。
+  本ページには楽天アフィリエイトプログラムのリンクを含みます。紹介する商品は、楽天市場の商品情報・レビュー情報を確認し、掲載条件に合うものを選定しています。
   掲載している価格・レビュー情報は${escapeHtml(dataRetrievedAtJa)}のものであり、その後変動する場合があります。
   最新の価格・在庫は各商品ページでご確認ください。
 </div>
 
 <div class="criteria-box">
-  <strong>選定基準:</strong> 楽天市場のレビュー評価・件数などをもとにした人気度と、商品情報の確認結果を踏まえて掲載商品を選定しています。
+  <strong>選定基準:</strong> ${escapeHtml(buyingGuideText && buyingGuideText.trim() !== "" ? buyingGuideText.trim() : "楽天市場のレビュー評価・件数などをもとにした人気度と、商品情報の確認結果を踏まえて掲載商品を選定しています。")}
 </div>
 
 <div class="product-grid">
@@ -299,7 +320,7 @@ ${cards}
 <h2>比較表</h2>
 <div class="table-scroll">
 <table>
-<thead><tr><th>順位</th><th>商品名</th><th>価格</th><th>レビュー</th></tr></thead>
+<thead><tr>${tableHeaderCells}</tr></thead>
 <tbody>
 ${tableRows}
 </tbody>
@@ -317,7 +338,7 @@ ${tableRows}
 </div>
 </main>
 <footer>
-<p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価などをもとに人が内容を確認して選定しています。</p>
+<p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場の商品情報・レビュー情報を確認し、掲載条件に合うものを選定しています。</p>
 <p>運営者: 楽天トレンドセレクト運営チーム / 情報取得時点: ${escapeHtml(dataRetrievedAtJa)}</p>
 </footer>
 ${affiliateClickScript}

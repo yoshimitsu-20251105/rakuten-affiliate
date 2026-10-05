@@ -620,26 +620,30 @@ test("比較表にはCTAのrel属性がなく、data-labelでスマートフォ�
   }
 });
 
-test("商品順位はQuality Score降順である", async () => {
-  const scores = { "shop:d1": 60, "shop:d2": 90, "shop:d3": 75 };
+test("商品順位はレビュー件数降順である(2026-10-05: 非公開のQuality Scoreではなく、ページ上に開示している指標で並べる)", async () => {
+  // 【注意】表示順の並び替えに使うreviewCountは、楽天最新結果(補完データ/enrichedItem)側の
+  // 値である(source runのreviewCountではない)。qualityScoreはsource run側のみに存在し、
+  // 公開HTMLには出力されない内部指標(あえて降順と逆の値にして、QS順になっていないことを確認する)。
+  const REVIEW_COUNTS = { "shop:d1": 60, "shop:d2": 900, "shop:d3": 750 };
   const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
     sourceRunOverrides: {
       dogItemsOverride: [
-        { itemCode: "shop:d1", itemName: "アルファブランド 豚肉レシピ シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: scores["shop:d1"] },
-        { itemCode: "shop:d2", itemName: "ベータキッチン特製 老犬向け豚肉フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: scores["shop:d2"] },
-        { itemCode: "shop:d3", itemName: "ガンマファーム直送 豚肉メインの高齢犬用総合栄養食", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: scores["shop:d3"] },
+        { itemCode: "shop:d1", itemName: "アルファブランド 豚肉レシピ シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: 90 },
+        { itemCode: "shop:d2", itemName: "ベータキッチン特製 老犬向け豚肉フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: 10 },
+        { itemCode: "shop:d3", itemName: "ガンマファーム直送 豚肉メインの高齢犬用総合栄養食", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: 50 },
       ],
     },
     dogProductOverrides: (p) => ({ ...p, displayName: `表示名-${p.itemCode}` }),
+    dogEnrichedOverrides: (e) => ({ ...e, reviewCount: REVIEW_COUNTS[e.itemCode] }),
   });
   try {
     const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
-    const idxD2 = html.indexOf("表示名-shop:d2"); // qualityScore 90(最高)
-    const idxD3 = html.indexOf("表示名-shop:d3"); // qualityScore 75
-    const idxD1 = html.indexOf("表示名-shop:d1"); // qualityScore 60(最低)
-    assert.ok(idxD2 < idxD3 && idxD3 < idxD1, "Quality Score降順で並んでいること");
+    const idxD2 = html.indexOf("表示名-shop:d2"); // reviewCount 900(最多)。qualityScoreは最低(10)なのでQS順なら最後に来るはず
+    const idxD3 = html.indexOf("表示名-shop:d3"); // reviewCount 750
+    const idxD1 = html.indexOf("表示名-shop:d1"); // reviewCount 60(最少)。qualityScoreは最高(90)
+    assert.ok(idxD2 < idxD3 && idxD3 < idxD1, "レビュー件数降順(900→750→60)で並んでいること(Quality Score順ではない)");
   } finally {
     await cleanup(outputRoot);
   }
@@ -672,35 +676,38 @@ test("複数フレーバー豚肉選択商品には固定の注意文が強制�
 // そのまま使い、新たな不安定な文字列判定は追加しない。
 // =====================================================================
 
-test("犬ページの1位はポーク確定商品(選択式商品よりQuality Scoreが低くても優先される)", async () => {
+test("犬ページのNo.1はポーク確定商品(選択式商品よりレビュー件数が少なくても優先される)", async () => {
+  // 【注意】表示順の並び替えに使うreviewCountは補完データ(enrichedItem)側の値。
+  const REVIEW_COUNTS = { "shop:d1": 50, "shop:d2": 780, "shop:d3": 640 };
   const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
     sourceRunOverrides: {
       dogItemsOverride: [
-        // 確定商品(選択式フレーズなし)。Quality Scoreは選択式2商品より低い。
+        // 確定商品(選択式フレーズなし)。レビュー件数は選択式2商品より少ない。
         { itemCode: "shop:d1", itemName: "グリーンプラス ドライドッグフード ポーク 全ステージ対応シニア犬用ごはん", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S1", qualityScore: 58 },
-        // 選択式商品(複数タンパク源から選べる)。Quality Scoreは確定商品より高い。
+        // 選択式商品(複数タンパク源から選べる)。レビュー件数は確定商品より多い。
         { itemCode: "shop:d2", itemName: "国産無添加 選べるドッグフード 豚肉 牛肉 鶏肉 魚 シニア犬用お試しセット", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S2", qualityScore: 78 },
         { itemCode: "shop:d3", itemName: "わんこのきちんとごはん 選べる6袋セット 豚肉 魚 シニア犬用小粒フード", catchcopy: "", itemPrice: 3000, reviewAverage: 4.5, reviewCount: 100, shopName: "S3", qualityScore: 64 },
       ],
     },
     dogProductOverrides: (p) => ({ ...p, displayName: `確定または選択-${p.itemCode === "shop:d1" ? "confirmed" : "selectable"}-${p.itemCode.slice(-1)}` }),
+    dogEnrichedOverrides: (e) => ({ ...e, reviewCount: REVIEW_COUNTS[e.itemCode] }),
   });
   try {
     const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
-    const idxConfirmed = html.indexOf("確定または選択-confirmed-1"); // shop:d1(確定, QS58)
-    const idxSelectableHigh = html.indexOf("確定または選択-selectable-2"); // shop:d2(選択式, QS78)
-    const idxSelectableLow = html.indexOf("確定または選択-selectable-3"); // shop:d3(選択式, QS64)
+    const idxConfirmed = html.indexOf("確定または選択-confirmed-1"); // shop:d1(確定, レビュー50件)
+    const idxSelectableHigh = html.indexOf("確定または選択-selectable-2"); // shop:d2(選択式, レビュー780件)
+    const idxSelectableLow = html.indexOf("確定または選択-selectable-3"); // shop:d3(選択式, レビュー640件)
     assert.ok(idxConfirmed >= 0 && idxSelectableHigh >= 0 && idxSelectableLow >= 0, "3商品すべてがHTMLに含まれること");
     assert.ok(
       idxConfirmed < idxSelectableHigh && idxConfirmed < idxSelectableLow,
-      "Quality Scoreが低くても、確定商品(shop:d1)が選択式商品より先に表示されること"
+      "レビュー件数が少なくても、確定商品(shop:d1)が選択式商品より先に表示されること"
     );
-    assert.ok(idxSelectableHigh < idxSelectableLow, "選択式商品どうしはQuality Score降順(78→64)であること");
+    assert.ok(idxSelectableHigh < idxSelectableLow, "選択式商品どうしはレビュー件数降順(780→640)であること");
 
-    const rank1 = html.match(/<div class="rank-badge">1位<\/div>[\s\S]{0,600}?確定または選択-(\w+)-\d/);
-    assert.ok(rank1 && rank1[1] === "confirmed", "1位バッジの直後に表示される商品が確定商品であること");
+    const rank1 = html.match(/<div class="rank-badge">No\.1<\/div>[\s\S]{0,600}?確定または選択-(\w+)-\d/);
+    assert.ok(rank1 && rank1[1] === "confirmed", "No.1バッジの直後に表示される商品が確定商品であること");
   } finally {
     await cleanup(outputRoot);
   }
@@ -1066,6 +1073,114 @@ test("indexability回帰防止: 検索公開状態のページはnoindex無し�
       assert.match(html, /<a class="cta-button"/, `${slug}: 楽天CTAが存在すること`);
       assert.doesNotMatch(html, /class="draft-banner"/, `${slug}: DRAFTバナーが無いこと`);
     }
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+// =====================================================================
+// 【2026-10-05 検索流入テスト再構成対応】ページ固有introText/buyingGuideText、
+// 商品の構造化属性(内容量・対象年齢・主原料・タイプ)・100gあたり価格・比較表の
+// 動的な列。確認できない項目を比較表から省略すること(推測で埋めないこと)を検証する。
+// =====================================================================
+
+test("page.introTextを指定すると、既定の「人が内容を確認して選定しました」文ではなく指定した文がhookとmeta descriptionに使われる", async () => {
+  const customIntro = "グレインフリー表記のある犬用フードを、内容量・価格・レビュー情報から比較できるようまとめました。";
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    approvalOverrides: { dogPageExtra: { introText: customIntro } },
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir, isDraft: false, allowSearchIndex: true });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, new RegExp(`<p class="hook">${customIntro}</p>`));
+    assert.match(html, new RegExp(`<meta name="description" content="${customIntro}">`));
+    assert.doesNotMatch(html, /人が内容を確認して選定しました/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("page.introTextを指定しない場合は既存どおりbuildIntroText()の既定文が使われる(既存2ページの挙動を維持)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /犬用のおすすめ商品を、レビュー評価や商品情報をもとに人が内容を確認して選定しました。/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("page.buyingGuideTextを指定すると選定基準ボックスに反映され、未指定時は既存の固定文のまま", async () => {
+  const customGuide = "表示順はレビュー件数が多い順です。";
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    approvalOverrides: { dogPageExtra: { buyingGuideText: customGuide } },
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const dogHtml = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    const catHtml = result.drafts.find((d) => d.slug === CAT_SLUG).html;
+    assert.match(dogHtml, new RegExp(`<strong>選定基準:</strong> ${customGuide}`));
+    assert.match(catHtml, /<strong>選定基準:<\/strong> 楽天市場のレビュー評価・件数などをもとにした人気度と、商品情報の確認結果を踏まえて掲載商品を選定しています。/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("商品のpackageSize/targetAge/mainIngredient/productFormatを指定すると、商品カードと比較表の両方に反映される", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogProductOverrides: (p) =>
+      p.itemCode === "shop:d1"
+        ? { ...p, packageSize: "1.8kg", targetAge: "成犬用", mainIngredient: "チキン", productFormat: "ドライ" }
+        : p,
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+
+    // カードのdlに反映されること
+    assert.match(html, /<dt>内容量<\/dt><dd>1\.8kg<\/dd>/);
+    assert.match(html, /<dt>対象年齢<\/dt><dd>成犬用<\/dd>/);
+    assert.match(html, /<dt>主原料<\/dt><dd>チキン<\/dd>/);
+    assert.match(html, /<dt>タイプ<\/dt><dd>ドライ<\/dd>/);
+
+    // 比較表のヘッダーに列が追加され、値を持たない他商品の行では"—"になること
+    assert.match(html, /<th>対象年齢<\/th>/);
+    assert.match(html, /<th>内容量<\/th>/);
+    assert.match(html, /<td data-label="内容量">1\.8kg<\/td>/);
+    assert.match(html, /<td data-label="内容量">—<\/td>/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("packageSizeとitemPriceの両方が確認できる場合のみ100gあたり価格を計算し、重さの分からない内容量では比較表の列ごと出さない", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture({
+    dogProductOverrides: (p) => (p.itemCode === "shop:d1" ? { ...p, packageSize: "2kg" } : p),
+    dogEnrichedOverrides: (e) => (e.itemCode === "shop:d1" ? { ...e, itemPrice: 4000 } : e),
+  });
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    // 4000円 ÷ 2000g × 100 = 200円/100g
+    assert.match(html, /¥200\/100g/);
+  } finally {
+    await cleanup(outputRoot);
+  }
+});
+
+test("packageSize/targetAge/mainIngredient/productFormatをどの商品にも指定しない場合、比較表は価格・レビューのみの既存どおりの列構成になる(既存2ページと同じ挙動)", async () => {
+  const { outputRoot, sourceRun, pubApprovalPath, enrichmentRun } = await setupFullFixture();
+  try {
+    const result = await buildPublicationPreview({ sourceRunDir: sourceRun.dir, publicationApprovedFilePath: pubApprovalPath, enrichmentRunDir: enrichmentRun.dir });
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const html = result.drafts.find((d) => d.slug === DOG_SLUG).html;
+    assert.match(html, /<thead><tr><th>順位<\/th><th>商品名<\/th><th>価格<\/th><th>レビュー<\/th><\/tr><\/thead>/);
   } finally {
     await cleanup(outputRoot);
   }
