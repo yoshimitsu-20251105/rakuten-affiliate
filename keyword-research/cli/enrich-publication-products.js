@@ -12,7 +12,7 @@
 // 人間の明示指示を受けてから1回だけ実行すること。
 
 import { writeFile } from "node:fs/promises";
-import { searchRakutenItemsLive } from "../rakuten-match.js";
+import { searchRakutenItemsLive, searchRakutenItemByCode } from "../rakuten-match.js";
 import { runPublicationEnrichment } from "../publication-enrichment-run.js";
 import { ENRICHMENT_FIELD_ALLOWLIST } from "../publication-enrichment.js";
 import { resolveInputPath } from "../gkp-path-resolve.js";
@@ -71,10 +71,14 @@ async function main() {
   console.log(`${LOG} 【楽天データ源: LIVE(実際の楽天API、読み取り専用)】`);
   console.log(`${LOG} 出力先: ${outDir}`);
 
+  // 【2026-10-05 Discovery/Availability分離対応】keyword検索(Discovery)で見つからない
+  // 承認済みitemCodeは、商品コード指定での直接照会(Availability Verification)で
+  // 改めて販売状態を確認する(keyword検索の上位N件に入らないことと、販売中でないことは別問題)。
   const result = await runPublicationEnrichment({
     sourceRunDir,
     publicationApprovedFilePath: args["publication-approved-file"],
     searchFn: (query) => searchRakutenItemsLive(query),
+    itemLookupFn: (itemCode) => searchRakutenItemByCode(itemCode),
   });
 
   if (!result.ok) {

@@ -323,7 +323,7 @@ export async function buildFixturePublicationApprovalFile(
   sourceRun,
   keywordApprovedFileHash,
   reviewRun,
-  { dogProducts, catProducts, reviewedBy = "test-reviewer", approvedAt, filename = "publication-approval.json" } = {}
+  { dogProducts, catProducts, dogPageExtra = {}, catPageExtra = {}, reviewedBy = "test-reviewer", approvedAt, filename = "publication-approval.json" } = {}
 ) {
   const dir = `${outputRoot}publication-approvals/`;
   await mkdir(dir, { recursive: true });
@@ -337,9 +337,11 @@ export async function buildFixturePublicationApprovalFile(
     approvedAt: approvedAt ?? new Date().toISOString(),
     reviewedBy,
     humanApproved: true,
+    // 【2026-10-05 検索流入テスト再構成対応】dogPageExtra/catPageExtraで
+    // introText/buyingGuideText等のページ固有の任意フィールドをテストから注入できる。
     pages: [
-      { normalizedKeyword: DOG_KEYWORD, slug: DOG_SLUG, title: DOG_TITLE, requiredAttributes: DOG_REQUIRED_ATTRS, products: dogProducts },
-      { normalizedKeyword: CAT_KEYWORD, slug: CAT_SLUG, title: CAT_TITLE, requiredAttributes: CAT_REQUIRED_ATTRS, products: catProducts },
+      { normalizedKeyword: DOG_KEYWORD, slug: DOG_SLUG, title: DOG_TITLE, requiredAttributes: DOG_REQUIRED_ATTRS, products: dogProducts, ...dogPageExtra },
+      { normalizedKeyword: CAT_KEYWORD, slug: CAT_SLUG, title: CAT_TITLE, requiredAttributes: CAT_REQUIRED_ATTRS, products: catProducts, ...catPageExtra },
     ],
   };
   await writeFile(filePath, JSON.stringify(approval, null, 2), "utf-8");

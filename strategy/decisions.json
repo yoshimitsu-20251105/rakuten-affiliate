@@ -24,6 +24,29 @@
       ],
       "reviewDate": "2026-11-04",
       "relatedExperimentIds": ["exp-2026-10-05-senior-cat-food"]
+    },
+    {
+      "decisionId": "dec-2026-10-05-discovery-availability-separation",
+      "date": "2026-10-05",
+      "topic": "domestic-additive-free-dog-treatsページの店舗多様性不足(DOG TREE角ボトルがkeyword検索結果の上位30件から外れ除外された問題)への対応",
+      "decision": "鹿の角等の検索意図に合わない商品を追加して店舗多様性ゲートを通過させることはせず、楽天API呼び出しをDiscovery(keyword検索で候補を探す)とAvailability Verification(商品コード指定で既知商品の販売状態を確認する)に分離する恒久対応を実装した。DOG TREE角ボトルは商品コード指定照会で現在も販売中・レビュー291件・affiliateUrl生成可能と確認できたため、4商品体制のままdomestic-additive-free-dog-treatsページを今回のPRに残した",
+      "facts": [
+        "runPublicationEnrichment()は従来、承認済みitemCodeがkeyword検索(hits=30, sort=-reviewCount)の結果に含まれるかどうかだけで在庫判定しており、検索順位圏外になった商品は販売中でも「在庫確認失敗」として除外される設計だった",
+        "hinatabocco-shop:10002674(DOG TREE角ボトル)を商品コード指定(IchibaItem/Search APIのitemCodeパラメータ)で直接照会した結果、availability=1・価格¥3,135・レビュー291件(4.87)・affiliateUrl生成可能と確認できた(2026-10-05実施)",
+        "Google SERP(「犬 おやつ 無添加 国産」、2026-10-05再確認)では、鹿の角等の噛む玩具・デンタル用途の商品は上位に一切現れず、ささみ・ジャーキー・干し芋等の食べるおやつのみが上位表示された"
+      ],
+      "assumptions": [],
+      "alternativesConsidered": [
+        "鹿の角系商品を1点追加して店舗多様性ゲート(最低3店舗)を機械的に満たす(SERP実態と検索意図がズレるため不採用)",
+        "domestic-additive-free-dog-treatsページを今回は見送り、grain-free-dog-food/senior-cat-foodの2ページのみで本PRを完成させる(DOG TREEの販売状態を商品コード指定で確認する前の暫定案)"
+      ],
+      "reasoningSummary": "「keyword検索の上位N件に入らない」ことと「販売中ではない」ことは別問題であるという指摘を受け、両者を分離する設計変更を行った結果、検索意図に合わない商品を追加せずに済んだ",
+      "expectedImpact": "ESTIMATE: 今後も同様にレビュー件数変動等でkeyword検索の上位から一時的に外れる商品が、誤って掲載候補から除外されるケースを防げる見込み",
+      "risks": [
+        "商品コード指定照会はkeyword検索1回に対し追加で1回のAPI呼び出しが発生する(今回は1回のみ)。大量の承認商品が同時に検索圏外になった場合、API呼び出し回数が増える点に留意が必要"
+      ],
+      "reviewDate": "2026-11-04",
+      "relatedExperimentIds": ["exp-2026-10-05-domestic-additive-free-dog-treats"]
     }
   ]
 }
