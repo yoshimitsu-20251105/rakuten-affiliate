@@ -22,12 +22,24 @@
         { "metric": "url_inspection_status", "value": "Submitted and indexed", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-09-30" },
         { "metric": "ga4_sessions", "value": 8, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
         { "metric": "ga4_screen_page_views", "value": 9, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
-        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" }
+        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
+        { "metric": "search_console_impressions", "value": 1, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "search_console_clicks", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "search_console_average_position", "value": 13, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "url_inspection_status", "value": "Submitted and indexed", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-10-10" },
+        { "metric": "ga4_sessions", "value": 10, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "ga4_screen_page_views", "value": 12, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" }
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "INCONCLUSIVE",
+      "decision": "IMPROVE",
+      "learnings": [
+        "FACT: GoogleへのインデックスはSubmitted and indexedで成功している(2026-10-10時点)",
+        "FACT: reviewDate(2026-10-10)までの30日間でSearch Console impressionsは累計1件に留まった",
+        "FACT: 同期間でaffiliate_clickイベントは0件だった",
+        "HYPOTHESIS: 現在の検索意図・キーワード・ページ訴求の一致度が不足している可能性がある(「需要不足」とは断定しない)"
+      ],
+      "status": "INCONCLUSIVE"
     },
     {
       "experimentId": "exp-2026-09-10-grain-free-cat-food",
@@ -49,12 +61,24 @@
         { "metric": "url_inspection_status", "value": "URL is unknown to Google", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-09-30" },
         { "metric": "ga4_sessions", "value": 9, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
         { "metric": "ga4_screen_page_views", "value": 9, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
-        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" }
+        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由)", "observedAt": "2026-09-30" },
+        { "metric": "search_console_impressions", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "search_console_clicks", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "url_inspection_status", "value": "URL is unknown to Google", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-10-10" },
+        { "metric": "ga4_sessions", "value": 11, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "ga4_screen_page_views", "value": 12, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" },
+        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、reviewDate正式レビュー)", "observedAt": "2026-10-10" }
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "FAILED",
+      "decision": "IMPROVE",
+      "learnings": [
+        "FACT: reviewDate(2026-10-10)の30日後もURL InspectionはURL is unknown to Googleのままだった(Googleに索引されていない)",
+        "FACT: Search Console impressionsは累計0件だった",
+        "FACT: GA4ではsessions/screenPageViewsが観測されており、ページ自体にはアクセス可能な状態だった(索引失敗がページ自体の到達不能を意味するわけではない)",
+        "HYPOTHESIS: sitemap・内部発見経路・Google側のクロール/インデックス処理等に問題がある可能性がある",
+        "確定してはいけない事項(UNKNOWN): キーワード需要の有無・記事品質・商品テーマの適否・収益化可能性 — いずれも『Googleに索引されなかった』事実からは判断できない"
+      ],
+      "status": "FAILED"
     },
     {
       "experimentId": "exp-2026-10-05-grain-free-dog-food",
