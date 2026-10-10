@@ -131,6 +131,8 @@ test("generate-site.js: 有効な設定の場合、sitemap.xmlに対象URLが追
     const allHtml = await readFile(join(dir, "docs", "rankings", "all.html"), "utf-8");
     assert.match(allHtml, /href="senior-dog-pork\.html"/);
     assert.match(allHtml, /テスト試験公開ページ/);
+    const indexHtml = await readFile(join(dir, "docs", "index.html"), "utf-8");
+    assert.match(indexHtml, /href="rankings\/senior-dog-pork\.html"/);
     // 既存のランキンググループ(テストジャンル)のセクションが壊れていないこと
     assert.match(allHtml, /テストジャンルおすすめランキング/);
   } finally {
@@ -207,6 +209,8 @@ test("generate-site.js: internalLinkEnabled:falseの場合、ランキング一�
     assert.equal(result.status, 0, result.stderr);
     const allHtml = await readFile(join(dir, "docs", "rankings", "all.html"), "utf-8");
     assert.doesNotMatch(allHtml, /senior-dog-pork/);
+    const indexHtml = await readFile(join(dir, "docs", "index.html"), "utf-8");
+    assert.doesNotMatch(indexHtml, /senior-dog-pork/);
     const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
     assert.match(sitemap, /senior-dog-pork/, "sitemapは影響を受けないこと");
   } finally {

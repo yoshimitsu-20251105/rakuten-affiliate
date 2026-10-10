@@ -1,0 +1,56 @@
+name: 日次の登録状況・収益導線計測
+
+on:
+  schedule:
+    # 08:37 JST, separate from the existing publication pipeline.
+    - cron: "37 23 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-measurement
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    if: vars.SEARCH_TRIAL_DAILY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: 一時認証ファイルを準備
+        env:
+          GOOGLE_KEY_JSON: ${{ secrets.GA_SEARCH_CONSOLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          if (!process.env.GOOGLE_KEY_JSON) throw new Error('Google measurement secret is missing');
+          let key;
+          try { key = JSON.parse(process.env.GOOGLE_KEY_JSON); }
+          catch { throw new Error('Google measurement secret is invalid JSON'); }
+          if (typeof key.client_email !== 'string' || typeof key.private_key !== 'string') throw new Error('Google measurement secret is invalid');
+          writeFileSync(`${process.env.RUNNER_TEMP}/google-measurement.json`, JSON.stringify(key), { mode: 0o600 });
+          NODE
+      - name: 既存の安全ゲートを通して計測
+        env:
+          SEARCH_TRIAL_ANALYTICS_LIVE_ENABLED: 'true'
+          GA_SEARCH_CONSOLE_KEY_FILE: ${{ runner.temp }}/google-measurement.json
+        run: node keyword-research/cli/daily-measurement.js
+      - name: 認証ファイルを削除
+        if: always()
+        run: rm -f "$RUNNER_TEMP/google-measurement.json"
+      - name: 計測結果を保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-measurement-${{ github.run_id }}-${{ github.run_attempt }}
+          path: keyword-research/output/search-trial-reports/
+          if-no-files-found: ignore
+          retention-days: 30
