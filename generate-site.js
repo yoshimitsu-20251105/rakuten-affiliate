@@ -450,10 +450,10 @@ const HUB_ROW_LIMIT = 5;
 // のものだけをランキング一覧(docs/rankings/all.html)へのリンクとして描画する。
 // 既存のrankingGroups由来セクションの表示・並び順には一切影響しない(末尾に追加するのみ)。
 // リンク先HTMLは既に生成済みの静的ページ(generate-site.jsが生成するものではない)。
-function searchTrialLinksBlock(searchTrialPages) {
+function searchTrialLinksBlock(searchTrialPages, prefix = "") {
   if (!searchTrialPages.length) return "";
   const links = searchTrialPages
-    .map((p) => `<a href="${escapeHtml(p.slug)}.html" class="ranking-link">🔍 ${escapeHtml(p.title)}</a>`)
+    .map((p) => `<a href="${prefix}${escapeHtml(p.slug)}.html" class="ranking-link">🔍 ${escapeHtml(p.title)}</a>`)
     .join("\n");
   return `
 <section class="hub-section search-trial-section">
@@ -510,7 +510,7 @@ ${faq.html}
   });
 }
 
-function indexPage(items, rankingGroups) {
+function indexPage(items, rankingGroups, searchTrialPages = []) {
   const cards = items
     .slice()
     .reverse()
@@ -530,7 +530,7 @@ function indexPage(items, rankingGroups) {
         .map((g) => `<a href="rankings/${g.slug}.html" class="ranking-link">🏆 ${escapeHtml(g.title)}おすすめランキング</a>`)
         .join("\n")}</div>`
     : "";
-  const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n${rankingLinks}\n<h2>新着商品</h2>\n<div class="card-list">${cards}</div>`;
+  const body = `<h1>${escapeHtml(SITE_TITLE)}</h1>\n${searchTrialLinksBlock(searchTrialPages, "rankings/")}\n${rankingLinks}\n<h2>新着商品</h2>\n<div class="card-list">${cards}</div>`;
   const newestItem = items[items.length - 1];
   const indexImage = newestItem ? imageUrls(newestItem, 500, 1)[0] : undefined;
   return pageShell({
@@ -701,7 +701,7 @@ async function main() {
     await writeFile(new URL("all.html", RANKING_DIR), hubPage(rankingGroups, searchTrialPages.filter((p) => p.internalLinkEnabled)));
   }
 
-  await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
+  await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups, searchTrialPages.filter((p) => p.internalLinkEnabled)));
   await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups, searchTrialPages));
   await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
