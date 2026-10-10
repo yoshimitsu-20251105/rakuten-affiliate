@@ -214,7 +214,58 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
     const eventRow = (eventRes.data.rows ?? [])[0];
     const affiliateClickEventCount = eventRow ? Number(eventRow.metricValues[0].value) : 0;
 
-    return { status: "OK", activeUsers, sessions, screenPageViews, engagementRate, averageSessionDuration, affiliateClickEventCount };
+    // 【2026-10-10対応・P2】流入元別(organic/direct/referral/social/UTM経由等)の
+    // sessions/screenPageViews/affiliate_click内訳。既存の集計値(上記)の計算方法は
+    // 変更しない(別クエリとして追加するだけ)。GA4のsessionDefaultChannelGroupは
+    // UTMパラメータ(utm_medium等)付きの流入も自動分類するため、noteやX等からの
+    // 流入をUTM付きリンクで送ってもらえればここで区別できる。
+    const channelRes = await client.properties.runReport({
+      property: `properties/${GA4_PROPERTY_ID}`,
+      requestBody: {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: "pagePath" }, { name: "sessionDefaultChannelGroup" }],
+        metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
+        dimensionFilter: { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+      },
+    });
+    const byTrafficSource = (channelRes.data.rows ?? []).map((r) => ({
+      channel: r.dimensionValues[1].value,
+      sessions: Number(r.metricValues[0].value),
+      screenPageViews: Number(r.metricValues[1].value),
+    }));
+
+    const channelEventRes = await client.properties.runReport({
+      property: `properties/${GA4_PROPERTY_ID}`,
+      requestBody: {
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: "pagePath" }, { name: "eventName" }, { name: "sessionDefaultChannelGroup" }],
+        metrics: [{ name: "eventCount" }],
+        dimensionFilter: {
+          andGroup: {
+            expressions: [
+              { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+              { filter: { fieldName: "eventName", stringFilter: { matchType: "EXACT", value: "affiliate_click" } } },
+            ],
+          },
+        },
+      },
+    });
+    const affiliateClickByTrafficSource = (channelEventRes.data.rows ?? []).map((r) => ({
+      channel: r.dimensionValues[2].value,
+      eventCount: Number(r.metricValues[0].value),
+    }));
+
+    return {
+      status: "OK",
+      activeUsers,
+      sessions,
+      screenPageViews,
+      engagementRate,
+      averageSessionDuration,
+      affiliateClickEventCount,
+      byTrafficSource,
+      affiliateClickByTrafficSource,
+    };
   } catch (e) {
     if (isPermissionError(e)) {
       return { status: "NOT_AVAILABLE", reason: "permission_denied" };

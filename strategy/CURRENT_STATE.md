@@ -8,7 +8,7 @@
 
 ## Primary Goal
 
-記事数・ページ数・コード量・自動化率ではない。Revenue / Approved Revenue / Profit / EPC / Conversion Rate / Affiliate CTR / Organic Traffic を持続的に増加させること(CLAUDE.md参照)。
+記事数・ページ数・コード量・自動化率ではない(成功KPIにしない)。最短で初売上を発生させ、その後も持続的に収益を増加させること。売上直結KPIの優先順位(2026-10-10確定): 1.Revenue 2.Approved Revenue 3.Conversions 4.EPC 5.Affiliate Clicks 6.Affiliate CTR 7.Organic Clicks 8.Impressions(CLAUDE.md参照)。
 
 ## Current Revenue Status
 
@@ -63,7 +63,9 @@ GitHub上で確認できる事実(2026-10-10時点):
 
 - FACT: `docs/sitemap.xml` のSearch Console取得失敗問題について、診断用の最小サイトマップ(`docs/sitemap-test.xml`、PR #15でマージ済み)を追加して切り分けを行った。現時点で問題自体が解決したという記録はリポジトリ内にない
 - FACT: `select-products.js` に2026-08-28時点で設定済みのキーワード(グレインフリー 国産 ドッグフード/シニア猫 国産 無添加/国産 無添加 犬 おやつ等)と、PR #21で本番公開した新規3ページが概念的に重複している(`strategy/decisions.json` の `dec-2026-10-04-cannibalization-proceed` 参照)
-- FACT: grain-free-cat-food.htmlは本番公開から30日経過(2026-10-10)してもURL Inspectionが「URL is unknown to Google」のままで、Googleに索引されていない。上記sitemap取得失敗問題との関連がHYPOTHESIS(未確認)。根本原因の診断が未着手(Top Priority 1参照)
+- FACT(2026-10-10診断): grain-free-cat-food/grain-free-dog-food/senior-cat-food/domestic-additive-free-dog-treatsの4URLとも、URL Inspection APIの生レスポンスで`pageFetchState: PAGE_FETCH_STATE_UNSPECIFIED`・`robotsTxtState`/`indexingState`も`UNSPECIFIED`であり、Googleが一度もクロールを試みていない(索引拒否ではなく未到達)。対して同じ`rankings/all.html`(4URLへのリンク元)は`pageFetchState: SUCCESSFUL`で2026-09-19に索引済み。robots.txt(Allow: /)・meta robots(noindexなし)・self canonical・sitemap.xml掲載はいずれも正常(FACT、ページ側の技術設定に問題はない)
+- FACT(2026-10-10診断): Search Console Sitemaps APIで確認したところ、`sitemap.xml`(最終送信2026-09-18)・`sitemap-test.xml`(最終送信2026-09-26)の両方が`isPending: true`のまま(エラー0件・警告0件)。3週間以上「処理中」から進んでいない状態は異常であり、既知のsitemap取得失敗問題と一致する可能性が高い(ESTIMATE)
+- 分類(ESTIMATE): 主因=**TECHNICAL**(sitemap処理がGoogle側で3週間以上停滞)、結果として**DISCOVERY**(4URLがクロール対象に一度も入っていない)。ルートドメイン`/`は2026-10-06に再クロールされたが`Crawled - currently not indexed`(索引保留)であり、サイト全体の評価段階に関する**GOOGLE_PROCESSING**要因も別途存在する可能性がある。robots/canonical/コンテンツ品質起因の問題ではない(これらはFACTとして正常確認済み)
 
 ## Current Hypotheses
 
@@ -81,15 +83,15 @@ GitHub上で確認できる事実(2026-10-10時点):
 
 ## Top 3 Priorities
 
-1. grain-free-cat-foodのインデックス失敗原因の診断(robots/noindex/canonical/HTTP status/internal links/sitemap/URL Inspection詳細/Google live test/Request Indexing可否を確認。コンテンツ本文はまだ変更しない)
-2. senior-dog-porkについて現在のSERP検索意図を再調査(「シニア犬 豚肉」「シニア犬 フード」の実検索結果を確認し、情報検索意図 or 商品比較意図のどちらが強いか再評価してから新しいImprovement Experimentを設計する。現在のページ内容はすぐ書き換えない)
-3. 新規3実験(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)のインデックス状況確認
+1. senior-dog-porkについて現在のSERP検索意図を再調査(「シニア犬 豚肉」「シニア犬 フード」の実検索結果を確認し、情報検索意図 or 商品比較意図のどちらが強いか再評価してから新しいImprovement Experimentを設計する。現在のページ内容はすぐ書き換えない)
+2. owned site/note/X/short-video script向けの収益流入テストImplementation Brief候補の作成(新規3ページを元にした再利用コンテンツ、自動大量投稿は禁止、最初は3テーマのみ、各チャネルのリンクにUTMを付与)
+3. 新規3実験(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)のインデックス状況の継続確認
 
 ## Waiting For
 
-- grain-free-cat-foodの索引失敗原因診断の結果
 - senior-dog-porkの検索意図再調査結果(Improvement Experiment設計のインプット)
 - 新規3ページがGoogleにインデックスされるまでの経過観測(次回チェック推奨: 2026-10-12頃)
+- grain-free-cat-food等のインデックス未達について、Request Indexingを実行するかどうかのユーザー判断(診断は完了済み、実行は未確認)
 
 ## Next Review
 
