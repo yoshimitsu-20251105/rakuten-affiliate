@@ -63,9 +63,9 @@ GitHub上で確認できる事実(2026-10-10時点):
 
 - FACT: `docs/sitemap.xml` のSearch Console取得失敗問題について、診断用の最小サイトマップ(`docs/sitemap-test.xml`、PR #15でマージ済み)を追加して切り分けを行った。現時点で問題自体が解決したという記録はリポジトリ内にない
 - FACT: `select-products.js` に2026-08-28時点で設定済みのキーワード(グレインフリー 国産 ドッグフード/シニア猫 国産 無添加/国産 無添加 犬 おやつ等)と、PR #21で本番公開した新規3ページが概念的に重複している(`strategy/decisions.json` の `dec-2026-10-04-cannibalization-proceed` 参照)
-- FACT(2026-10-10診断): grain-free-cat-food/grain-free-dog-food/senior-cat-food/domestic-additive-free-dog-treatsの4URLとも、URL Inspection APIの生レスポンスで`pageFetchState: PAGE_FETCH_STATE_UNSPECIFIED`・`robotsTxtState`/`indexingState`も`UNSPECIFIED`であり、Googleが一度もクロールを試みていない(索引拒否ではなく未到達)。対して同じ`rankings/all.html`(4URLへのリンク元)は`pageFetchState: SUCCESSFUL`で2026-09-19に索引済み。robots.txt(Allow: /)・meta robots(noindexなし)・self canonical・sitemap.xml掲載はいずれも正常(FACT、ページ側の技術設定に問題はない)
-- FACT(2026-10-10診断): Search Console Sitemaps APIで確認したところ、`sitemap.xml`(最終送信2026-09-18)・`sitemap-test.xml`(最終送信2026-09-26)の両方が`isPending: true`のまま(エラー0件・警告0件)。3週間以上「処理中」から進んでいない状態は異常であり、既知のsitemap取得失敗問題と一致する可能性が高い(ESTIMATE)
-- 分類(ESTIMATE): 主因=**TECHNICAL**(sitemap処理がGoogle側で3週間以上停滞)、結果として**DISCOVERY**(4URLがクロール対象に一度も入っていない)。ルートドメイン`/`は2026-10-06に再クロールされたが`Crawled - currently not indexed`(索引保留)であり、サイト全体の評価段階に関する**GOOGLE_PROCESSING**要因も別途存在する可能性がある。robots/canonical/コンテンツ品質起因の問題ではない(これらはFACTとして正常確認済み)
+- FACT(2026-10-10診断、URL Inspection API): grain-free-cat-food/grain-free-dog-food/senior-cat-food/domestic-additive-free-dog-treatsの4URLとも`pageFetchState: PAGE_FETCH_STATE_UNSPECIFIED`(Google公式仕様上、fetch stateはUNKNOWNという意味であり、「クロールを試みていない」と断定する値ではない)。4URLとも応答に`lastCrawlTime`が存在せず、successful crawlの記録を確認できない。`robotsTxtState`/`indexingState`も`UNSPECIFIED`。対して同じ`rankings/all.html`(4URLへのリンク元)は`pageFetchState: SUCCESSFUL`・`lastCrawlTime`あり(2026-09-19)で索引済み。robots.txt(Allow: /)・meta robots(noindexなし)・self canonical・sitemap.xml掲載はいずれも正常(FACT、ページ側の技術設定に問題はない)
+- FACT(2026-10-10診断、Sitemaps API): `sitemap.xml`(最終送信2026-09-18)・`sitemap-test.xml`(最終送信2026-09-26)の両方が`isPending: true`のまま(Google側で未処理、エラー0件・警告0件)。3週間以上この状態が続いている
+- 分類: 上記sitemapの未処理状態を4URL未クロールの**確定原因とはしない**。HYPOTHESIS: sitemap処理停滞がURL discoveryの遅延に寄与している可能性がある(未確定、原因候補の1つ)。ルートドメイン`/`は2026-10-06に再クロールされたが`Crawled - currently not indexed`であり、サイト全体の評価段階(GOOGLE_PROCESSING)という別の原因候補も考えられる。robots/canonical/コンテンツ品質起因である可能性は低い(これらはFACTとして正常確認済み)。UNKNOWN: 4URLが未クロールである確定原因
 
 ## Current Hypotheses
 
