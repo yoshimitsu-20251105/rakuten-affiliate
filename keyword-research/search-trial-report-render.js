@@ -60,14 +60,27 @@ function renderGa4Section(page) {
   if (ga4.status !== "OK") {
     return `- ステータス: 未取得(${ga4.reason ?? ga4.status})`;
   }
-  return [
+  const lines = [
     `- activeUsers: ${fmt(ga4.activeUsers)}(事実)`,
     `- sessions: ${fmt(ga4.sessions)}(事実)`,
     `- screenPageViews: ${fmt(ga4.screenPageViews)}(事実)`,
     `- engagementRate: ${fmtPercent(ga4.engagementRate * 100)}(GA4提供値)`,
     `- averageSessionDuration: ${fmt(ga4.averageSessionDuration)}秒(事実)`,
     `- affiliate_click eventCount: ${fmt(ga4.affiliateClickEventCount)}件(事実)`,
-  ].join("\n");
+  ];
+  if (ga4.byTrafficSource?.length) {
+    lines.push("- 流入元別(sessionDefaultChannelGroup):");
+    for (const c of ga4.byTrafficSource) {
+      lines.push(`  - ${c.channel}: sessions${fmt(c.sessions)} / screenPageViews${fmt(c.screenPageViews)}`);
+    }
+  }
+  if (ga4.affiliateClickByTrafficSource?.length) {
+    lines.push("- affiliate_click 流入元別:");
+    for (const c of ga4.affiliateClickByTrafficSource) {
+      lines.push(`  - ${c.channel}: ${fmt(c.eventCount)}件`);
+    }
+  }
+  return lines.join("\n");
 }
 
 function renderRakutenClickRate(page) {
