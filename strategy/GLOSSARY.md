@@ -192,3 +192,14 @@
 - 今回のプロジェクトでなぜ重要か: データには接続できても途中で承認を要求されるツールを無人の自動AIに組み込むと、定期処理が止まるため
 - 具体例: Google Search Console/GA4はAPI接続実績があるが、現時点では無人実行の安定完走が未確認のため `INTERACTIVE_ONLY` と扱う
 
+### Discovery
+- 日本語: 商品候補の発見
+- かんたんな意味: キーワード検索を使って、掲載候補の商品を探す工程
+- 今回のプロジェクトでなぜ重要か: 検索結果上位から候補を探す役割であり、商品の販売継続確認とは別だから
+- 具体例: `keyword-research/rakuten-match.js` の `searchRakutenItemsLive`(hits=30, sort=-reviewCount)
+
+### Availability Verification
+- 日本語: 販売状態確認
+- かんたんな意味: 一度見つけた商品が現在も販売されているか、商品コード等を使って直接確認する工程
+- 今回のプロジェクトでなぜ重要か: キーワード検索上位から外れただけの商品を販売終了と誤判定しないため
+- 具体例: `keyword-research/rakuten-match.js` の `searchRakutenItemByCode`(2026-10-05追加、`strategy/decisions.json` の `dec-2026-10-05-discovery-availability-separation` 参照)

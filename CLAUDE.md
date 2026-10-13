@@ -17,9 +17,26 @@
 
 ### 最終目的
 
-目的は、記事数・ページ数・コード量・自動化率ではない。
+目的は、記事数・ページ数・コード量・自動化率ではない。これらは成功KPIにしない。
 
-目的は、Revenue / Approved Revenue / Profit / EPC / Conversion Rate / Affiliate CTR / Organic Traffic を持続的に増加させることである。
+目的は最短で初売上を発生させ、その後も持続的に収益を増加させることである(2026-10-10方針更新: 「設定を完成させること」自体を目的化しない)。
+
+### 売上直結KPI(優先順位、2026-10-10確定)
+
+1. Revenue
+2. Approved Revenue
+3. Conversions
+4. EPC(1クリックあたり収益。`strategy/GLOSSARY.md`参照)
+5. Affiliate Clicks
+6. Affiliate CTR
+7. Organic Clicks
+8. Impressions
+
+記事数・ページ数・自動化率は上記のいずれにも該当せず、成功KPIとして扱わない。
+
+### 新規設定作業の上限(2026-10-10追加)
+
+新しい設定ファイル・管理ツール・ダッシュボード等の追加は、次のいずれかに直接効く場合だけ行う: Revenue / Traffic / Measurement(計測) / 重大なミス防止。「あると便利」だけでは実装しない。該当しない提案はHOLDとする。
 
 ### 基本サイクル
 

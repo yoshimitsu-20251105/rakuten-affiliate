@@ -108,7 +108,22 @@ test("fetchGA4PageMetrics: mock clientの値を正しく保存する", async () 
       runReport: async () => {
         callCount++;
         if (callCount === 1) return { data: { rows: [{ metricValues: [{ value: "10" }, { value: "12" }, { value: "20" }, { value: "0.5" }, { value: "30" }] }] } };
-        return { data: { rows: [{ metricValues: [{ value: "3" }] }] } };
+        if (callCount === 2) return { data: { rows: [{ metricValues: [{ value: "3" }] }] } };
+        if (callCount === 3) {
+          return {
+            data: {
+              rows: [
+                { dimensionValues: [{ value: "/x.html" }, { value: "Organic Search" }], metricValues: [{ value: "9" }, { value: "11" }] },
+                { dimensionValues: [{ value: "/x.html" }, { value: "Direct" }], metricValues: [{ value: "3" }, { value: "9" }] },
+              ],
+            },
+          };
+        }
+        return {
+          data: {
+            rows: [{ dimensionValues: [{ value: "/x.html" }, { value: "affiliate_click" }, { value: "Organic Search" }], metricValues: [{ value: "3" }] }],
+          },
+        };
       },
     },
   };
@@ -117,6 +132,11 @@ test("fetchGA4PageMetrics: mock clientの値を正しく保存する", async () 
   assert.equal(result.activeUsers, 10);
   assert.equal(result.screenPageViews, 20);
   assert.equal(result.affiliateClickEventCount, 3);
+  assert.deepEqual(result.byTrafficSource, [
+    { channel: "Organic Search", sessions: 9, screenPageViews: 11 },
+    { channel: "Direct", sessions: 3, screenPageViews: 9 },
+  ]);
+  assert.deepEqual(result.affiliateClickByTrafficSource, [{ channel: "Organic Search", eventCount: 3 }]);
 });
 
 test("fetchGA4PageMetrics: 権限不足の場合はNOT_AVAILABLEを返す", async () => {
