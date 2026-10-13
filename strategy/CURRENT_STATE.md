@@ -32,7 +32,9 @@ FACT(GitHub由来、CLAUDE.md「運用状況」セクション、2026年8月時�
 
 `strategy/experiments.json` 参照。
 
-**RUNNING(本番公開済み、3件)**:
+**RUNNING(4件)**:
+
+- `exp-2026-10-13-grain-free-dog-channel-note-vs-x` — Traffic Acquisition Experiment 1(grain-free-dog-food LP固定、note vs X)。startDate 2026-10-13 / reviewDate 2026-10-27。観測日: Day3=10-16 / Day7=10-20 / Day14=10-27。Brief: `strategy/implementation-briefs/brief-2026-10-13-grain-free-dog-channel-test.md`。baselineは2026-10-10時点のlast verified値(Referral=0 / Organic Social=0、10-10〜投稿直前はUNKNOWN)。Day0はGA4標準レポート未反映のためチャネル分類は未確定(Day0は成果判定をしない)
 
 - `exp-2026-10-05-grain-free-dog-food` — startDate 2026-10-05 / reviewDate 2026-11-04
 - `exp-2026-10-05-senior-cat-food` — startDate 2026-10-05 / reviewDate 2026-11-04
@@ -43,9 +45,7 @@ FACT(GitHub由来、CLAUDE.md「運用状況」セクション、2026年8月時�
 - `exp-2026-09-10-senior-dog-pork` — status=**INCONCLUSIVE** / decision=**IMPROVE**(successThreshold未達・killThresholdにも該当せず。Indexは成功しているが30日でimpressions=1、affiliate_click=0。「需要不足」とは断定せず、別のImprovement Experimentを設計する)
 - `exp-2026-09-10-grain-free-cat-food` — status=**FAILED** / decision=**IMPROVE**(KILLにはしない。30日後もURL Inspectionが「URL is unknown to Google」のままで、Googleに索引されなかったことが確定した学び。キーワード需要・記事品質・商品テーマ適否・収益化可能性はいずれもUNKNOWNのまま、確定していない)
 
-**PLANNED(実投稿の公開前のためRUNNINGにしない)**:
-
-- `exp-2026-10-13-grain-free-dog-channel-note-vs-x` — grain-free-dog-foodへの送客チャネル比較(note vs X、同一LP・同一UTMキャンペーン)。Brief: `strategy/implementation-briefs/brief-2026-10-13-grain-free-dog-channel-test.md`。startDate/reviewDateはnote・X両投稿の公開後に確定(観測14日)
+**PLANNED**: なし
 
 ## Active PRs
 
@@ -97,4 +97,6 @@ GitHub上で確認できる事実(2026-10-10時点):
 
 ## Next Review
 
-**2026-11-04**(`exp-2026-10-05-grain-free-dog-food` / `exp-2026-10-05-senior-cat-food` / `exp-2026-10-05-domestic-additive-free-dog-treats` のreviewDate、startDate 2026-10-05 + 30日で確定済み。既存2実験は2026-10-10に正式レビュー完了済み)
+**2026-10-16 / 10-20 / 10-27**(`exp-2026-10-13-grain-free-dog-channel-note-vs-x` のDay3 / Day7 / Day14。10-27が正式判定。それ以前に、GA4標準レポート反映後にDay0のチャネル分類(sessionSource/Medium/Campaign)を1回確認する)
+
+次点: **2026-11-04**(`exp-2026-10-05-grain-free-dog-food` / `exp-2026-10-05-senior-cat-food` / `exp-2026-10-05-domestic-additive-free-dog-treats` のreviewDate、startDate 2026-10-05 + 30日で確定済み。既存2実験は2026-10-10に正式レビュー完了済み)

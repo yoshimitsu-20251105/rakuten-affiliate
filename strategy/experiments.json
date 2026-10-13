@@ -170,16 +170,20 @@
       "targetKeywords": [],
       "trafficSource": "note_and_x_utm",
       "monetizationSource": "rakuten",
-      "startDate": null,
-      "reviewDate": null,
-      "baseline": null,
+      "startDate": "2026-10-13",
+      "reviewDate": "2026-10-27",
+      "baseline": { "kind": "last_verified_pre_experiment", "asOf": "2026-10-10", "scope": "grain-free-dog-food LP, GA4 sessionDefaultChannelGroup", "referralSessions": 0, "organicSocialSessions": 0, "caveat": "2026-10-10時点の最終確認値。2026-10-10から投稿直前までの流入は完全には観測しておらず、その間の値はUNKNOWN(0とは扱わない)" },
       "successThreshold": { "conversionsTotal": 1, "channelSessionsMin": 20, "channelAffiliateClicksMin": 1, "ctrComparisonMinAffiliateClicksPerChannel": 5 },
       "killThreshold": { "bothChannelsSessionsBelowAtReviewDate": 20 },
-      "metrics": null,
+      "metrics": [
+        { "metric": "posts_published", "value": "note,x(両方とも2026-10-13に公開)", "sourceType": "user_verified", "source": "ユーザー確認(投稿URLは未記録)", "observedAt": "2026-10-13" },
+        { "metric": "ga4_channel_breakdown_day0", "value": "NOT_AVAILABLE(GA4標準レポートに未反映、rows=0。0件とは断定しない)", "sourceType": "api", "source": "ga4_data_api(runReport、LP pagePath、2026-10-10〜2026-10-13)", "observedAt": "2026-10-13" },
+        { "metric": "ga4_realtime_lp_activity_day0", "value": "直近30分内にLP閲覧のアクティブユーザー1名(約20分前、流入元はリアルタイムAPIでは判別不可、投稿経由かQAかも不明)", "sourceType": "api", "source": "ga4_data_api(runRealtimeReport)", "observedAt": "2026-10-13" }
+      ],
       "result": null,
       "decision": null,
       "learnings": [],
-      "status": "PLANNED"
+      "status": "RUNNING"
     }
   ]
 }
