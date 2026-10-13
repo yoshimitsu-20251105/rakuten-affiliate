@@ -202,3 +202,12 @@ brief-2026-10-13-product-data-freshness-disclosure
 ## Required Report
 
 変更ページ数 / `snapshotDate`と`estimatedSnapshotDate`の件数と判定条件 / 代表的な表示の変更前後 / 構造化データの変更前後 / 日次変更ファイル数の変化 / 対象LPの差分有無 / テスト結果 / PR番号
+
+## 実装時のBriefとの差分(PR #30、2026-10-13)
+
+実装はPR #30。Briefの記載から次の2点が変わった。
+
+- **`lib/snapshot-date.js`(新規)を追加**: 日本時間への変換と表示文を純粋関数として切り出すため。`generate-site.js`はimportするとmain()が実行されて単体テストできず、既存の隔離テストが`lib/`をコピーする方式のため、同じ場所に置いた(Files Allowed To Changeには未記載だった)
+- **ランキングページの「取得時点のもの」注記文言の調整は実施しない**: その文言はFAQの本文であり、構造化データ(FAQPage)にも出力される。「ランキングページのFAQ structured dataも今回変更しない」というユーザー指示を優先した。必要であれば別途判断する
+
+実績値(隔離コピーでのプレビュー): `snapshotDate` 320件 / `estimatedSnapshotDate` 85件 / 日本時間補正160件(うち`snapshotDate`の131件) / 変更予定428ファイル(記事405、ランキング21、`index.html`、`sitemap.xml`) / 検索公開試験ページ差分0 / affiliate URL(href)差分0 / 想定外の差分0。
