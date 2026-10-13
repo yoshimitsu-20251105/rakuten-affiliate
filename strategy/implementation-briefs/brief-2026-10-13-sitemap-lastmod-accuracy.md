@@ -38,8 +38,12 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
   - 各URLのHTMLから日付文字列(`情報取得日:` / `最終更新日:`)を除いたハッシュを計算する
   - ハッシュが前回と同じなら前回の `lastmod` を維持し、異なる、または新規URLなら当日日付にする
 - 前回のハッシュと `lastmod` を、リポジトリ直下の `sitemap-lastmod.json` に保存する(`articles-data.json` と同じ場所。日次ワークフローは `git add -A` のため追加の設定変更は不要)
-- 初回(`sitemap-lastmod.json` がない場合)は、実際の更新日が分からないため全URLの `lastmod` を省略する(誤った日付を出すより省略を優先する。2026-10-13のユーザー方針により、当初案の「現在のlastmodを引き継ぐ」から変更)。以後、内容が変わったURLと新規URLだけ `lastmod` が付く。実装はPR #28
-- 検索公開試験ページ(`search-trial-pages.json` 掲載)も同じ方法で扱う。ページファイルを変更しないため、sitemap上の `lastmod` もページが変わらない限り維持される
+- 初回(`sitemap-lastmod.json` がない場合)の扱い:
+  - FACT: 既存URLの正確な過去の更新日は復元できない。現在の`docs/sitemap.xml`の`lastmod`(2026-10-12)は実更新日ではなく、日次生成の実行日が全URLに一律で入った不正確な値である
+  - 方針: 誤った`lastmod`を引き継がない。初回は既存URLの`lastmod`を`null`として記録し、`sitemap.xml`では`<lastmod>`を省略する
+  - 以後、実質的なHTML内容が変更されたURLだけ、変更日を`lastmod`として付与する。新規URLは生成日(=作成日)を`lastmod`として付与する
+  - (2026-10-13のユーザー判断により、当初案の「現在の`lastmod`を引き継ぐ」から本方針へ変更し、正式採用した。実装はPR #28)
+- 検索公開試験ページ(`search-trial-pages.json` 掲載)も同じ方法で扱う。ページファイルが変わらない限り、`lastmod`は省略のまま(`null`を維持)で、毎日更新しない
 
 ## Files Allowed To Change
 
@@ -68,7 +72,7 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
 ## Measurement Plan
 
 - 修正後の日次コミットごとに、`docs/sitemap.xml` で `lastmod` が変わったURL数を数える。日付文字列以外に変更のあったページ数(実績は0〜数件/日)とほぼ一致すること
-- 公開sitemapの `lastmod` の種類数が1種類(全件一律)から複数に変わること
+- 公開sitemapの `lastmod` が、全件一律(1種類・430件)から、初回は全件省略(0件)に変わり、以後は内容が変わったURLと新規URLだけに付くこと
 - Search Consoleの `sitemaps.list` の状態(`isPending`、`lastDownloaded`、`errors`)を修正前後で記録する。ただし、これは参考情報であり成功条件ではない
 
 ## Success Criteria
