@@ -38,7 +38,7 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
   - 各URLのHTMLから日付文字列(`情報取得日:` / `最終更新日:`)を除いたハッシュを計算する
   - ハッシュが前回と同じなら前回の `lastmod` を維持し、異なる、または新規URLなら当日日付にする
 - 前回のハッシュと `lastmod` を、リポジトリ直下の `sitemap-lastmod.json` に保存する(`articles-data.json` と同じ場所。日次ワークフローは `git add -A` のため追加の設定変更は不要)
-- 初回(`sitemap-lastmod.json` がない場合)は、現在の `docs/sitemap.xml` の `lastmod` を引き継ぐ。実際の過去の変更日は復元しない(復元しようとしない)
+- 初回(`sitemap-lastmod.json` がない場合)は、実際の更新日が分からないため全URLの `lastmod` を省略する(誤った日付を出すより省略を優先する。2026-10-13のユーザー方針により、当初案の「現在のlastmodを引き継ぐ」から変更)。以後、内容が変わったURLと新規URLだけ `lastmod` が付く。実装はPR #28
 - 検索公開試験ページ(`search-trial-pages.json` 掲載)も同じ方法で扱う。ページファイルを変更しないため、sitemap上の `lastmod` もページが変わらない限り維持される
 
 ## Files Allowed To Change
