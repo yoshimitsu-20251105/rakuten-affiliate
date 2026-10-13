@@ -43,7 +43,8 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
 
 ## Files Allowed To Change
 
-- `generate-site.js`(`sitemapXml()` と、その補助関数の追加のみ)
+- `generate-site.js`(`sitemapXml()` と、その補助関数の追加のみ。実装では`sitemapXml()`を`sitemapUrls()`と`sitemapXml()`に分割し、sitemapの書き込みを全ページ書き込み後へ移動した)
+- `lib/sitemap-lastmod.js`(新規。実装中に必要性が判明して追加。`generate-site.js`はimportするとmain()が実行されるため単体テストできず、ハッシュ計算・lastmod決定・記録の読み込みを純粋関数として切り出す必要があった。既存の`generate-site-search-trial.test.js`の隔離テスト方式が`lib/`をコピーするため、同じ場所に置いた)
 - `sitemap-lastmod.json`(新規)
 - `keyword-research/test/` 配下の関連テスト(新規または既存テストの追加)
 - `docs/sitemap.xml`(日次パイプラインによる再生成)
