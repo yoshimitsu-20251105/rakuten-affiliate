@@ -5,7 +5,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { scoreItem } from "./lib/quality-score.js";
 import { SITE_URL } from "./lib/site-config.js";
 import { loadSearchTrialConfig } from "./lib/search-trial-config.js";
-import { contentHash, resolveLastmods, loadLastmodManifest } from "./lib/sitemap-lastmod.js";
+import { contentHash, resolveLastmods, loadLastmodManifest, loadLegacySitemapPaths } from "./lib/sitemap-lastmod.js";
 
 const SITE_TITLE = "楽天トレンドセレクト";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
@@ -685,10 +685,15 @@ async function main() {
 
   // 【fail closed】lastmod記録が壊れている場合は、docs/への書き込みを一切行わずに中止する。
   let previousLastmods;
+  // 初回(記録なし)のときだけ、書き込み前の旧sitemap.xmlから「導入前から存在したURL」の一覧を取る。
+  let legacySitemapPaths = new Set();
   try {
     previousLastmods = await loadLastmodManifest(SITEMAP_LASTMOD_FILE);
+    if (previousLastmods === null) {
+      legacySitemapPaths = await loadLegacySitemapPaths(new URL("sitemap.xml", DOCS_DIR), SITE_URL);
+    }
   } catch (e) {
-    console.error(`サイト生成を中止しました(sitemap-lastmod.jsonが不正です): ${e.message}`);
+    console.error(`サイト生成を中止しました(lastmod記録の読み込みに失敗しました): ${e.message}`);
     process.exitCode = 1;
     return;
   }
@@ -735,7 +740,7 @@ async function main() {
     const path = u.slice(SITE_URL.length + 1);
     hashedPages.push({ path, hash: contentHash(await readFile(`${DOCS_DIR_PATH}${path}`, "utf-8")) });
   }
-  const lastmods = resolveLastmods(hashedPages, previousLastmods, TODAY_ISO);
+  const lastmods = resolveLastmods(hashedPages, previousLastmods, TODAY_ISO, legacySitemapPaths);
   await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(urls, lastmods));
   await writeFile(SITEMAP_LASTMOD_FILE, JSON.stringify(lastmods, null, 2) + "\n");
 

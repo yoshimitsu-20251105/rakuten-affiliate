@@ -40,9 +40,14 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
 - 前回のハッシュと `lastmod` を、リポジトリ直下の `sitemap-lastmod.json` に保存する(`articles-data.json` と同じ場所。日次ワークフローは `git add -A` のため追加の設定変更は不要)
 - 初回(`sitemap-lastmod.json` がない場合)の扱い:
   - FACT: 既存URLの正確な過去の更新日は復元できない。現在の`docs/sitemap.xml`の`lastmod`(2026-10-12)は実更新日ではなく、日次生成の実行日が全URLに一律で入った不正確な値である
-  - 方針: 誤った`lastmod`を引き継がない。初回は既存URLの`lastmod`を`null`として記録し、`sitemap.xml`では`<lastmod>`を省略する
+  - 方針: 誤った`lastmod`を引き継がない。旧`sitemap.xml`の`lastmod`の値は読まない
+  - 初回実行の判定は、書き込み前の旧`docs/sitemap.xml`の`<loc>`一覧だけを使う
+    - 旧sitemapに載っているURL(PR #28導入前から存在するURL): `lastmod`を`null`として記録し、`sitemap.xml`では`<lastmod>`を省略する
+    - 旧sitemapに載っていないURL(初回実行中に新しく生成されたURLを含む): 生成日を`lastmod`として付与する
+    - 旧sitemapが存在しない場合は、全URLが新規として生成日になる
+  - 2回目以降は`sitemap-lastmod.json`のハッシュ方式のみを使う(旧sitemapは参照しない)
   - 以後、実質的なHTML内容が変更されたURLだけ、変更日を`lastmod`として付与する。新規URLは生成日(=作成日)を`lastmod`として付与する
-  - (2026-10-13のユーザー判断により、当初案の「現在の`lastmod`を引き継ぐ」から本方針へ変更し、正式採用した。実装はPR #28)
+  - (2026-10-13のユーザー判断により、当初案の「現在の`lastmod`を引き継ぐ」から本方針へ変更し、正式採用した。初回実行中に追加されたURLまで`null`になる不整合は、レビューで指摘されて修正した。実装はPR #28)
 - 検索公開試験ページ(`search-trial-pages.json` 掲載)も同じ方法で扱う。ページファイルが変わらない限り、`lastmod`は省略のまま(`null`を維持)で、毎日更新しない
 
 ## Files Allowed To Change
@@ -71,8 +76,9 @@ HYPOTHESIS: 全URLの `lastmod` が毎日一律に更新される状態を解消
 
 ## Measurement Plan
 
-- 修正後の日次コミットごとに、`docs/sitemap.xml` で `lastmod` が変わったURL数を数える。日付文字列以外に変更のあったページ数(実績は0〜数件/日)とほぼ一致すること
-- 公開sitemapの `lastmod` が、全件一律(1種類・430件)から、初回は全件省略(0件)に変わり、以後は内容が変わったURLと新規URLだけに付くこと
+- 修正後の日次コミットごとに、`docs/sitemap.xml` で `lastmod` が変わったURL数を数える。日付文字列以外に変更のあったページ数(新規ページを含む)と一致すること
+- 日次で`lastmod`が付くURL数は一定ではない。FACT(実データの隔離コピーで確認): 新商品1件の追加で、同じ`matchedKeyword`の既存記事の「関連商品」欄(`relatedProductsBlock()`: 同一`matchedKeyword`のスコア上位3件を表示)に新商品が入ると、そのグループの既存記事のHTMLが実際に変わる。高スコアの新商品(レビュー500件・評価4.9)を既存グループ(36記事)に追加した場合は、新規記事1、関連商品欄のみ変更36、`index.html`・`rankings/all.html`・グループのランキングページの3、計40URLに`lastmod`が付いた。スコアの低い新商品(レビュー10件・評価3.9)の場合は計4URL(新規記事1+上記3)だった。これらは日付文字列だけの変更ではなく、リンク先・表示商品が実際に変わる実質的なHTML変更であるため、`lastmod`の更新対象として正常である
+- 公開sitemapの `lastmod` が、全件一律(1種類・全URL)から、初回は導入前から存在するURLが全て省略(初回実行中に生成された新規URLだけ生成日)に変わり、以後は内容が変わったURLと新規URLだけに付くこと
 - Search Consoleの `sitemaps.list` の状態(`isPending`、`lastDownloaded`、`errors`)を修正前後で記録する。ただし、これは参考情報であり成功条件ではない
 
 ## Success Criteria

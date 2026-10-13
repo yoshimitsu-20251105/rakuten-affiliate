@@ -5,15 +5,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, mkdir, writeFile, readFile, rm, cp } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, cp, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { contentHash, resolveLastmods, loadLastmodManifest } from "../../lib/sitemap-lastmod.js";
+import { contentHash, resolveLastmods, loadLastmodManifest, parseSitemapPaths, loadLegacySitemapPaths } from "../../lib/sitemap-lastmod.js";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url)).replace(/[\\/]$/, "");
 const TODAY = new Date().toISOString().slice(0, 10);
+const STALE_LEGACY_LASTMOD = "2026-10-12";
+const SITE = "https://yoshimitsu-20251105.github.io/rakuten-affiliate";
 
 test("contentHash: 情報取得日・最終更新日の日付だけが違うHTMLは同じハッシュになる", () => {
   const a = "<p>情報取得日: 2026年10月11日(楽天市場)</p><p>運営者 / 最終更新日: 2026年10月11日</p><p>本文</p>";
@@ -27,9 +29,29 @@ test("contentHash: 日付以外の本文が違えば別のハッシュになる"
   assert.notEqual(contentHash(a), contentHash(b));
 });
 
-test("resolveLastmods: 初回(前回記録なし)は実際の更新日が不明なためlastmodをnullにする", () => {
+test("parseSitemapPaths: locだけを相対パスで取り出し、lastmodの値は読まない", () => {
+  const xml = `<urlset><url><loc>${SITE}/index.html</loc><lastmod>${STALE_LEGACY_LASTMOD}</lastmod></url><url><loc>${SITE}/articles/a.html</loc></url><url><loc>https://other.example/x.html</loc></url></urlset>`;
+  const paths = parseSitemapPaths(xml, SITE);
+  assert.deepEqual([...paths].sort(), ["articles/a.html", "index.html"]);
+});
+
+test("resolveLastmods: 初回は、導入前から存在するURL(旧sitemapにあるURL)はnull、そうでない新規URLは当日", () => {
+  const legacy = new Set(["old.html"]);
+  const r = resolveLastmods([{ path: "old.html", hash: "h1" }, { path: "new.html", hash: "h2" }], null, "2026-10-13", legacy);
+  assert.deepEqual(r["old.html"], { hash: "h1", lastmod: null });
+  assert.deepEqual(r["new.html"], { hash: "h2", lastmod: "2026-10-13" });
+});
+
+test("resolveLastmods: 旧sitemapが一つもない初回は、全URLが新規として当日になる", () => {
   const r = resolveLastmods([{ path: "a.html", hash: "h1" }], null, "2026-10-13");
-  assert.deepEqual(r["a.html"], { hash: "h1", lastmod: null });
+  assert.equal(r["a.html"].lastmod, "2026-10-13");
+});
+
+test("resolveLastmods: 2回目以降はlegacyPathsを使わない(記録がないURLは新規として当日)", () => {
+  const prev = { "a.html": { hash: "h1", lastmod: null } };
+  const r = resolveLastmods([{ path: "a.html", hash: "h1" }, { path: "legacy-but-new-to-manifest.html", hash: "h2" }], prev, "2026-10-13", new Set(["legacy-but-new-to-manifest.html"]));
+  assert.equal(r["a.html"].lastmod, null);
+  assert.equal(r["legacy-but-new-to-manifest.html"].lastmod, "2026-10-13");
 });
 
 test("resolveLastmods: ハッシュが同じなら前回のlastmodを維持する(nullもそのまま)", () => {
@@ -52,10 +74,10 @@ test("resolveLastmods: sitemapから外れたURLの記録は引き継がない",
   assert.equal("gone.html" in r, false);
 });
 
-async function withManifest(content, fn) {
-  const dir = await mkdtemp(join(tmpdir(), "lastmod-manifest-test-"));
+async function withTempFile(content, fn) {
+  const dir = await mkdtemp(join(tmpdir(), "lastmod-file-test-"));
   try {
-    const file = join(dir, "sitemap-lastmod.json");
+    const file = join(dir, "f");
     if (content !== undefined) await writeFile(file, content, "utf-8");
     return await fn(new URL(`file:///${file.replace(/\\/g, "/")}`));
   } finally {
@@ -64,13 +86,17 @@ async function withManifest(content, fn) {
 }
 
 test("loadLastmodManifest: ファイルがなければnull(初回実行)", async () => {
-  assert.equal(await withManifest(undefined, (u) => loadLastmodManifest(u)), null);
+  assert.equal(await withTempFile(undefined, (u) => loadLastmodManifest(u)), null);
 });
 
 test("loadLastmodManifest: JSON不正・形式不正は例外を投げる", async () => {
-  await assert.rejects(() => withManifest("{broken", (u) => loadLastmodManifest(u)), /JSONが不正/);
-  await assert.rejects(() => withManifest(JSON.stringify({ "a.html": { hash: "h", lastmod: "10/01" } }), (u) => loadLastmodManifest(u)), /形式が不正/);
-  await assert.rejects(() => withManifest(JSON.stringify({ "a.html": { hash: 1, lastmod: null } }), (u) => loadLastmodManifest(u)), /形式が不正/);
+  await assert.rejects(() => withTempFile("{broken", (u) => loadLastmodManifest(u)), /JSONが不正/);
+  await assert.rejects(() => withTempFile(JSON.stringify({ "a.html": { hash: "h", lastmod: "10/01" } }), (u) => loadLastmodManifest(u)), /形式が不正/);
+  await assert.rejects(() => withTempFile(JSON.stringify({ "a.html": { hash: 1, lastmod: null } }), (u) => loadLastmodManifest(u)), /形式が不正/);
+});
+
+test("loadLegacySitemapPaths: 旧sitemapがなければ空の集合", async () => {
+  assert.equal((await withTempFile(undefined, (u) => loadLegacySitemapPaths(u, SITE))).size, 0);
 });
 
 // ---- generate-site.js 統合テスト ----
@@ -124,66 +150,114 @@ async function setup(items) {
 
 const run = (dir) => spawnSync(process.execPath, ["generate-site.js"], { cwd: dir, encoding: "utf-8" });
 
+// 「PR導入前」の状態を作る: 旧sitemap.xml(全URLに不正確な一律lastmod=2026-10-12)があり、sitemap-lastmod.jsonは存在しない。
+async function setupLegacyState(items) {
+  const dir = await setup(items);
+  assert.equal(run(dir).status, 0);
+  await unlink(join(dir, "sitemap-lastmod.json"));
+  const sitemapPath = join(dir, "docs", "sitemap.xml");
+  const legacy = (await readFile(sitemapPath, "utf-8")).replace(/<lastmod>[^<]*<\/lastmod>/g, `<lastmod>${STALE_LEGACY_LASTMOD}</lastmod>`);
+  await writeFile(sitemapPath, legacy, "utf-8");
+  assert.match(legacy, new RegExp(`<lastmod>${STALE_LEGACY_LASTMOD}</lastmod>`));
+  return dir;
+}
+
 function lastmodOf(sitemap, pathPart) {
   const m = sitemap.match(new RegExp(`<url><loc>[^<]*${pathPart}</loc>(<lastmod>([^<]*)</lastmod>)?</url>`));
   assert.ok(m, `sitemapに${pathPart}が見つかりません`);
   return m[2] ?? null;
 }
 
-test("generate-site.js: 初回はlastmodを出力せず、sitemap-lastmod.jsonに記録する", async () => {
-  const dir = await setup([makeItem(1), makeItem(2), makeItem(3)]);
+test("初回bootstrap: 導入前から存在するURLのlastmodはnull(省略)で、旧sitemapの2026-10-12は引き継がない", async () => {
+  const dir = await setupLegacyState([makeItem(1), makeItem(2), makeItem(3)]);
   try {
+    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
     const r = run(dir);
     assert.equal(r.status, 0, r.stderr);
     const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
     assert.doesNotMatch(sitemap, /<lastmod>/);
-    assert.match(sitemap, /<loc>[^<]*rankings\/senior-dog-pork\.html<\/loc>/);
+    assert.doesNotMatch(sitemap, new RegExp(STALE_LEGACY_LASTMOD));
+    assert.equal(lastmodOf(sitemap, "index\\.html"), null);
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), null);
+    assert.equal(lastmodOf(sitemap, "rankings\\/senior-dog-pork\\.html"), null);
     const manifest = JSON.parse(await readFile(join(dir, "sitemap-lastmod.json"), "utf-8"));
-    assert.equal(manifest["rankings/senior-dog-pork.html"].lastmod, null);
+    assert.equal(manifest["articles/test_item1.html"].lastmod, null);
     assert.equal(typeof manifest["index.html"].hash, "string");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });
 
-test("generate-site.js: 2回目は内容が変わっていない試験ページのlastmodを付けず、新規記事だけ当日になる", async () => {
-  const dir = await setup([makeItem(1), makeItem(2), makeItem(3)]);
+test("初回bootstrap: 初回実行中に新しく追加されたURLは生成日、既存URLはnull(既存ページの関連商品欄が変わってもnullのまま)", async () => {
+  const dir = await setupLegacyState([makeItem(1), makeItem(2), makeItem(3)]);
   try {
-    assert.equal(run(dir).status, 0);
     await writeFile(join(dir, "selected-products.json"), JSON.stringify([makeItem(4)]), "utf-8");
     const r = run(dir);
     assert.equal(r.status, 0, r.stderr);
     const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item4\\.html"), TODAY);
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), null);
     assert.equal(lastmodOf(sitemap, "rankings\\/senior-dog-pork\\.html"), null);
+    assert.doesNotMatch(sitemap, new RegExp(STALE_LEGACY_LASTMOD));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("2回目: 内容が変わらなければlastmodは維持される(nullも当日にならない)", async () => {
+  const dir = await setupLegacyState([makeItem(1), makeItem(2), makeItem(3)]);
+  try {
+    await writeFile(join(dir, "selected-products.json"), JSON.stringify([makeItem(4)]), "utf-8");
+    assert.equal(run(dir).status, 0);
+    const afterFirst = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
+    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
+    assert.equal(run(dir).status, 0);
+    assert.equal(await readFile(join(dir, "docs", "sitemap.xml"), "utf-8"), afterFirst);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("2回目以降: 実際にHTMLが変わったページだけlastmodが当日になる", async () => {
+  const dir = await setupLegacyState([makeItem(1), makeItem(2), makeItem(3)]);
+  try {
+    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
+    assert.equal(run(dir).status, 0);
+    await writeFile(join(dir, "docs", "rankings", "senior-dog-pork.html"), TRIAL_PAGE_HTML.replace("test</body>", "test2</body>"), "utf-8");
+    assert.equal(run(dir).status, 0);
+    const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
+    assert.equal(lastmodOf(sitemap, "rankings\\/senior-dog-pork\\.html"), TODAY);
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), null);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("2回目以降: 新商品の追加で既存記事の関連商品欄が実際に変わった場合は、そのページのlastmodが当日になる", async () => {
+  const dir = await setupLegacyState([makeItem(1), makeItem(2), makeItem(3)]);
+  try {
+    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
+    assert.equal(run(dir).status, 0);
+    const beforeItem1 = await readFile(join(dir, "docs", "articles", "test_item1.html"), "utf-8");
+    await writeFile(join(dir, "selected-products.json"), JSON.stringify([makeItem(4), makeItem(5)]), "utf-8");
+    assert.equal(run(dir).status, 0);
+    const afterItem1 = await readFile(join(dir, "docs", "articles", "test_item1.html"), "utf-8");
+    const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
+    assert.notEqual(contentHash(beforeItem1), contentHash(afterItem1), "この前提(関連商品欄が実際に変わる)が崩れた場合はテストデータを見直すこと");
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), TODAY);
     assert.equal(lastmodOf(sitemap, "articles\\/test_item4\\.html"), TODAY);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });
 
-test("generate-site.js: 何も変わらない再実行ではlastmodが全て変わらない", async () => {
+test("旧sitemapもsitemap-lastmod.jsonも存在しない場合は、全URLが新規として生成日になる", async () => {
   const dir = await setup([makeItem(1), makeItem(2), makeItem(3)]);
   try {
-    assert.equal(run(dir).status, 0);
-    const first = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
-    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
-    assert.equal(run(dir).status, 0);
-    assert.equal(await readFile(join(dir, "docs", "sitemap.xml"), "utf-8"), first);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
-test("generate-site.js: 試験ページのファイル内容が変わった場合だけ、そのページのlastmodが当日になる", async () => {
-  const dir = await setup([makeItem(1), makeItem(2), makeItem(3)]);
-  try {
-    assert.equal(run(dir).status, 0);
-    await writeFile(join(dir, "docs", "rankings", "senior-dog-pork.html"), TRIAL_PAGE_HTML.replace("test</body>", "test2</body>"), "utf-8");
-    await writeFile(join(dir, "selected-products.json"), "[]", "utf-8");
     assert.equal(run(dir).status, 0);
     const sitemap = await readFile(join(dir, "docs", "sitemap.xml"), "utf-8");
+    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), TODAY);
     assert.equal(lastmodOf(sitemap, "rankings\\/senior-dog-pork\\.html"), TODAY);
-    assert.equal(lastmodOf(sitemap, "articles\\/test_item1\\.html"), null);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
