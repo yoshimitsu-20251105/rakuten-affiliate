@@ -17,7 +17,7 @@ brief-2026-10-13-product-data-freshness-disclosure
 ## Hypothesis
 
 - HYPOTHESIS: 取得日を実態どおりに表示する(確認できない場合は日付を断定しない)ことで、ユーザーの誤認リスクと、鮮度を偽っていると評価されるリスクが下がる
-- HYPOTHESIS: 確認していない価格・在庫・外部サイト由来の評価を構造化データから外すことで、構造化データの手動対策(リッチリザルトの対象外)を受けるリスクが下がる
+- HYPOTHESIS: 自動生成商品ページから、確認していない価格・在庫・外部サイト由来の評価を含むProduct JSON-LDを一時停止することで、構造化データの手動対策(リッチリザルトの対象外)を受けるリスクが下がる
 - HYPOTHESIS: 表示日付を実態に合わせると、日次で約400ファイルが書き換わる状態も解消でき、PR #28の`lastmod`修正の効果が出やすくなる
 
 ## Evidence
@@ -63,14 +63,14 @@ brief-2026-10-13-product-data-freshness-disclosure
 
 - FACT: GA4(2026-08-17〜2026-10-13): サイト全体のセッションは約76、記事ページでトラフィックがあったのは1ページ(2セッション)、`affiliate_click`イベントはサイト全体で0件
 - UNKNOWN: 古い価格・在庫・レビューが売上(Revenue)に与える影響。クリック自体が0件のため、現時点では判断材料がない
-- UNKNOWN: 楽天のAPI利用規約が価格情報の掲載期間や再取得頻度に条件を課しているか(本Briefでは確認していない)
+- UNKNOWN: 楽天Web Serviceの日本語正式規約・API別の制限・更新頻度の制限が、価格情報の掲載期間や再取得頻度に条件を課しているか(本Briefでは確認していない。次段階のBLOCKERとして後述)
 - FACT: Rakuten APIの1商品あたりの呼び出し間隔は1.2秒(`RAKUTEN_RATE_LIMIT_MS`)。商品コード指定で1件ずつ現在の状態を取得する関数`searchRakutenItemByCode()`が既に存在する(PR #21で追加)
 
 ## Counter Evidence
 
 - 記事ページへのアクセスがほぼないため、表示の誤りでユーザーが実害を受けた証拠はない(影響は主に信頼性とGoogleの品質評価のリスク)
 - Googleが「情報取得日」の表示や、この構造化データを評価にどう使っているかは不明(UNKNOWN)。「ペナルティを受けている」という根拠はない。構造化データの問題は通常、リッチリザルトの対象外になるだけで、順位には影響しないと公式に記載されている
-- 構造化データの`aggregateRating`を外すと、将来、検索結果で星評価が表示される可能性もなくなる(現時点で表示されている証拠はない)
+- Product JSON-LDを停止すると、商品スニペット(価格・星評価などのリッチリザルト)の対象でもなくなる。ただし、現時点で表示されている証拠はなく、現状のマークアップは誤り(`InStock`固定)と外部サイト由来の評価集計を含むため、残す実益がない
 - 85記事の取得日は、実際には公開当時と同じ日付かもしれないが、それを確認する手段がない
 
 ## 表示する日付の方針(候補A・B・C)
@@ -97,23 +97,31 @@ brief-2026-10-13-product-data-freshness-disclosure
 | S2 | `availability`を`articles-data.json`の値に連動(1→InStock、0→OutOfStock) | 取得時点の矛盾(2件)が解消する | 取得から最大約57日経った在庫状況を現在の在庫として伝える点は変わらない。可視ページにも在庫表示がない |
 | S3 | `availability`だけ削除し、`price`・`priceCurrency`・`url`は残す | 確認できない在庫の断定をやめられる。価格は可視ページに見えている | 古いスナップショットの価格を「現在の価格」として伝える点は残る。`priceValidUntil`に過去の日付を入れるとスニペットが表示されなくなる可能性があるため、日付で補う方法は採らない |
 | S4 | `offers`全体を削除 | 価格・在庫の両方を主張しなくなる。`aggregateRating`だけでもProductスニペットの対象になる | `aggregateRating`は残る(次の項目参照) |
-| S5 | `offers`と`aggregateRating`の両方を削除し、`name`・`image`・`description`だけのProductにする(または構造化データを一時的に出力しない) | 確認できない値、外部サイトの評価集計を一切伝えない。最も安全 | 星評価・価格表示のリッチリザルトの対象外になる(現時点で表示されている証拠はない) |
-| S6 | 案5を基本にして、再検証(別Brief)で`snapshotDate`が新しい(例: 7日以内)ことと在庫を確認できた商品だけ、`offers`を復活させる | 鮮度を確認できた情報だけ伝える | 再検証の仕組み(案3)が前提。今回の範囲外 |
+| S5a(不採用) | `offers`と`aggregateRating`だけを外し、`name`・`image`・`description`だけのProductを残す | 確認できない値は伝えない | Google公式の商品スニペットは`review`・`aggregateRating`・`offers`のいずれかが必要なため、これらを外したProductは商品スニペットの要件を満たさない不完全なマークアップになる。残す実益がない |
+| **S5b(採用)** | **自動生成商品ページ(`docs/articles/`)のProduct JSON-LD自体を一時停止する(`<script type="application/ld+json">`を出力しない)** | 古い/誤った`availability`、最大約57日前の価格、他サイト(楽天)由来の`aggregateRating`を一切伝えない。不完全なProductを残さない。可視HTMLは変更しない | 商品スニペットのリッチリザルトの対象外になる(現時点で表示されている証拠はない)。通常のHTMLページとしてのクロール・インデックスには影響しない |
+| S6(将来) | 商品をAPIで再確認し、`snapshotDate`が十分新しく、価格と在庫を確認できた商品だけ、`Product + offers`を復活させる | 鮮度を確認できた情報だけ伝える | 再検証の仕組み(案3)と楽天の規約確認(後述のBLOCKER)が前提。今回の範囲外 |
 
-**推奨(最小コスト案)**: 第1段階はS5。可視ページの表示(価格・レビュー件数は本文に見えたまま)は変更せず、検索エンジンへ伝える構造化データだけ、確認できないものを一時的に外す。S6は、再検証(案3)が稼働して`snapshotDate`が新しい商品が出てきた時点で、別Briefとして検討する。S2・S3は、古い値を「現在の値」として伝える点が解決しないため採らない。なお、評価(`aggregateRating`)は、外部サイト由来であることがガイドライン上の問題になりうる(HYPOTHESIS)ため、鮮度とは別にS5で外す。
+**推奨(最小コスト案)**: 第1段階はS5b。自動生成商品ページのProduct JSON-LD自体を一時停止する。可視HTMLの商品名・価格・レビュー表示は今回変更しない。S2・S3・S4・S5aは、古い値を「現在の値」として伝える点、または不完全なマークアップが残る点が解決しないため採らない。
+
+**将来の復活条件(S6)**:
+- 復活させるのは`Product + offers`のみ。商品をAPIで再確認し、`snapshotDate`が十分新しく(閾値は別Briefで決める)、価格と在庫の両方を確認できた商品だけに限る
+- **楽天由来の`aggregateRating`は復活させない**(他サイト由来の評価集計であり、本サイトのユーザーの評価ではないため)
+- 可視ページに在庫状況が表示されていない場合は、`availability`も出力しない(ユーザーに見えない情報を構造化データだけで主張しない)
+
+**次段階のBLOCKER**: 定期的なAPI再取得(案3)、およびS6の実装に着手する前に、**楽天Web Serviceの日本語正式規約、API別の制限、更新頻度の制限を確認する**。本Brief(およびこのBriefの実装)ではAPI再取得を一切行わず、これらの規約も未確認(UNKNOWN)である。確認が済むまで、案3・案1・S6には着手しない。
 
 ## 価格・在庫・レビューが古いままになる問題: 選択肢の比較
 
 | 選択肢 | コスト | Revenue | Traffic | Measurement | 信頼性 | 備考 |
 |---|---|---|---|---|---|---|
 | 1. 定期API再取得(毎日全件) | 405回 ≒ 約8分/日。ワークフロー変更・API失敗時の処理が必要 | 価格・在庫が最新なら成約に有利な可能性。ただし現状クリック0件で効果は測れない | 変更ページが増え、`lastmod`も頻繁に更新される | 最も正確 | 高い | 現時点では過剰。API規約の確認(UNKNOWN)も必要 |
-| 2. 公開時点データとして明示(+構造化データの縮小) | 最小。テンプレート変更、`snapshotDate`の付与、構造化データの縮小。API呼び出し・ワークフロー変更なし | 変化なし | 日次の書き換えが約400件から実変更のみに減る | 取得日が分かるので、後続の再検証対象を決められる | 誤認表示と、確認できない構造化データが解消される | **最小コストで最大の改善** |
-| 3. 一定期間経過で再検証 | 低〜中。例: 古い順に30件/日(約36秒/日)で約2週間ごとに全件を更新。既存の`searchRakutenItemByCode()`を再利用できる。ワークフロー変更が必要 | 価格・在庫の鮮度を維持できる | 実際に変更されたページだけ更新される | `snapshotDate`が更新され、鮮度を数値で追える | 高い | 案2の後に、クリックが発生し始めた時点か、ユーザーの判断で着手する。構造化データのS6の前提 |
+| 2. 公開時点データとして明示(+Product JSON-LDの一時停止) | 最小。テンプレート変更、`snapshotDate`の付与、Product JSON-LDの出力停止。API呼び出し・ワークフロー変更なし | 変化なし | 日次の書き換えが約400件から実変更のみに減る | 取得日が分かるので、後続の再検証対象を決められる | 誤認表示と、確認できない構造化データが解消される | **最小コストで最大の改善** |
+| 3. 一定期間経過で再検証 | 低〜中。例: 古い順に30件/日(約36秒/日)で約2週間ごとに全件を更新。既存の`searchRakutenItemByCode()`を再利用できる。ワークフロー変更が必要 | 価格・在庫の鮮度を維持できる | 実際に変更されたページだけ更新される | `snapshotDate`が更新され、鮮度を数値で追える | 高い | 案2の後に、**楽天Web Serviceの規約確認(BLOCKER)が済んでから**、クリックが発生し始めた時点か、ユーザーの判断で着手する。構造化データのS6の前提 |
 | 4. 販売終了時にnoindex/削除 | コードは小さいが、検出できるのは案1か案3の後だけ | 売り切れ商品への誘導を減らせる | 誤検出するとインデックスから消えるリスク。削除は元に戻せない | 検出基準を記録する必要がある | 高い | 削除ではなくnoindexを優先。同一商品で2回続けて在庫なしを確認してから |
 
 **最小コスト案(提案)**:
-1. 今回の実装候補: 案2(表示日付のA+B+Cと、構造化データのS5)。API・ワークフロー・Rakuten呼び出しを一切使わない
-2. 次の段階: 案3(古い順に毎日少数ずつ再検証)。クリック発生後、またはユーザーが判断した時点で別Briefとして起案する
+1. 今回の実装候補: 案2(表示日付のA+B+Cと、Product JSON-LDの一時停止S5b)。API・ワークフロー・Rakuten呼び出しを一切使わない
+2. 次の段階: 案3(古い順に毎日少数ずつ再検証)。**楽天Web Serviceの規約確認(BLOCKER)が済んだ後**、クリック発生後またはユーザーが判断した時点で別Briefとして起案する
 3. 案4(noindex)は案3の後。案1は現時点では採用しない
 
 ## Scope(実行を承認された場合の範囲)
@@ -124,12 +132,13 @@ brief-2026-10-13-product-data-freshness-disclosure
 - 記事ページの「情報取得日」を`snapshotDate`から出す。`snapshotDate`がない記事は上記Bの文言にする
 - 共通フッターの「最終更新日: 今日」を削除する
 - ランキングページの注記文言を調整する
-- Product JSON-LDからは`offers`と`aggregateRating`を外す(S5)
+- 自動生成商品ページ(`docs/articles/`)のProduct JSON-LD自体を一時停止する(S5b)。可視HTMLの商品名・価格・レビュー表示は変更しない。ランキングページ等の他の構造化データ(FAQPage)は対象外
+- API再取得は行わない
 - 検索公開試験ページ・Traffic Acquisition Experiment 1の対象LPは変更しない
 
 ## Files Allowed To Change(実行を承認された場合)
 
-- `generate-site.js`(日付の表示箇所、`snapshotDate`の付与、Product JSON-LDの縮小のみ)
+- `generate-site.js`(日付の表示箇所、`snapshotDate`の付与、記事ページのProduct JSON-LDの出力停止のみ)
 - `articles-data.json`(`snapshotDate`または`estimatedSnapshotDate`の追加のみ。他のフィールドは変更しない)
 - `lib/sitemap-lastmod.js`(日付文字列の正規化が不要になった場合の簡素化のみ。変更しなくてもよい)
 - `keyword-research/test/` 配下の関連テスト
@@ -139,7 +148,8 @@ brief-2026-10-13-product-data-freshness-disclosure
 
 - `docs/rankings/grain-free-dog-food.html`(Traffic Acquisition Experiment 1の対象LP)、およびその他の検索公開試験ページ
 - `.github/workflows/`、`select-products.js`
-- 商品名・価格・レビュー・CTA・affiliate URLなどの商品データそのもの(表示は変えない。構造化データだけ縮小する)
+- 商品名・価格・レビュー・CTA・affiliate URLなどの商品データそのもの、およびそれらの可視HTML表示(変えるのは日付表示とProduct JSON-LDの出力有無のみ)
+- 楽天API呼び出し(`searchRakutenItemByCode()`の使用を含む)
 - 一括noindex、記事の削除
 
 ## Implementation Requirements
@@ -153,15 +163,17 @@ brief-2026-10-13-product-data-freshness-disclosure
 ## Measurement Plan
 
 - 実行後、記事ページに「生成日と異なる取得日」が表示され、`snapshotDate`が入った記事の表示がその日付と一致すること。`snapshotDate`がない記事に取得日が表示されないこと
-- 全ページのProduct JSON-LDに`offers`・`aggregateRating`・`InStock`が含まれないこと
+- 全ての記事ページに`application/ld+json`のProductが存在しないこと(`schema.org/Product`・`InStock`・`offers`・`aggregateRating`を含む出力が0件)。ランキングページ等のFAQPageは影響を受けないこと
 - 日次コミットで変更されるファイル数が、約400件から、実際に内容が変わったページ数に減ること(PR #28のsitemap `lastmod`の日次変更数と併せて確認)
-- GA4・Search Consoleは、この変更の効果指標としては使わない(アクセスが少なく判断できないため)。Search Consoleの拡張(リッチリザルト)レポートで、Productの項目に新しいエラーが出ていないことだけ確認する
+- GA4・Search Consoleは、この変更の効果指標としては使わない(アクセスが少なく判断できないため)
+- **Search Consoleの「Product拡張レポートにエラーが出ないこと」は成功条件にしない**(Product JSON-LDを意図的に停止するため、Productの項目自体が出なくなる)。代わりに次を確認する: (1)対象ページに誤ったProduct JSON-LDが存在しない、(2)Rich Results Testに誤ったProduct情報を送信していない(停止前のマークアップを検証目的で送らない)、(3)通常のHTMLページとしてクロール可能(HTTP 200、`noindex`なし、self canonical、`robots.txt`で許可)
 
 ## Success Criteria
 
 - 「情報取得日」「最終更新日」が、証明できる商品データの取得日、またはページ内容の実際の変更日を示す(または削除されている)
 - 取得日を証明できない85記事で、取得日が断定表示されていない
-- 構造化データが、ユーザーに見えていない在庫状況、確認していない価格、外部サイトの評価集計を伝えていない
+- 自動生成商品ページに、誤った/確認していないProduct JSON-LD(固定の`InStock`、最大約57日前の価格、楽天由来の`aggregateRating`)が存在しない
+- 記事ページが通常のHTMLとしてクロール可能(HTTP 200、`noindex`なし、self canonical)
 - 日次の変更ファイル数が減り、日付文字列だけの変更がなくなる
 - 対象LPのファイル差分が0件
 - `npm test`と`npm run strategy:validate`が通る
@@ -170,18 +182,20 @@ brief-2026-10-13-product-data-freshness-disclosure
 
 - 差分の代表例が意図と異なる、またはビルドが失敗する場合 → 実行を中止してrevert
 - 日付以外の商品データ(価格・在庫・レビュー・名称)の可視表示が変更された場合 → 即時revert
-- Search Consoleの拡張レポートでProductに新しい重大なエラーが出た場合 → 原因を確認し、必要ならrevert
+- 記事ページが通常のHTMLとしてクロールできなくなった場合(HTTP 200以外、`noindex`の混入、canonical変更) → 即時revert
 
 ## Rollback Plan
 
-該当コミットをrevertする。`snapshotDate`/`estimatedSnapshotDate`フィールドを追加し、表示と構造化データを縮小しただけなので、revertで元の表示・構造化データに戻る。
+該当コミットをrevertする。`snapshotDate`/`estimatedSnapshotDate`フィールドを追加し、日付表示を変えてProduct JSON-LDの出力を止めただけなので、revertで元の表示・構造化データに戻る(ただし元のProduct JSON-LDは誤り/未確認の値を含むため、revertは緊急時の手段とし、再開する場合はS6の条件を満たすこと)。
 
 ## Required Tests
 
 - `snapshotDate`が表示されること、欠けていても例外にならないこと
 - `estimatedSnapshotDate`だけの記事に取得日が表示されないこと
 - 生成日が商品データの取得日として表示されないこと
-- Product JSON-LDに`offers`・`aggregateRating`が含まれないこと
+- 記事ページにProduct JSON-LD(`application/ld+json`の`Product`)が出力されないこと。ランキングページのFAQPageは出力され続けること
+- 記事ページの可視HTML(商品名・価格・レビュー表示・CTA・affiliate URL)が変更前後で同じであること(日付表示の行を除く)
+- 楽天APIを呼び出すモジュールをimportしていないこと(既存の`generate-site-search-trial.test.js`の確認項目に準拠)
 - 既存の`generate-site-search-trial.test.js`と`sitemap-lastmod.test.js`が通ること
 - `npm run strategy:validate`、`npm test`
 
