@@ -5,9 +5,11 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { scoreItem } from "./lib/quality-score.js";
 import { SITE_URL } from "./lib/site-config.js";
 import { loadSearchTrialConfig } from "./lib/search-trial-config.js";
+import { contentHash, resolveLastmods, loadLastmodManifest } from "./lib/sitemap-lastmod.js";
 
 const SITE_TITLE = "楽天トレンドセレクト";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
+const SITEMAP_LASTMOD_FILE = new URL("./sitemap-lastmod.json", import.meta.url);
 const DOCS_DIR = new URL("./docs/", import.meta.url);
 const ARTICLES_DIR = new URL("./docs/articles/", import.meta.url);
 const RANKING_DIR = new URL("./docs/rankings/", import.meta.url);
@@ -543,8 +545,8 @@ function indexPage(items, rankingGroups) {
   });
 }
 
-function sitemapXml(items, rankingGroups, searchTrialPages = []) {
-  const urls = [
+function sitemapUrls(items, rankingGroups, searchTrialPages = []) {
+  return [
     `${SITE_URL}/index.html`,
     ...items.map((item) => `${SITE_URL}/articles/${item.itemCode.replace(/[^a-zA-Z0-9_-]/g, "_")}.html`),
     ...rankingGroups.map((g) => `${SITE_URL}/rankings/${g.slug}.html`),
@@ -553,7 +555,17 @@ function sitemapXml(items, rankingGroups, searchTrialPages = []) {
     // のものだけをサイトマップへ追加する(個別に停止できる設計)。
     ...searchTrialPages.filter((p) => p.sitemapEnabled).map((p) => `${SITE_URL}/${p.path}`),
   ];
-  const entries = urls.map((u) => `  <url><loc>${u}</loc><lastmod>${TODAY_ISO}</lastmod></url>`).join("\n");
+}
+
+// lastmodByPath: SITE_URLからの相対パス → { hash, lastmod }。lastmodがnullの場合は<lastmod>を出力しない
+// (実際の更新日が分からないURLに誤った日付を出さない)。
+function sitemapXml(urls, lastmodByPath) {
+  const entries = urls
+    .map((u) => {
+      const lastmod = lastmodByPath[u.slice(SITE_URL.length + 1)]?.lastmod;
+      return lastmod ? `  <url><loc>${u}</loc><lastmod>${lastmod}</lastmod></url>` : `  <url><loc>${u}</loc></url>`;
+    })
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
@@ -671,6 +683,16 @@ async function main() {
     return;
   }
 
+  // 【fail closed】lastmod記録が壊れている場合は、docs/への書き込みを一切行わずに中止する。
+  let previousLastmods;
+  try {
+    previousLastmods = await loadLastmodManifest(SITEMAP_LASTMOD_FILE);
+  } catch (e) {
+    console.error(`サイト生成を中止しました(sitemap-lastmod.jsonが不正です): ${e.message}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const newItems = await loadJson(new URL("./selected-products.json", import.meta.url), []);
   const articles = await loadJson(ARTICLES_DATA_FILE, []);
 
@@ -702,10 +724,20 @@ async function main() {
   }
 
   await writeFile(new URL("index.html", DOCS_DIR), indexPage(articles, rankingGroups));
-  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(articles, rankingGroups, searchTrialPages));
   await writeFile(new URL("robots.txt", DOCS_DIR), robotsTxt());
   await writeFile(ARTICLES_DATA_FILE, JSON.stringify(articles, null, 2));
   await enforceSearchTrialRobotsMeta(searchTrialPages, DOCS_DIR_PATH);
+
+  // sitemapはページ本体の書き込み(robots meta同期を含む)が全て終わってから、実際のHTMLを基に作る。
+  const urls = sitemapUrls(articles, rankingGroups, searchTrialPages);
+  const hashedPages = [];
+  for (const u of urls) {
+    const path = u.slice(SITE_URL.length + 1);
+    hashedPages.push({ path, hash: contentHash(await readFile(`${DOCS_DIR_PATH}${path}`, "utf-8")) });
+  }
+  const lastmods = resolveLastmods(hashedPages, previousLastmods, TODAY_ISO);
+  await writeFile(new URL("sitemap.xml", DOCS_DIR), sitemapXml(urls, lastmods));
+  await writeFile(SITEMAP_LASTMOD_FILE, JSON.stringify(lastmods, null, 2) + "\n");
 
   console.log(`サイト生成完了: 記事${articles.length}件、ランキングページ${rankingGroups.length}件 → docs/`);
   if (searchTrialPages.length) {
