@@ -5,6 +5,19 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 
+// 【2026-10-13 Article Growth Freeze】収益実績のない自動生成商品記事の増加を一時停止する。
+// true の間は、楽天APIを呼ばず、環境変数のチェックより前に、何も書き込まずに終了する
+// (selected-products.json・posted-history.json・api-errors.log を作成・更新しない)。
+// 既存の商品記事・ランキングページ・検索公開試験ページはそのまま維持される。
+// 再開するには false にする(posted-history.json は保持されるため、二重掲載にならない)。
+// 再開前に確認すること: 楽天APIの認証情報、楽天Web Serviceの規約、再開後の記事方針
+// (strategy/implementation-briefs/brief-2026-10-13-article-growth-freeze.md 参照)。
+const ARTICLE_GROWTH_FROZEN = true;
+if (ARTICLE_GROWTH_FROZEN) {
+  console.log("[select-products] 新規自動生成商品記事の追加は一時停止中です(ARTICLE_GROWTH_FROZEN = true)。楽天APIの呼び出しと、selected-products.json・posted-history.json・api-errors.log の更新は行いません。再開するには select-products.js の ARTICLE_GROWTH_FROZEN を false にしてください。");
+  process.exit(0);
+}
+
 const appId = process.env.RAKUTEN_APP_ID;
 const accessKey = process.env.RAKUTEN_SECRET;
 const affiliateId = process.env.RAKUTEN_AFFILIATE_ID;

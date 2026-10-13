@@ -63,6 +63,8 @@ GitHub上で確認できる事実(2026-10-10時点):
 
 ## Known Problems
 
+- FACT(Article Growth Freeze、`brief-2026-10-13-article-growth-freeze.md`): 新規の自動生成商品記事の追加を一時停止中。`select-products.js`の`ARTICLE_GROWTH_FROZEN = true`により、楽天APIを呼ばず、データファイルを書かずに終了する。既存の商品記事408件・ランキングページ・検索公開試験ページ5件は維持。再開は`false`に戻すPRのみ(再開前に楽天APIの認証情報・楽天Web Serviceの規約・再開後の記事方針を確認する)。副作用: 日次で差分がなくなるため「サイト更新・公開完了」メール(SNS投稿文の添付)と、日次のAPI死活監視が止まる
+- **運用課題(60日ルール)**: FACT: このリポジトリはpublicで、GitHub公式仕様により、publicリポジトリで60日間repository activityがない場合、scheduled workflowは自動的に無効化される。凍結後は日次のbotコミットがなくなるため、**最後のrepository activityから約50日前後で、Actions画面で日次ワークフローが有効か確認する**(無効なら手動で再有効化)。対策コードは追加しない。目安は、凍結後に他の活動が一切なければ2026-12-02頃
 - FACT: `docs/sitemap.xml` のSearch Console取得失敗問題について、診断用の最小サイトマップ(`docs/sitemap-test.xml`、PR #15でマージ済み)を追加して切り分けを行った。現時点で問題自体が解決したという記録はリポジトリ内にない
 - FACT: `select-products.js` に2026-08-28時点で設定済みのキーワード(グレインフリー 国産 ドッグフード/シニア猫 国産 無添加/国産 無添加 犬 おやつ等)と、PR #21で本番公開した新規3ページが概念的に重複している(`strategy/decisions.json` の `dec-2026-10-04-cannibalization-proceed` 参照)
 - FACT(2026-10-10診断、URL Inspection API): grain-free-cat-food/grain-free-dog-food/senior-cat-food/domestic-additive-free-dog-treatsの4URLとも`pageFetchState: PAGE_FETCH_STATE_UNSPECIFIED`(Google公式仕様上、fetch stateはUNKNOWNという意味であり、「クロールを試みていない」と断定する値ではない)。4URLとも応答に`lastCrawlTime`が存在せず、successful crawlの記録を確認できない。`robotsTxtState`/`indexingState`も`UNSPECIFIED`。対して同じ`rankings/all.html`(4URLへのリンク元)は`pageFetchState: SUCCESSFUL`・`lastCrawlTime`あり(2026-09-19)で索引済み。robots.txt(Allow: /)・meta robots(noindexなし)・self canonical・sitemap.xml掲載はいずれも正常(FACT、ページ側の技術設定に問題はない)
