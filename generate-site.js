@@ -6,6 +6,7 @@ import { scoreItem } from "./lib/quality-score.js";
 import { SITE_URL } from "./lib/site-config.js";
 import { loadSearchTrialConfig } from "./lib/search-trial-config.js";
 import { contentHash, resolveLastmods, loadLastmodManifest, loadLegacySitemapPaths } from "./lib/sitemap-lastmod.js";
+import { toJstIsoDate, snapshotNoticeHtml } from "./lib/snapshot-date.js";
 
 const SITE_TITLE = "楽天トレンドセレクト";
 const ARTICLES_DATA_FILE = new URL("./articles-data.json", import.meta.url);
@@ -25,7 +26,8 @@ const DOCS_DIR_PATH = DOCS_DIR.pathname.replace(/^\/([A-Za-z]):/, "$1:");
 const SEARCH_TRIAL_CONFIG_PATH = new URL("./keyword-research/search-trial-pages.json", import.meta.url).pathname.replace(/^\/([A-Za-z]):/, "$1:");
 const NOW = new Date();
 const TODAY_ISO = NOW.toISOString().slice(0, 10);
-const TODAY_JP = `${NOW.getFullYear()}年${NOW.getMonth() + 1}月${NOW.getDate()}日`;
+// 新規商品のsnapshotDate(商品データの取得日)。実行環境がUTCでも日本時間の日付にする。
+const TODAY_JST_ISO = toJstIsoDate(NOW);
 // GA4測定ID(.envのGA_MEASUREMENT_IDから読み込み)。未設定なら解析タグは出力しない
 const GA_MEASUREMENT_ID = process.env.GA_MEASUREMENT_ID || "";
 
@@ -212,7 +214,7 @@ ${gaTag}
 <main>${body}</main>
 <footer>
 <p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場のレビュー評価・売れ筋ランキングをもとに毎日自動で選定しています。</p>
-<p>運営者: 楽天トレンドセレクト運営チーム / 最終更新日: ${TODAY_JP}</p>
+<p>運営者: 楽天トレンドセレクト運営チーム</p>
 </footer>
 </body>
 </html>`;
@@ -298,34 +300,19 @@ ${trustList}
   <a class="buy-btn" href="${item.itemUrl}" target="_blank" rel="nofollow sponsored noopener">▶ 今すぐ楽天市場で詳細を見る</a>
   <p class="micro-copy">価格・在庫は変動する場合があります(公式ページで最新情報を確認できます)</p>
 </div>
-<p class="provenance">情報取得日: ${TODAY_JP}(楽天市場の商品情報をもとに作成)</p>
+${snapshotNoticeHtml(item)}
 ${relatedBlock}
 </article>`;
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: item.itemName,
-    image: imgs.length ? imgs : undefined,
-    description,
-    offers: {
-      "@type": "Offer",
-      price: item.itemPrice,
-      priceCurrency: "JPY",
-      url: item.itemUrl,
-      availability: "https://schema.org/InStock",
-    },
-    aggregateRating: item.reviewCount > 0 ? {
-      "@type": "AggregateRating",
-      ratingValue: item.reviewAverage,
-      reviewCount: item.reviewCount,
-    } : undefined,
-  };
+  // 【2026-10-13 一時停止】Product JSON-LD(offers・availability・aggregateRating)は出力しない。
+  // 在庫は全商品InStock固定、価格は取得時点のスナップショット(最大約57日前)、評価は楽天由来の
+  // 集計で、いずれも現在の事実として確認できていないため。復活は、APIで再確認して
+  // snapshotDateが十分新しく価格と在庫を確認できた商品のProduct + offersに限る
+  // (楽天由来のaggregateRatingは復活させない)。可視HTMLの商品名・価格・レビュー表示は変更しない。
   return pageShell({
     title: item.itemName,
     body,
     description,
     canonicalPath: `articles/${fileName}`,
-    structuredData,
     image: imgs[0],
   });
 }
@@ -704,7 +691,8 @@ async function main() {
   const existingCodes = new Set(articles.map((a) => a.itemCode));
   for (const item of newItems) {
     if (!existingCodes.has(item.itemCode)) {
-      articles.push(item);
+      // 今回のsite生成と同じ実行内でAPIから取得した商品。取得日を日本時間で記録する。
+      articles.push({ ...item, snapshotDate: TODAY_JST_ISO });
       existingCodes.add(item.itemCode);
     }
   }
