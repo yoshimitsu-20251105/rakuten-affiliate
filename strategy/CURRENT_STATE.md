@@ -4,7 +4,7 @@
 
 ## Last Updated
 
-2026-10-10
+2026-10-13
 
 ## Primary Goal
 
@@ -43,7 +43,9 @@ FACT(GitHub由来、CLAUDE.md「運用状況」セクション、2026年8月時�
 - `exp-2026-09-10-senior-dog-pork` — status=**INCONCLUSIVE** / decision=**IMPROVE**(successThreshold未達・killThresholdにも該当せず。Indexは成功しているが30日でimpressions=1、affiliate_click=0。「需要不足」とは断定せず、別のImprovement Experimentを設計する)
 - `exp-2026-09-10-grain-free-cat-food` — status=**FAILED** / decision=**IMPROVE**(KILLにはしない。30日後もURL Inspectionが「URL is unknown to Google」のままで、Googleに索引されなかったことが確定した学び。キーワード需要・記事品質・商品テーマ適否・収益化可能性はいずれもUNKNOWNのまま、確定していない)
 
-**PLANNED**: なし
+**PLANNED(実投稿の公開前のためRUNNINGにしない)**:
+
+- `exp-2026-10-13-grain-free-dog-channel-note-vs-x` — grain-free-dog-foodへの送客チャネル比較(note vs X、同一LP・同一UTMキャンペーン)。Brief: `strategy/implementation-briefs/brief-2026-10-13-grain-free-dog-channel-test.md`。startDate/reviewDateはnote・X両投稿の公開後に確定(観測14日)
 
 ## Active PRs
 
@@ -84,7 +86,7 @@ GitHub上で確認できる事実(2026-10-10時点):
 ## Top 3 Priorities
 
 1. senior-dog-porkについて現在のSERP検索意図を再調査(「シニア犬 豚肉」「シニア犬 フード」の実検索結果を確認し、情報検索意図 or 商品比較意図のどちらが強いか再評価してから新しいImprovement Experimentを設計する。現在のページ内容はすぐ書き換えない)
-2. owned site/note/X/short-video script向けの収益流入テストImplementation Brief候補の作成(新規3ページを元にした再利用コンテンツ、自動大量投稿は禁止、最初は3テーマのみ、各チャネルのリンクにUTMを付与)
+2. Traffic Acquisition Experiment 1(note vs X、grain-free-dog-food LP固定)の実投稿の準備・公開。自動投稿は禁止、UTM必須、LPは変更しない(Brief: brief-2026-10-13-grain-free-dog-channel-test.md)。Googleインデックス問題は別レーンで追跡し、この実験を止めない
 3. 新規3実験(grain-free-dog-food / senior-cat-food / domestic-additive-free-dog-treats)のインデックス状況の継続確認
 
 ## Waiting For
