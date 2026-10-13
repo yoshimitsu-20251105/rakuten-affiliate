@@ -160,6 +160,26 @@
       "decision": null,
       "learnings": [],
       "status": "RUNNING"
+    },
+    {
+      "experimentId": "exp-2026-10-13-grain-free-dog-channel-note-vs-x",
+      "title": "grain-free-dog-foodへの送客チャネル比較テスト(note vs X、同一LP・同一UTMキャンペーン)",
+      "hypothesis": "H1: noteは説明型コンテンツから比較LPへ送客するため、XよりAffiliate CTRが高くなる可能性がある。H2: Xは短期間で露出を得られる可能性があるが、購入意図が弱くAffiliate CTRが低い可能性がある(いずれも未検証のHYPOTHESIS)",
+      "falsificationCondition": "観測期間(公開日から14日)終了時に、(a)両チャネルともsessionsが20未満ならチャネル比較は成立せず終了(CH1/CH2が有力、LPの優劣は結論しない)、(b)両チャネルがsessions20以上でaffiliate_clickが合計0件ならチャネルではなくLP/CTA/商品側の問題候補(CH3)、(c)両チャネルのaffiliate_clickが各5件以上ある場合のみ、noteのAffiliate CTRがX以下ならH1を反証、X以上ならH2を反証。5件未満の場合はH1/H2ともINCONCLUSIVE",
+      "targetUrls": ["https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html"],
+      "targetKeywords": [],
+      "trafficSource": "note_and_x_utm",
+      "monetizationSource": "rakuten",
+      "startDate": null,
+      "reviewDate": null,
+      "baseline": null,
+      "successThreshold": { "conversionsTotal": 1, "channelSessionsMin": 20, "channelAffiliateClicksMin": 1, "ctrComparisonMinAffiliateClicksPerChannel": 5 },
+      "killThreshold": { "bothChannelsSessionsBelowAtReviewDate": 20 },
+      "metrics": null,
+      "result": null,
+      "decision": null,
+      "learnings": [],
+      "status": "PLANNED"
     }
   ]
 }
