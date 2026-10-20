@@ -1,0 +1,9 @@
+﻿注文別成果,2026.10
+ステータス,0=未確定,1=確定,2=破棄
+リンクタイプ,コード説明（匿名化fixture）
+デバイスタイプ,コード説明（匿名化fixture）
+
+発生日,成果報酬,料率,売上金額,ジャンル名,ショップ名,商品名,ステータス,リンクタイプ,デバイスタイプ,計測ID
+date,rewards,rate,amount,genre_name,shop_name,item_name,status,link_type,device_type,measurement_id
+
+,,,,,,,,,,
