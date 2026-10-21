@@ -1,0 +1,2004 @@
+{
+  "schemaVersion": 1,
+  "outputType": "MARKET_CANDIDATES_ONLY",
+  "runId": "synthetic-scorer-input",
+  "asOf": "2026-10-21T00:00:00.000Z",
+  "generatedAt": "2026-10-21T00:00:00Z",
+  "codeCommit": null,
+  "status": "COMPLETED",
+  "targetScope": {
+    "country": "JP",
+    "language": "ja",
+    "note": "Target defaults are not source-country proof"
+  },
+  "manifestHash": "50b2cbc05bbcad3efdda050fc2138a5e53425d2d69d067cade6caeb96e9af362",
+  "policy": {
+    "gkp": {
+      "maxRetrievedAgeDays": 30,
+      "maxPeriodAgeDays": 30
+    }
+  },
+  "inputs": [
+    {
+      "sourceId": "gkp",
+      "sourceType": "gkp_csv",
+      "provider": "synthetic-fixture",
+      "sourceReference": "SYNTHETIC ONLY gkp",
+      "sourceFileHash": "0416b88dab85a1df4b80e8090ac5f4b81d431757cf3a03f99475a2ac1f5a733a",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-30",
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC JP ja",
+      "filters": null,
+      "completeness": "UNKNOWN",
+      "isSynthetic": true,
+      "evidenceType": null,
+      "encoding": "UTF-8",
+      "freshness": {
+        "status": "WITHIN_POLICY",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-09-30",
+        "retrievedAgeDays": 20,
+        "periodAgeDays": 21,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {
+          "maxRetrievedAgeDays": 30,
+          "maxPeriodAgeDays": 30
+        }
+      },
+      "state": "LOADED",
+      "rowCount": 2
+    },
+    {
+      "sourceId": "lps",
+      "sourceType": "lp_inventory",
+      "provider": "synthetic-fixture",
+      "sourceReference": "SYNTHETIC ONLY lps",
+      "sourceFileHash": "b4cd201214f8eba63a6e95bd08df108d2bffb4119c4394fc31e47e1711dcacfe",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC JP ja",
+      "filters": null,
+      "completeness": "UNKNOWN",
+      "isSynthetic": true,
+      "evidenceType": null,
+      "encoding": "UTF-8",
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      },
+      "state": "LOADED",
+      "rowCount": 2
+    },
+    {
+      "sourceId": "offers",
+      "sourceType": "offers",
+      "provider": "synthetic-fixture",
+      "sourceReference": "SYNTHETIC ONLY offers",
+      "sourceFileHash": "9bbd59233a32f6de7959c1123a8d7aa80d39de8a428dbb6e6eddaf1b1e38c670",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC JP ja",
+      "filters": null,
+      "completeness": "UNKNOWN",
+      "isSynthetic": true,
+      "evidenceType": null,
+      "encoding": "UTF-8",
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      },
+      "state": "LOADED",
+      "rowCount": 2
+    },
+    {
+      "sourceId": "experiments",
+      "sourceType": "experiments",
+      "provider": "synthetic-fixture",
+      "sourceReference": "SYNTHETIC ONLY experiments",
+      "sourceFileHash": "df1f4f8a42075b55045226645a22475786db5d71f5abd5cccb4a03239445d387",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC JP ja",
+      "filters": null,
+      "completeness": "UNKNOWN",
+      "isSynthetic": true,
+      "evidenceType": null,
+      "encoding": "UTF-8",
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      },
+      "state": "LOADED",
+      "rowCount": 2
+    },
+    {
+      "sourceId": "funnel",
+      "sourceType": "funnel_report",
+      "provider": "synthetic-fixture",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC JP ja",
+      "filters": null,
+      "completeness": "UNKNOWN",
+      "isSynthetic": true,
+      "evidenceType": null,
+      "encoding": "UTF-8",
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 0,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      },
+      "state": "LOADED",
+      "rowCount": 1
+    },
+    {
+      "sourceType": "manual_csv",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "gsc_csv",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "gsc_report",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "opportunities",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "decisions",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "seasonality",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "competitors",
+      "state": "NOT_PROVIDED"
+    },
+    {
+      "sourceType": "measurement_records",
+      "state": "NOT_PROVIDED"
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+      "schemaVersion": 1,
+      "outputType": "MARKET_CANDIDATES_ONLY",
+      "country": "JP",
+      "language": "ja",
+      "isSynthetic": true,
+      "theme": {
+        "value": "SYNTHETIC シニア 犬 フード",
+        "evidenceType": "HYPOTHESIS",
+        "reason": "PROVISIONAL_QUERY_THEME",
+        "evidenceRefs": [
+          "6ff104040c417cbe4da3d173c4230b7ea49f2d34c646c180d20d6457ee799db3"
+        ]
+      },
+      "keywords": [
+        {
+          "original": "シニア 犬 フード",
+          "normalized": "シニア 犬 フード",
+          "canonicalForReferenceOnly": "シニア フード 犬"
+        }
+      ],
+      "intent": {
+        "value": "CONDITION_PURCHASE",
+        "evidenceType": "HYPOTHESIS",
+        "ruleVersion": "existing-intent-rules-v1",
+        "reasons": [
+          "CONDITION_PURCHASE語を検出: シニア"
+        ]
+      },
+      "attributes": [
+        "lifeStage:senior",
+        "productType:staple",
+        "species:dog"
+      ],
+      "purchaseIntent": {
+        "value": true,
+        "evidenceType": "HYPOTHESIS",
+        "reason": "RULE_CLASSIFICATION_NOT_PURCHASE_PROOF"
+      },
+      "demandEvidence": [
+        "b9bd0212e3983bedacdd39be7b4e799ce7185d50ab3343685e421677960142aa"
+      ],
+      "competition": {
+        "adsBiddingCompetition": [],
+        "organicSerpEvidence": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_SERP_EVIDENCE",
+          "evidenceRefs": []
+        }
+      },
+      "seasonality": {
+        "value": null,
+        "evidenceType": "UNKNOWN",
+        "availability": "NOT_AVAILABLE",
+        "reason": "NO_SEASONAL_EVIDENCE",
+        "evidenceRefs": []
+      },
+      "availableLPs": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-dog.html",
+          "repositoryPresence": {
+            "value": true,
+            "evidenceType": "FACT",
+            "reason": "LOCAL_REPOSITORY_FILE_ONLY"
+          },
+          "repositoryPageHash": "99d501210d011351789d732e8e4e18d75cda4c7b401a0d1c203f70a843aa6dda",
+          "relevance": {
+            "value": true,
+            "evidenceType": "HYPOTHESIS",
+            "reason": "SYNTHETIC association"
+          },
+          "liveAvailability": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "OFFLINE_NO_LIVE_REQUEST",
+            "evidenceRefs": []
+          },
+          "sourceReference": "SYNTHETIC ONLY lps"
+        }
+      ],
+      "existingOffers": [
+        {
+          "itemCode": "synthetic:dog",
+          "recordedPrice": 1000,
+          "snapshotDate": "2026-10-01",
+          "isSynthetic": true,
+          "productLinkRecorded": false,
+          "affiliateLinkRecorded": true,
+          "currentAvailability": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_CURRENT_AVAILABILITY_CHECK",
+            "evidenceRefs": []
+          },
+          "currentPrice": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_CURRENT_PRICE_CHECK",
+            "evidenceRefs": []
+          },
+          "evidenceRefs": [
+            "56b37bebbb02ac37f450f42f009bf5e0563d1b434fc966fc274f5f35173cfa0d"
+          ]
+        }
+      ],
+      "observedRevenueEvidence": {
+        "approvedRevenue": {
+          "value": 200,
+          "availability": "OBSERVED",
+          "reason": null,
+          "evidenceType": "FACT",
+          "currency": "JPY",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-dog"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "3c862a4a04306d7ac4504bf0ea4df6e8ff68c8d6a65295eda7dfc65ba41ec1ed"
+          ]
+        },
+        "revenue": {
+          "value": 200,
+          "availability": "OBSERVED",
+          "reason": null,
+          "evidenceType": "FACT",
+          "currency": "JPY",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-dog"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "e4f485c19471b876555eed75b65c65904732aafa0a4025866556f8e9e4a5d6e4"
+          ]
+        },
+        "conversions": {
+          "value": null,
+          "availability": "NOT_AVAILABLE",
+          "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+          "evidenceType": "UNKNOWN",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-dog"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "unit": "COUNT",
+          "validationStatus": "PARTIALLY_VERIFIED",
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "9a9a93ec2f791243f4a150054aa9f8674e31b200fbc50e2d1debbefb5665fe33"
+          ]
+        },
+        "epc": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "SCANNER_DOES_NOT_RECONSTRUCT_CLICK_COHORTS",
+          "evidenceRefs": [],
+          "sourceEpc": {
+            "value": null,
+            "availability": "NOT_AVAILABLE",
+            "reason": "MISSING_OR_PARTIAL_INPUT",
+            "evidenceType": "UNKNOWN",
+            "currency": null,
+            "denominator": "GA4_OBSERVED_AFFILIATE_CLICK_EVENT_COUNT",
+            "calculation": "commission / affiliate_click eventCount",
+            "compatibility": {
+              "compatible": false,
+              "reason": "MEASUREMENT_ID_NOT_IN_RECORDS"
+            }
+          }
+        }
+      },
+      "evidenceFreshness": [
+        {
+          "sourceId": "experiments",
+          "status": "FRESHNESS_NOT_EVALUATED",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": null,
+          "retrievedAgeDays": 20,
+          "periodAgeDays": null,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        },
+        {
+          "sourceId": "funnel",
+          "status": "PERIOD_IN_PROGRESS",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "periodEnd": "2026-10-31",
+          "retrievedAgeDays": 0,
+          "periodAgeDays": -10,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        },
+        {
+          "sourceId": "gkp",
+          "status": "WITHIN_POLICY",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": "2026-09-30",
+          "retrievedAgeDays": 20,
+          "periodAgeDays": 21,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {
+            "maxRetrievedAgeDays": 30,
+            "maxPeriodAgeDays": 30
+          }
+        },
+        {
+          "sourceId": "offers",
+          "status": "FRESHNESS_NOT_EVALUATED",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": null,
+          "retrievedAgeDays": 20,
+          "periodAgeDays": null,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        }
+      ],
+      "relatedExperiments": [
+        {
+          "experimentId": "synthetic-exp-1",
+          "status": "INCONCLUSIVE",
+          "decision": "IMPROVE",
+          "result": "INCONCLUSIVE",
+          "startDate": null,
+          "reviewDate": null,
+          "learnings": [
+            "SYNTHETIC contract test only"
+          ],
+          "evidenceRefs": [
+            "c29b379a59f9f469e7eca6b0312cebf7daba513793dc85ce30c6c4f58c347edb"
+          ]
+        }
+      ],
+      "priorDecisions": [],
+      "measurementReadiness": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-dog.html",
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "evidenceId": null,
+          "reason": "NO_MEASUREMENT_RECORD",
+          "verificationScope": "OFFLINE_CURRENT_REPOSITORY_HASH_NOT_LIVE_CHECK",
+          "canStartExperiment": false,
+          "evidenceRefs": []
+        }
+      ],
+      "signals": [
+        "DEMAND_EVIDENCE_PRESENT_NOT_REVENUE_PROOF",
+        "EXISTING_LP_REFERENCE"
+      ],
+      "hypotheses": [],
+      "existingOpportunityRecords": [],
+      "counterEvidence": [],
+      "unknowns": [],
+      "reviewFlags": [
+        "LP_MEASUREMENT_NOT_VERIFIED",
+        "SYNTHETIC_NOT_MARKET_VALIDATION"
+      ],
+      "evidenceRefs": [
+        "3c862a4a04306d7ac4504bf0ea4df6e8ff68c8d6a65295eda7dfc65ba41ec1ed",
+        "56b37bebbb02ac37f450f42f009bf5e0563d1b434fc966fc274f5f35173cfa0d",
+        "6ff104040c417cbe4da3d173c4230b7ea49f2d34c646c180d20d6457ee799db3",
+        "9a9a93ec2f791243f4a150054aa9f8674e31b200fbc50e2d1debbefb5665fe33",
+        "b9bd0212e3983bedacdd39be7b4e799ce7185d50ab3343685e421677960142aa",
+        "c29b379a59f9f469e7eca6b0312cebf7daba513793dc85ce30c6c4f58c347edb",
+        "e4f485c19471b876555eed75b65c65904732aafa0a4025866556f8e9e4a5d6e4"
+      ],
+      "sourceIds": [
+        "gkp"
+      ],
+      "opportunityIds": []
+    },
+    {
+      "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+      "schemaVersion": 1,
+      "outputType": "MARKET_CANDIDATES_ONLY",
+      "country": "JP",
+      "language": "ja",
+      "isSynthetic": true,
+      "theme": {
+        "value": "SYNTHETIC シニア 猫 フード",
+        "evidenceType": "HYPOTHESIS",
+        "reason": "PROVISIONAL_QUERY_THEME",
+        "evidenceRefs": [
+          "e65356abb2223f203731c5ee622fbf40c2bfd3e58d68e6c8b9866e94e99623e2"
+        ]
+      },
+      "keywords": [
+        {
+          "original": "シニア 猫 フード",
+          "normalized": "シニア 猫 フード",
+          "canonicalForReferenceOnly": "シニア フード 猫"
+        }
+      ],
+      "intent": {
+        "value": "CONDITION_PURCHASE",
+        "evidenceType": "HYPOTHESIS",
+        "ruleVersion": "existing-intent-rules-v1",
+        "reasons": [
+          "CONDITION_PURCHASE語を検出: シニア"
+        ]
+      },
+      "attributes": [
+        "lifeStage:senior",
+        "productType:staple",
+        "species:cat"
+      ],
+      "purchaseIntent": {
+        "value": true,
+        "evidenceType": "HYPOTHESIS",
+        "reason": "RULE_CLASSIFICATION_NOT_PURCHASE_PROOF"
+      },
+      "demandEvidence": [
+        "4df95a64764f2882850c336cdc55ef85c05a53a9a8093f3be9b56c02ec032c37"
+      ],
+      "competition": {
+        "adsBiddingCompetition": [],
+        "organicSerpEvidence": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_SERP_EVIDENCE",
+          "evidenceRefs": []
+        }
+      },
+      "seasonality": {
+        "value": null,
+        "evidenceType": "UNKNOWN",
+        "availability": "NOT_AVAILABLE",
+        "reason": "NO_SEASONAL_EVIDENCE",
+        "evidenceRefs": []
+      },
+      "availableLPs": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-cat.html",
+          "repositoryPresence": {
+            "value": true,
+            "evidenceType": "FACT",
+            "reason": "LOCAL_REPOSITORY_FILE_ONLY"
+          },
+          "repositoryPageHash": "99d501210d011351789d732e8e4e18d75cda4c7b401a0d1c203f70a843aa6dda",
+          "relevance": {
+            "value": true,
+            "evidenceType": "HYPOTHESIS",
+            "reason": "SYNTHETIC association"
+          },
+          "liveAvailability": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "OFFLINE_NO_LIVE_REQUEST",
+            "evidenceRefs": []
+          },
+          "sourceReference": "SYNTHETIC ONLY lps"
+        }
+      ],
+      "existingOffers": [
+        {
+          "itemCode": "synthetic:cat",
+          "recordedPrice": 1000,
+          "snapshotDate": "2026-10-01",
+          "isSynthetic": true,
+          "productLinkRecorded": false,
+          "affiliateLinkRecorded": true,
+          "currentAvailability": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_CURRENT_AVAILABILITY_CHECK",
+            "evidenceRefs": []
+          },
+          "currentPrice": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_CURRENT_PRICE_CHECK",
+            "evidenceRefs": []
+          },
+          "evidenceRefs": [
+            "0f56c2a054c8b43e22945b26fb671df8690282c105adc6ab3565f3e0c3d21a62"
+          ]
+        }
+      ],
+      "observedRevenueEvidence": {
+        "approvedRevenue": {
+          "value": 100,
+          "availability": "OBSERVED",
+          "reason": null,
+          "evidenceType": "FACT",
+          "currency": "JPY",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-cat"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "4a4ddee92a93213bce5ce6e7a9bc5a626df54e45572f4a8059ced4b0cb95bd47"
+          ]
+        },
+        "revenue": {
+          "value": 100,
+          "availability": "OBSERVED",
+          "reason": null,
+          "evidenceType": "FACT",
+          "currency": "JPY",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-cat"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "297263e49d43c2dd001af72b5e19306680b92a3e4d5164f5a9395d0b63161419"
+          ]
+        },
+        "conversions": {
+          "value": null,
+          "availability": "NOT_AVAILABLE",
+          "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+          "evidenceType": "UNKNOWN",
+          "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+          "provider": "rakuten",
+          "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+          "period": {
+            "start": "2026-10-01",
+            "end": "2026-10-31"
+          },
+          "observedThrough": "2026-10-20",
+          "dateBasis": "OCCURRENCE_DATE",
+          "timezone": "Asia/Tokyo",
+          "grain": "MEASUREMENT_ID",
+          "scope": {
+            "accountScopeId": "synthetic-account",
+            "measurementId": "synthetic-id-cat"
+          },
+          "periodStatus": "IN_PROGRESS",
+          "final": false,
+          "isSynthetic": true,
+          "unit": "COUNT",
+          "validationStatus": "PARTIALLY_VERIFIED",
+          "mappingEvidenceReference": "SYNTHETIC exclusive mapping",
+          "evidenceRefs": [
+            "fdff4766bbdc225ae18041baade562f8ccedfbd6892b1acbb2528b4cb9b83a3b"
+          ]
+        },
+        "epc": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "SCANNER_DOES_NOT_RECONSTRUCT_CLICK_COHORTS",
+          "evidenceRefs": [],
+          "sourceEpc": {
+            "value": null,
+            "availability": "NOT_AVAILABLE",
+            "reason": "MISSING_OR_PARTIAL_INPUT",
+            "evidenceType": "UNKNOWN",
+            "currency": null,
+            "denominator": "GA4_OBSERVED_AFFILIATE_CLICK_EVENT_COUNT",
+            "calculation": "commission / affiliate_click eventCount",
+            "compatibility": {
+              "compatible": false,
+              "reason": "MEASUREMENT_ID_NOT_IN_RECORDS"
+            }
+          }
+        }
+      },
+      "evidenceFreshness": [
+        {
+          "sourceId": "experiments",
+          "status": "FRESHNESS_NOT_EVALUATED",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": null,
+          "retrievedAgeDays": 20,
+          "periodAgeDays": null,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        },
+        {
+          "sourceId": "funnel",
+          "status": "PERIOD_IN_PROGRESS",
+          "retrievedAt": "2026-10-20T00:01:00.000Z",
+          "periodEnd": "2026-10-31",
+          "retrievedAgeDays": 0,
+          "periodAgeDays": -10,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        },
+        {
+          "sourceId": "gkp",
+          "status": "WITHIN_POLICY",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": "2026-09-30",
+          "retrievedAgeDays": 20,
+          "periodAgeDays": 21,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {
+            "maxRetrievedAgeDays": 30,
+            "maxPeriodAgeDays": 30
+          }
+        },
+        {
+          "sourceId": "offers",
+          "status": "FRESHNESS_NOT_EVALUATED",
+          "retrievedAt": "2026-10-01T00:00:00.000Z",
+          "periodEnd": null,
+          "retrievedAgeDays": 20,
+          "periodAgeDays": null,
+          "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+          "policy": {}
+        }
+      ],
+      "relatedExperiments": [
+        {
+          "experimentId": "synthetic-exp-0",
+          "status": "RUNNING",
+          "decision": null,
+          "result": null,
+          "startDate": null,
+          "reviewDate": null,
+          "learnings": [
+            "SYNTHETIC contract test only"
+          ],
+          "evidenceRefs": [
+            "32cbc8fefc33a6206b5e9557f6636e6a7972df511a3c6c897cee7ef470684c46"
+          ]
+        }
+      ],
+      "priorDecisions": [],
+      "measurementReadiness": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-cat.html",
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "evidenceId": null,
+          "reason": "NO_MEASUREMENT_RECORD",
+          "verificationScope": "OFFLINE_CURRENT_REPOSITORY_HASH_NOT_LIVE_CHECK",
+          "canStartExperiment": false,
+          "evidenceRefs": []
+        }
+      ],
+      "signals": [
+        "DEMAND_EVIDENCE_PRESENT_NOT_REVENUE_PROOF",
+        "EXISTING_LP_REFERENCE"
+      ],
+      "hypotheses": [],
+      "existingOpportunityRecords": [],
+      "counterEvidence": [],
+      "unknowns": [],
+      "reviewFlags": [
+        "LP_MEASUREMENT_NOT_VERIFIED",
+        "RUNNING_EXPERIMENT",
+        "SYNTHETIC_NOT_MARKET_VALIDATION"
+      ],
+      "evidenceRefs": [
+        "0f56c2a054c8b43e22945b26fb671df8690282c105adc6ab3565f3e0c3d21a62",
+        "297263e49d43c2dd001af72b5e19306680b92a3e4d5164f5a9395d0b63161419",
+        "32cbc8fefc33a6206b5e9557f6636e6a7972df511a3c6c897cee7ef470684c46",
+        "4a4ddee92a93213bce5ce6e7a9bc5a626df54e45572f4a8059ced4b0cb95bd47",
+        "4df95a64764f2882850c336cdc55ef85c05a53a9a8093f3be9b56c02ec032c37",
+        "e65356abb2223f203731c5ee622fbf40c2bfd3e58d68e6c8b9866e94e99623e2",
+        "fdff4766bbdc225ae18041baade562f8ccedfbd6892b1acbb2528b4cb9b83a3b"
+      ],
+      "sourceIds": [
+        "gkp"
+      ],
+      "opportunityIds": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidenceId": "0f56c2a054c8b43e22945b26fb671df8690282c105adc6ab3565f3e0c3d21a62",
+      "metricOrClaim": "recorded_offer",
+      "value": {
+        "itemCode": "synthetic:cat",
+        "itemPrice": 1000,
+        "snapshotDate": "2026-10-01"
+      },
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "offers",
+      "sourceReference": "SYNTHETIC ONLY offers",
+      "sourceFileHash": "9bbd59233a32f6de7959c1123a8d7aa80d39de8a428dbb6e6eddaf1b1e38c670",
+      "sourceRecordReference": "synthetic:cat",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+        "observedScope": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "297263e49d43c2dd001af72b5e19306680b92a3e4d5164f5a9395d0b63161419",
+      "metricOrClaim": "attributed_revenue",
+      "value": 100,
+      "rawValue": null,
+      "unit": "JPY",
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-cat"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "32cbc8fefc33a6206b5e9557f6636e6a7972df511a3c6c897cee7ef470684c46",
+      "metricOrClaim": "experiment_record",
+      "value": {
+        "experimentId": "synthetic-exp-0",
+        "status": "RUNNING",
+        "result": null,
+        "decision": null,
+        "targetUrls": [
+          "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-cat.html"
+        ],
+        "learnings": [
+          "SYNTHETIC contract test only"
+        ]
+      },
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "experiments",
+      "sourceReference": "SYNTHETIC ONLY experiments",
+      "sourceFileHash": "df1f4f8a42075b55045226645a22475786db5d71f5abd5cccb4a03239445d387",
+      "sourceRecordReference": "synthetic-exp-0",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+        "observedScope": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "3c862a4a04306d7ac4504bf0ea4df6e8ff68c8d6a65295eda7dfc65ba41ec1ed",
+      "metricOrClaim": "attributed_approvedRevenue",
+      "value": 200,
+      "rawValue": null,
+      "unit": "JPY",
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-dog"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "4a4ddee92a93213bce5ce6e7a9bc5a626df54e45572f4a8059ced4b0cb95bd47",
+      "metricOrClaim": "attributed_approvedRevenue",
+      "value": 100,
+      "rawValue": null,
+      "unit": "JPY",
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-cat"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "4df95a64764f2882850c336cdc55ef85c05a53a9a8093f3be9b56c02ec032c37",
+      "metricOrClaim": "monthlySearches",
+      "value": 100,
+      "rawValue": "100",
+      "unit": "PROVIDER_ESTIMATED_MONTHLY_SEARCHES",
+      "evidenceType": "ESTIMATE",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "gkp",
+      "sourceReference": "SYNTHETIC ONLY gkp",
+      "sourceFileHash": "0416b88dab85a1df4b80e8090ac5f4b81d431757cf3a03f99475a2ac1f5a733a",
+      "sourceRecordReference": "record-1",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-30",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "keyword": "シニア 猫 フード",
+        "opportunityId": null,
+        "pageUrl": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "WITHIN_POLICY",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-09-30",
+        "retrievedAgeDays": 20,
+        "periodAgeDays": 21,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {
+          "maxRetrievedAgeDays": 30,
+          "maxPeriodAgeDays": 30
+        }
+      }
+    },
+    {
+      "evidenceId": "56b37bebbb02ac37f450f42f009bf5e0563d1b434fc966fc274f5f35173cfa0d",
+      "metricOrClaim": "recorded_offer",
+      "value": {
+        "itemCode": "synthetic:dog",
+        "itemPrice": 1000,
+        "snapshotDate": "2026-10-01"
+      },
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "offers",
+      "sourceReference": "SYNTHETIC ONLY offers",
+      "sourceFileHash": "9bbd59233a32f6de7959c1123a8d7aa80d39de8a428dbb6e6eddaf1b1e38c670",
+      "sourceRecordReference": "synthetic:dog",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+        "observedScope": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "6ff104040c417cbe4da3d173c4230b7ea49f2d34c646c180d20d6457ee799db3",
+      "metricOrClaim": "theme_seed",
+      "value": "シニア 犬 フード",
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "HYPOTHESIS",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "gkp",
+      "sourceReference": "SYNTHETIC ONLY gkp",
+      "sourceFileHash": "0416b88dab85a1df4b80e8090ac5f4b81d431757cf3a03f99475a2ac1f5a733a",
+      "sourceRecordReference": "record-2",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-30",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "keyword": "シニア 犬 フード",
+        "opportunityId": null,
+        "pageUrl": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "WITHIN_POLICY",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-09-30",
+        "retrievedAgeDays": 20,
+        "periodAgeDays": 21,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {
+          "maxRetrievedAgeDays": 30,
+          "maxPeriodAgeDays": 30
+        }
+      }
+    },
+    {
+      "evidenceId": "9a9a93ec2f791243f4a150054aa9f8674e31b200fbc50e2d1debbefb5665fe33",
+      "metricOrClaim": "attributed_conversions",
+      "value": null,
+      "rawValue": null,
+      "unit": "COUNT",
+      "evidenceType": "UNKNOWN",
+      "availability": "NOT_AVAILABLE",
+      "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-dog"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "b9bd0212e3983bedacdd39be7b4e799ce7185d50ab3343685e421677960142aa",
+      "metricOrClaim": "monthlySearches",
+      "value": 100,
+      "rawValue": "100",
+      "unit": "PROVIDER_ESTIMATED_MONTHLY_SEARCHES",
+      "evidenceType": "ESTIMATE",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "gkp",
+      "sourceReference": "SYNTHETIC ONLY gkp",
+      "sourceFileHash": "0416b88dab85a1df4b80e8090ac5f4b81d431757cf3a03f99475a2ac1f5a733a",
+      "sourceRecordReference": "record-2",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-30",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "keyword": "シニア 犬 フード",
+        "opportunityId": null,
+        "pageUrl": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "WITHIN_POLICY",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-09-30",
+        "retrievedAgeDays": 20,
+        "periodAgeDays": 21,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {
+          "maxRetrievedAgeDays": 30,
+          "maxPeriodAgeDays": 30
+        }
+      }
+    },
+    {
+      "evidenceId": "c29b379a59f9f469e7eca6b0312cebf7daba513793dc85ce30c6c4f58c347edb",
+      "metricOrClaim": "experiment_record",
+      "value": {
+        "experimentId": "synthetic-exp-1",
+        "status": "INCONCLUSIVE",
+        "result": "INCONCLUSIVE",
+        "decision": "IMPROVE",
+        "targetUrls": [
+          "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-dog.html"
+        ],
+        "learnings": [
+          "SYNTHETIC contract test only"
+        ]
+      },
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "experiments",
+      "sourceReference": "SYNTHETIC ONLY experiments",
+      "sourceFileHash": "df1f4f8a42075b55045226645a22475786db5d71f5abd5cccb4a03239445d387",
+      "sourceRecordReference": "synthetic-exp-1",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": null,
+      "periodEnd": null,
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+        "observedScope": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "FRESHNESS_NOT_EVALUATED",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": null,
+        "retrievedAgeDays": 20,
+        "periodAgeDays": null,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "e4f485c19471b876555eed75b65c65904732aafa0a4025866556f8e9e4a5d6e4",
+      "metricOrClaim": "attributed_revenue",
+      "value": 200,
+      "rawValue": null,
+      "unit": "JPY",
+      "evidenceType": "FACT",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-dog"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    },
+    {
+      "evidenceId": "e65356abb2223f203731c5ee622fbf40c2bfd3e58d68e6c8b9866e94e99623e2",
+      "metricOrClaim": "theme_seed",
+      "value": "シニア 猫 フード",
+      "rawValue": null,
+      "unit": null,
+      "evidenceType": "HYPOTHESIS",
+      "availability": "OBSERVED",
+      "reason": null,
+      "sourceId": "gkp",
+      "sourceReference": "SYNTHETIC ONLY gkp",
+      "sourceFileHash": "0416b88dab85a1df4b80e8090ac5f4b81d431757cf3a03f99475a2ac1f5a733a",
+      "sourceRecordReference": "record-1",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-01T00:00:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-30",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "KEYWORD",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "keyword": "シニア 猫 フード",
+        "opportunityId": null,
+        "pageUrl": null
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "WITHIN_POLICY",
+        "retrievedAt": "2026-10-01T00:00:00.000Z",
+        "periodEnd": "2026-09-30",
+        "retrievedAgeDays": 20,
+        "periodAgeDays": 21,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {
+          "maxRetrievedAgeDays": 30,
+          "maxPeriodAgeDays": 30
+        }
+      }
+    },
+    {
+      "evidenceId": "fdff4766bbdc225ae18041baade562f8ccedfbd6892b1acbb2528b4cb9b83a3b",
+      "metricOrClaim": "attributed_conversions",
+      "value": null,
+      "rawValue": null,
+      "unit": "COUNT",
+      "evidenceType": "UNKNOWN",
+      "availability": "NOT_AVAILABLE",
+      "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+      "sourceId": "funnel",
+      "sourceReference": "SYNTHETIC ONLY funnel",
+      "sourceFileHash": "ab6992cb844d48d06f3b6e490952b9da3bb31656dc4defe079746a98979d4eaa",
+      "sourceRecordReference": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+      "provider": "synthetic-fixture",
+      "retrievedAt": "2026-10-20T00:01:00.000Z",
+      "parsedAt": "2026-10-21T00:00:00Z",
+      "periodStart": "2026-10-01",
+      "periodEnd": "2026-10-31",
+      "timezone": "Asia/Tokyo",
+      "country": "JP",
+      "language": "ja",
+      "grain": "MEASUREMENT_ID",
+      "scope": {
+        "sourceScope": "SYNTHETIC JP ja",
+        "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+        "observedScope": {
+          "accountScopeId": "synthetic-account",
+          "measurementId": "synthetic-id-cat"
+        }
+      },
+      "isSynthetic": true,
+      "freshness": {
+        "status": "PERIOD_IN_PROGRESS",
+        "retrievedAt": "2026-10-20T00:01:00.000Z",
+        "periodEnd": "2026-10-31",
+        "retrievedAgeDays": 0,
+        "periodAgeDays": -10,
+        "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+        "policy": {}
+      }
+    }
+  ],
+  "runContext": {
+    "funnelReports": [
+      {
+        "sourceId": "funnel",
+        "isSynthetic": true,
+        "report": {
+          "schemaVersion": 1,
+          "generatedAt": "2026-10-20T00:03:00Z",
+          "purpose": "AFFILIATE_FUNNEL_MEASUREMENT",
+          "sourceBatch": {
+            "schemaVersion": 1,
+            "provider": "rakuten",
+            "reportType": "ORDER_REPORT",
+            "adapterVersion": 1,
+            "reportLabel": "2026.10",
+            "accountScopeId": "synthetic-account",
+            "currency": "JPY",
+            "timezone": "Asia/Tokyo",
+            "coverage": "COMPLETE",
+            "filters": {},
+            "dateBasis": "OCCURRENCE_DATE",
+            "inputMode": "SNAPSHOT",
+            "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+            "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+            "retrievedAt": "2026-10-20T00:01:00.000Z",
+            "isSynthetic": true,
+            "importedAt": "2026-10-20T00:02:00.000Z",
+            "sourceFileHash": "6c0de6c194809e4321557297101ae57122d200d9e708c68636fc29fcd6fe1c75",
+            "normalizedContentHash": "ea8e004adcb2e41db19263790327137173d5aa8fba7e62996ec5b89d60d6c133",
+            "sourceGeneratedAt": null,
+            "periodStart": "2026-10-01",
+            "periodEnd": "2026-10-31",
+            "observedThrough": "2026-10-20",
+            "periodStatus": "IN_PROGRESS",
+            "grain": "ORDER_REPORT_ROW_UNVERIFIED",
+            "countUnit": "UNKNOWN",
+            "recordCount": 2,
+            "resultType": "RECORD_SNAPSHOT",
+            "conversionValidationStatus": "PARTIALLY_VERIFIED",
+            "formatEvidence": "USER_CONFIRMED_ZERO_RECORD_FORMAT_2026-10-20",
+            "nonZeroRealDataVerified": false,
+            "unknownColumns": [],
+            "validationResult": "VALIDATED",
+            "scopeKey": "770b49c89b1f58d7e298819990cada7f5e6bf6379ed7c73ba81791818d77ad35",
+            "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f"
+          },
+          "metrics": {
+            "revenue": {
+              "value": 300,
+              "availability": "OBSERVED",
+              "reason": null,
+              "evidenceType": "FACT",
+              "currency": "JPY",
+              "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+              "provider": "rakuten",
+              "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+              "retrievedAt": "2026-10-20T00:01:00.000Z",
+              "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+              "period": {
+                "start": "2026-10-01",
+                "end": "2026-10-31"
+              },
+              "observedThrough": "2026-10-20",
+              "dateBasis": "OCCURRENCE_DATE",
+              "timezone": "Asia/Tokyo",
+              "grain": "ACCOUNT",
+              "scope": {
+                "accountScopeId": "synthetic-account",
+                "measurementId": null
+              },
+              "periodStatus": "IN_PROGRESS",
+              "final": false,
+              "isSynthetic": true
+            },
+            "approvedRevenue": {
+              "value": 300,
+              "availability": "OBSERVED",
+              "reason": null,
+              "evidenceType": "FACT",
+              "currency": "JPY",
+              "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+              "provider": "rakuten",
+              "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+              "retrievedAt": "2026-10-20T00:01:00.000Z",
+              "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+              "period": {
+                "start": "2026-10-01",
+                "end": "2026-10-31"
+              },
+              "observedThrough": "2026-10-20",
+              "dateBasis": "OCCURRENCE_DATE",
+              "timezone": "Asia/Tokyo",
+              "grain": "ACCOUNT",
+              "scope": {
+                "accountScopeId": "synthetic-account",
+                "measurementId": null
+              },
+              "periodStatus": "IN_PROGRESS",
+              "final": false,
+              "isSynthetic": true
+            },
+            "cancelledRevenue": {
+              "value": 0,
+              "availability": "OBSERVED",
+              "reason": null,
+              "evidenceType": "FACT",
+              "currency": "JPY",
+              "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+              "provider": "rakuten",
+              "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+              "retrievedAt": "2026-10-20T00:01:00.000Z",
+              "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+              "period": {
+                "start": "2026-10-01",
+                "end": "2026-10-31"
+              },
+              "observedThrough": "2026-10-20",
+              "dateBasis": "OCCURRENCE_DATE",
+              "timezone": "Asia/Tokyo",
+              "grain": "ACCOUNT",
+              "scope": {
+                "accountScopeId": "synthetic-account",
+                "measurementId": null
+              },
+              "periodStatus": "IN_PROGRESS",
+              "final": false,
+              "isSynthetic": true
+            },
+            "merchandiseSales": {
+              "value": 20000,
+              "availability": "OBSERVED",
+              "reason": null,
+              "evidenceType": "FACT",
+              "currency": "JPY",
+              "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+              "provider": "rakuten",
+              "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+              "retrievedAt": "2026-10-20T00:01:00.000Z",
+              "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+              "period": {
+                "start": "2026-10-01",
+                "end": "2026-10-31"
+              },
+              "observedThrough": "2026-10-20",
+              "dateBasis": "OCCURRENCE_DATE",
+              "timezone": "Asia/Tokyo",
+              "grain": "ACCOUNT",
+              "scope": {
+                "accountScopeId": "synthetic-account",
+                "measurementId": null
+              },
+              "periodStatus": "IN_PROGRESS",
+              "final": false,
+              "isSynthetic": true
+            },
+            "conversions": {
+              "value": null,
+              "availability": "NOT_AVAILABLE",
+              "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+              "evidenceType": "UNKNOWN",
+              "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+              "provider": "rakuten",
+              "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+              "retrievedAt": "2026-10-20T00:01:00.000Z",
+              "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+              "period": {
+                "start": "2026-10-01",
+                "end": "2026-10-31"
+              },
+              "observedThrough": "2026-10-20",
+              "dateBasis": "OCCURRENCE_DATE",
+              "timezone": "Asia/Tokyo",
+              "grain": "ACCOUNT",
+              "scope": {
+                "accountScopeId": "synthetic-account",
+                "measurementId": null
+              },
+              "periodStatus": "IN_PROGRESS",
+              "final": false,
+              "isSynthetic": true,
+              "unit": "COUNT",
+              "validationStatus": "PARTIALLY_VERIFIED"
+            },
+            "epc": {
+              "value": null,
+              "availability": "NOT_AVAILABLE",
+              "reason": "MISSING_OR_PARTIAL_INPUT",
+              "evidenceType": "UNKNOWN",
+              "currency": null,
+              "denominator": "GA4_OBSERVED_AFFILIATE_CLICK_EVENT_COUNT",
+              "calculation": "commission / affiliate_click eventCount",
+              "compatibility": {
+                "compatible": false,
+                "reason": "MEASUREMENT_ID_NOT_IN_RECORDS"
+              }
+            },
+            "approvedEpc": {
+              "value": null,
+              "availability": "NOT_AVAILABLE",
+              "reason": "MISSING_OR_PARTIAL_INPUT",
+              "evidenceType": "UNKNOWN",
+              "currency": null,
+              "denominator": "GA4_OBSERVED_AFFILIATE_CLICK_EVENT_COUNT",
+              "calculation": "commission / affiliate_click eventCount",
+              "compatibility": {
+                "compatible": false,
+                "reason": "MEASUREMENT_ID_NOT_IN_RECORDS"
+              }
+            }
+          },
+          "byMeasurementId": [
+            {
+              "measurementId": "synthetic-id-cat",
+              "metrics": {
+                "revenue": {
+                  "value": 100,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-cat"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "approvedRevenue": {
+                  "value": 100,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-cat"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "cancelledRevenue": {
+                  "value": 0,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-cat"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "merchandiseSales": {
+                  "value": 10000,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-cat"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "conversions": {
+                  "value": null,
+                  "availability": "NOT_AVAILABLE",
+                  "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+                  "evidenceType": "UNKNOWN",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-cat"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true,
+                  "unit": "COUNT",
+                  "validationStatus": "PARTIALLY_VERIFIED"
+                }
+              }
+            },
+            {
+              "measurementId": "synthetic-id-dog",
+              "metrics": {
+                "revenue": {
+                  "value": 200,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-dog"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "approvedRevenue": {
+                  "value": 200,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-dog"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "cancelledRevenue": {
+                  "value": 0,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-dog"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "merchandiseSales": {
+                  "value": 10000,
+                  "availability": "OBSERVED",
+                  "reason": null,
+                  "evidenceType": "FACT",
+                  "currency": "JPY",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-dog"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true
+                },
+                "conversions": {
+                  "value": null,
+                  "availability": "NOT_AVAILABLE",
+                  "reason": "ROW_CONVERSION_GRAIN_UNVERIFIED",
+                  "evidenceType": "UNKNOWN",
+                  "importId": "652f6bdd9ac9635494c1e14b04913d8df4db9d7bd9522b56c824bc888e0ba63f",
+                  "provider": "rakuten",
+                  "sourceReference": "anonymized-format-fixture-not-original-order.csv",
+                  "retrievedAt": "2026-10-20T00:01:00.000Z",
+                  "snapshotAsOf": "2026-10-20T00:00:00.000Z",
+                  "period": {
+                    "start": "2026-10-01",
+                    "end": "2026-10-31"
+                  },
+                  "observedThrough": "2026-10-20",
+                  "dateBasis": "OCCURRENCE_DATE",
+                  "timezone": "Asia/Tokyo",
+                  "grain": "MEASUREMENT_ID",
+                  "scope": {
+                    "accountScopeId": "synthetic-account",
+                    "measurementId": "synthetic-id-dog"
+                  },
+                  "periodStatus": "IN_PROGRESS",
+                  "final": false,
+                  "isSynthetic": true,
+                  "unit": "COUNT",
+                  "validationStatus": "PARTIALLY_VERIFIED"
+                }
+              }
+            }
+          ],
+          "analytics": null,
+          "attribution": {
+            "accountRevenueIsNotAutomaticallySiteRevenue": true,
+            "measurementIdRevenueRequiresObservedRecord": true,
+            "channelRevenue": {
+              "value": null,
+              "availability": "UNATTRIBUTABLE",
+              "reason": "NO_CHANNEL_ATTRIBUTION_PROOF",
+              "evidenceType": "UNKNOWN"
+            },
+            "experimentRevenue": {
+              "value": null,
+              "availability": "UNATTRIBUTABLE",
+              "reason": "NO_EXPERIMENT_ATTRIBUTION_PROOF",
+              "evidenceType": "UNKNOWN"
+            },
+            "epcCompatibility": {
+              "compatible": false,
+              "reason": "MEASUREMENT_ID_NOT_IN_RECORDS"
+            }
+          },
+          "limitations": [
+            "Nonzero real Rakuten rows and conversion grain remain PARTIALLY_VERIFIED; synthetic tests do not establish live validation.",
+            "Each report selects one account/month snapshot; no transaction or cancellation merging across CSVs.",
+            "Period totals are snapshots, never final monthly revenue. Currency/timezone/coverage are explicitly supplied metadata.",
+            "NOTE_NATIVE_MONETIZATION and existing experiments are not read or modified."
+          ]
+        },
+        "warning": "ACCOUNT_CONTEXT_NOT_CANDIDATE_REVENUE"
+      }
+    ]
+  },
+  "limitations": [
+    "No scoring, ranking, experiment selection/start, content generation, publication or posting.",
+    "Offline inputs only; no current SERP, product availability or revenue attribution is inferred.",
+    "UNKNOWN/null are never score zero. Missing candidates in a later run are not KILL decisions.",
+    "Synthetic inputs are not market/revenue validation. NOTE_NATIVE_MONETIZATION is excluded."
+  ],
+  "diff": null
+}
