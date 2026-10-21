@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "sourceId": "synthetic_gkp",
+      "sourceType": "gkp_csv",
+      "path": "market-scanner-gkp.csv",
+      "sourceReference": "SYNTHETIC_GKP_FORMAT_ONLY",
+      "provider": "google_keyword_planner",
+      "isSynthetic": true,
+      "retrievedAt": "2026-10-01T00:00:00Z",
+      "country": "JP",
+      "language": "ja",
+      "timezone": "Asia/Tokyo",
+      "grain": "KEYWORD",
+      "scope": "SYNTHETIC_MARKET",
+      "completeness": "COMPLETE"
+    }
+  ]
+}
