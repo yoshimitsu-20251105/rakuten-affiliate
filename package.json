@@ -27,7 +27,8 @@
     "funnel:import-order": "node funnel-measurement/cli.js import-order",
     "funnel:report": "node funnel-measurement/cli.js report",
     "funnel:validate-measurement": "node funnel-measurement/cli.js validate-measurement",
-    "funnel:check-note-start": "node funnel-measurement/cli.js check-note-start"
+    "funnel:check-note-start": "node funnel-measurement/cli.js check-note-start",
+    "market:scan": "node market-scanner/cli.js"
   },
   "repository": {
     "type": "git",
