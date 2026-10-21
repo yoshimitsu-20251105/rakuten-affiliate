@@ -183,3 +183,11 @@ test("FAILED/INCONCLUSIVE/KILL and counter evidence survive without a new experi
   assert.deepEqual(a.counterEvidence,c.counterEvidence);assert(a.constraints.includes("WHY_REVISIT_REQUIRES_NEW_EVIDENCE"));
   assert.equal(a.canStartExperiment,false);assert.deepEqual(d.scanner,before);
 });
+
+test("a pointer to an UNKNOWN field cannot substantiate known hypothesis points", async () => {
+  const d=await data({complete:true}),c=d.scanner.candidates[0];
+  c.intent.value=null;c.intent.evidenceType="UNKNOWN";
+  const a=assessmentFor(run(d),c.candidateId);
+  assert.equal(a.components.purchaseIntent.value,null);assert.equal(a.components.purchaseIntent.missingReason,"UNKNOWN_EVIDENCE");
+  assert.equal(a.components.lpReuse.value,20);assert.equal(a.components.demand.value,12);assert.equal(a.exploration.totalScore,null);
+});

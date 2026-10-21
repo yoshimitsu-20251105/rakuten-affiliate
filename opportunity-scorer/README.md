@@ -63,7 +63,7 @@ purposeはAFFILIATE_MONETIZATION / AFFILIATE_NOTE_ACQUISITIONのみ。targetLP/i
 
 componentは`value / maxScore / evidenceType / reason（またはrationale）`、`evidenceRefs`または`inputRefs`を持ちます。未知はvalue=null / UNKNOWNにできます。複数の明示評価は同成分を配列で指定でき、同一内容は重複として扱い、異なる内容はCONFLICTにします。高い方や新しい方を勝手に選びません。
 
-inputRefsは同一候補のintent/keywords/availableLPs/existingOffers/purchaseIntent/demandEvidenceへのJSON Pointer。他候補や財務フィールドは参照できません。evidenceRefsも同一候補の証拠IDに限り、Funnelの財務証拠を探索点へ接続できません。demandは候補のdemandEvidenceに属する原観測が必要です。
+inputRefsは同一候補のintent/keywords/availableLPs/existingOffers/purchaseIntent/demandEvidenceへのJSON Pointer。他候補や財務フィールドは参照できません。参照先自体がnull/UNKNOWNなら既知点の根拠にできません。evidenceRefsも同一候補の証拠IDに限り、Funnelの財務証拠を探索点へ接続できません。demandは候補のdemandEvidenceに属する原観測が必要です。
 
 contextは解釈を保存するもので、価格・在庫・Revenue・計測受信の新しい観測を追加する経路ではありません。新しい原観測が必要なら別途正規の入力を更新してScannerを再実行します。このCLIから更新しません。
 

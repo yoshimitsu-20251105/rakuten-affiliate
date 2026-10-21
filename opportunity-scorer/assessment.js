@@ -39,6 +39,10 @@ function component(scanner, candidate, context, key, index, asOf, scannerHash) {
   else if (raw.evidenceType === "UNKNOWN") missingReason = "UNKNOWN_EVIDENCE";
   else if (context && !derived && Date.parse(context.assessedAt) > Date.parse(asOf)) missingReason = "ASSESSMENT_AFTER_AS_OF";
   else if (context && !derived && (context.applicablePeriod.start > asOf.slice(0, 10) || context.applicablePeriod.end < asOf.slice(0, 10))) missingReason = "ASSESSMENT_OUTSIDE_APPLICABLE_PERIOD";
+  else if (pointers.some((pointer) => {
+    const value = inputPointer(scanner, candidate, pointer);
+    return value == null || value === "UNKNOWN" || value?.evidenceType === "UNKNOWN";
+  })) missingReason = "UNKNOWN_EVIDENCE";
   else if (records.some((e) => e.isSynthetic !== candidate.isSynthetic)) missingReason = "SYNTHETIC_MISMATCH";
   else if (records.some((e) => e.value === null || e.evidenceType === "UNKNOWN")) missingReason = "UNKNOWN_EVIDENCE";
   else if (observations.some((f) => f.status === "AFTER_AS_OF")) missingReason = "EVIDENCE_AFTER_AS_OF";
