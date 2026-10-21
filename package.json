@@ -23,7 +23,11 @@
     "keywords:build-publication-preview": "node keyword-research/cli/build-publication-preview.js",
     "keywords:publish-approved-pages": "node --env-file-if-exists=.env keyword-research/cli/publish-approved-pages.js",
     "analytics:search-trial-report": "node --env-file-if-exists=.env keyword-research/cli/search-trial-report.js",
-    "strategy:validate": "node strategy/cli/validate.js"
+    "strategy:validate": "node strategy/cli/validate.js",
+    "funnel:import-order": "node funnel-measurement/cli.js import-order",
+    "funnel:report": "node funnel-measurement/cli.js report",
+    "funnel:validate-measurement": "node funnel-measurement/cli.js validate-measurement",
+    "funnel:check-note-start": "node funnel-measurement/cli.js check-note-start"
   },
   "repository": {
     "type": "git",
