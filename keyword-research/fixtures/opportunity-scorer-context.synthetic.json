@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "purpose": "AFFILIATE_MONETIZATION",
+  "scannerRunId": "synthetic-scorer-input",
+  "assessments": [
+    {
+      "contextId": "synthetic-review",
+      "candidateId": "31c8cc291e5b8aefacdcd4382df4980979951ca8a49812d49acde1a8c897e9f3",
+      "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-dog.html",
+      "itemCodes": [
+        "synthetic:dog"
+      ],
+      "scope": "SYNTHETIC purchase-market comparison",
+      "country": "JP",
+      "language": "ja",
+      "isSynthetic": true,
+      "assessedBy": "SYNTHETIC reviewer",
+      "assessedAt": "2026-10-21T00:00:00Z",
+      "applicablePeriod": {
+        "start": "2026-10-21",
+        "end": "2026-10-31"
+      },
+      "components": {
+        "purchaseIntent": {
+          "value": 30,
+          "maxScore": 35,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC weighted-point interpretation",
+          "inputRefs": [
+            "/candidates/0/intent"
+          ]
+        },
+        "offerFit": {
+          "value": null,
+          "maxScore": 30,
+          "evidenceType": "UNKNOWN",
+          "reason": "SYNTHETIC offer fit interpretation",
+          "evidenceRefs": [
+            "56b37bebbb02ac37f450f42f009bf5e0563d1b434fc966fc274f5f35173cfa0d"
+          ]
+        },
+        "lpReuse": {
+          "value": 20,
+          "maxScore": 20,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC asset interpretation, no live validation",
+          "inputRefs": [
+            "/candidates/0/availableLPs/0"
+          ]
+        },
+        "demand": {
+          "value": 12,
+          "maxScore": 15,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC demand interpretation, not revenue",
+          "evidenceRefs": [
+            "b9bd0212e3983bedacdd39be7b4e799ce7185d50ab3343685e421677960142aa"
+          ]
+        }
+      }
+    },
+    {
+      "contextId": "synthetic-review",
+      "candidateId": "760785c19b1ef78f0debe5a85943dc4bf49e52312760c01e1c19c205a9f63520",
+      "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/synthetic-scorer-cat.html",
+      "itemCodes": [
+        "synthetic:cat"
+      ],
+      "scope": "SYNTHETIC purchase-market comparison",
+      "country": "JP",
+      "language": "ja",
+      "isSynthetic": true,
+      "assessedBy": "SYNTHETIC reviewer",
+      "assessedAt": "2026-10-21T00:00:00Z",
+      "applicablePeriod": {
+        "start": "2026-10-21",
+        "end": "2026-10-31"
+      },
+      "components": {
+        "purchaseIntent": {
+          "value": 30,
+          "maxScore": 35,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC weighted-point interpretation",
+          "inputRefs": [
+            "/candidates/1/intent"
+          ]
+        },
+        "offerFit": {
+          "value": 24,
+          "maxScore": 30,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC offer fit interpretation",
+          "evidenceRefs": [
+            "0f56c2a054c8b43e22945b26fb671df8690282c105adc6ab3565f3e0c3d21a62"
+          ]
+        },
+        "lpReuse": {
+          "value": 20,
+          "maxScore": 20,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC asset interpretation, no live validation",
+          "inputRefs": [
+            "/candidates/1/availableLPs/0"
+          ]
+        },
+        "demand": {
+          "value": 12,
+          "maxScore": 15,
+          "evidenceType": "HYPOTHESIS",
+          "reason": "SYNTHETIC demand interpretation, not revenue",
+          "evidenceRefs": [
+            "4df95a64764f2882850c336cdc55ef85c05a53a9a8093f3be9b56c02ec032c37"
+          ]
+        }
+      }
+    }
+  ]
+}
