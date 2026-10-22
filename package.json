@@ -33,7 +33,8 @@
     "learning:import": "node learning-engine/cli.js import",
     "learning:record": "node learning-engine/cli.js record",
     "learning:review": "node learning-engine/cli.js review",
-    "learning:report": "node learning-engine/cli.js report"
+    "learning:report": "node learning-engine/cli.js report",
+    "experiment:select": "node experiment-selector/cli.js"
   },
   "repository": {
     "type": "git",
