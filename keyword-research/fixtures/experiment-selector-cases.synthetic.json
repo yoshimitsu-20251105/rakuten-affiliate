@@ -1,0 +1,15 @@
+{
+  "isSynthetic": true,
+  "purpose": "SOFTWARE_CONTRACT_CASES_NOT_MARKET_VALIDATION",
+  "concurrency": [
+    {"class":"SEO", "group":null, "expected":"PASS"},
+    {"class":"INDEXING", "group":null, "expected":"PASS"},
+    {"class":"DISCOVERY", "group":null, "expected":"PASS"},
+    {"class":"MEASUREMENT_ONLY", "group":null, "expected":"PASS"},
+    {"class":"AFFILIATE_ACQUISITION", "group":"AFFILIATE_MONETIZATION", "expected":"DEFERRED"},
+    {"class":"AFFILIATE_NOTE_ACQUISITION", "group":"AFFILIATE_MONETIZATION", "expected":"DEFERRED"},
+    {"class":"DIRECT_REVENUE_VALIDATION", "group":"AFFILIATE_MONETIZATION", "expected":"DEFERRED"},
+    {"class":"DIRECT_REVENUE_VALIDATION", "group":"OTHER_DECLARED_REVENUE_GROUP", "expected":"PASS"},
+    {"class":"UNKNOWN", "group":null, "expected":"UNKNOWN"}
+  ]
+}

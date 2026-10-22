@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "purpose": "AFFILIATE_MONETIZATION",
+  "isSynthetic": true,
+  "policy": {
+    "policyId": "synthetic-selection-policy",
+    "version": "experiment-selector-v1",
+    "selectionTrack": "EXPLORATION",
+    "selectionScope": {"candidateIds": [], "channel": null, "purpose": null, "reason": "SYNTHETIC explicitly compare the supplied universe"},
+    "comparisonGroup": null,
+    "maxConcurrentMonetizationExperiments": 1,
+    "monetizationGroups": ["AFFILIATE_MONETIZATION"],
+    "configuredBy": "SYNTHETIC reviewer",
+    "configuredAt": "2026-10-21T00:00:00Z",
+    "confirmationReference": "SYNTHETIC software contract only, never real authorization",
+    "applicablePeriod": {"start": "2026-10-21", "end": "2026-10-31"},
+    "maxSnapshotAgeDays": 3
+  },
+  "registry": {"coverage": "COMPLETE", "scope": "ALL_REGISTERED_AFFILIATE_EXPERIMENTS", "observedAt": "2026-10-22T00:00:00Z", "sourceReference": "SYNTHETIC supplied registry only", "maxAgeDays": 1},
+  "experimentClassifications": [],
+  "proposals": []
+}
