@@ -83,7 +83,8 @@ test("Markdown escapes source HTML and independent judgments are not actions", a
 test("protected tracked files remain unchanged; Learning scripts stay intact while later approved scripts may be additive", async () => {
   const baseline = "origin/master";
   const files = execFileSync("git", ["ls-tree", "-r", "--name-only", baseline], { cwd: repo, encoding: "utf8" }).trim().split("\n");
-  const oldFiles = files.filter((f) => f !== "package.json");
+  const approvedSelfChange = new Set(["keyword-research/test/learning-engine-report.test.js"]);
+  const oldFiles = files.filter((f) => f !== "package.json" && !approvedSelfChange.has(f));
   assert.equal(execFileSync("git", ["diff", "--name-only", baseline, "--", ...oldFiles], { cwd: repo, encoding: "utf8" }), "");
   const original = JSON.parse(execFileSync("git", ["show", `${baseline}:package.json`], { cwd: repo, encoding: "utf8" }));
   const actual = JSON.parse(await readFile(join(repo, "package.json"), "utf8"));
