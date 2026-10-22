@@ -1,0 +1,11 @@
+{
+  "isSynthetic": true,
+  "purpose": "SOFTWARE_CASES_NOT_REAL_MARKET_OR_NONZERO_REVENUE_VALIDATION",
+  "channels": [
+    {"channel":"note","purpose":"AFFILIATE_NOTE_ACQUISITION","source":"note","medium":"referral"},
+    {"channel":"x","purpose":"AFFILIATE_MONETIZATION","source":"x","medium":"social"},
+    {"channel":"organic_search","purpose":"AFFILIATE_MONETIZATION","source":null,"medium":null}
+  ],
+  "falseFlags": ["canStartExperiment","canPublish","canPost","canModifyLP","canModifyCTA","canModifyAffiliateUrl","canModifyTracking"],
+  "measurementStates": ["VERIFIED_EXISTING","PROPOSED","UNKNOWN"]
+}

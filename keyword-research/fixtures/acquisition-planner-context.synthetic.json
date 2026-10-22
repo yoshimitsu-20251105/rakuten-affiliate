@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "purpose": "AFFILIATE_MONETIZATION",
+  "isSynthetic": true,
+  "policy": {
+    "policyId": "synthetic-planner-policy",
+    "version": "acquisition-planner-v1",
+    "configuredBy": "SYNTHETIC reviewer",
+    "configuredAt": "2026-10-22T06:00:00Z",
+    "confirmationReference": "SYNTHETIC software test only",
+    "applicablePeriod": {"start":"2026-10-21","end":"2026-10-31"},
+    "maxSelectorAgeDays": 2,
+    "maxProofAgeDays": 3,
+    "providerPolicy": null
+  },
+  "selectedProposalId": null,
+  "plan": null,
+  "measurementId": {"proposedId":null,"binding":null},
+  "channelProfiles": [],
+  "checklistConfirmations": []
+}
