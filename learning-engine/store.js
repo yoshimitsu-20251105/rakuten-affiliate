@@ -65,10 +65,15 @@ export function append(ledger, additions) {
   const out = structuredClone(ledger); let added = 0;
   for (const c of COLLECTIONS) {
     const ids = new Map(out[c].map((r) => [r.recordId, r]));
+    const importIdentity = (r) => { const { codeCommit, ...payload } = recordPayload(r); return hash(payload); };
+    const imported = c === "sourceImports" ? new Set(out[c].map(importIdentity)) : null;
     for (const r of additions[c]) {
+      // The executing code commit is provenance of the first import, not new
+      // source data. A code-only upgrade must not turn a reimport into new data.
+      if (imported?.has(importIdentity(r))) continue;
       const prior = ids.get(r.recordId);
       if (prior) assert(hash(recordPayload(prior)) === hash(recordPayload(r)), "Duplicate identity with changed contents");
-      else { out[c].push(structuredClone(r)); ids.set(r.recordId, r); added++; }
+      else { out[c].push(structuredClone(r)); ids.set(r.recordId, r); imported?.add(importIdentity(r)); added++; }
     }
   }
   validateLedger(out); return { ledger: out, status: added ? "APPENDED" : "DUPLICATE", added };

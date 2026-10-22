@@ -66,6 +66,8 @@ ledgerは5配列を持つ。
 
 各recordIdは意味のあるpayloadのhash。recordedAtは独立。sourceRefsからSourceImport.recordRefsをたどり、raw file hashと元sourceを確認できる。JSON整形や項目キー順だけ違う原本は新しい出所として追跡しても、同じ観測のrecordを増やさない。snapshot反復を追加の成果や支持回数として数えない。
 
+実行code commitだけ変わった同一入力の再取込はDUPLICATE。最初の取込code commitを保持する。adapter version、元metadata、内容やrecordRefsが変わった場合は別途検証する。
+
 既存metricsは日付付きの過去実測として保持する。再取得していないこと、metadata不足、現在の計測検証でないことを表示する。古いFACTを今の市場FACTにはしない。`FACT:`の自由文prefixはsource-declared区分であり、新しいFACT Learningへ自動昇格させない。
 
 review JSONのtop-levelはschemaVersion/purpose/reviewId/isSynthetic/reviewedAt/reviewedBy/confirmationReference/decisions[]/learnings[]。実装形式はsynthetic fixtures参照。fixtureのIDや金額を実データへ流用しない。

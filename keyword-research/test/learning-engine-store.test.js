@@ -19,6 +19,11 @@ test("reformatted input creates provenance without duplicate observations", () =
   const r = append(b.ledger, newImport); assert.equal(r.ledger.sourceImports.length, 2);
   assert.equal(r.ledger.evidence.length, b.ledger.evidence.length); assert.equal(r.ledger.experimentSnapshots.length, 1);
 });
+test("code commit changes alone do not make identical input a new import", () => {
+  const b = base(), changedCode = buildImport(b.manifest, b.loaded, { recordedAt: AS_OF, codeCommit: "another-code-commit" });
+  const r = append(b.ledger, changedCode); assert.equal(r.status, "DUPLICATE"); assert.equal(r.added, 0);
+  assert.equal(hash(r.ledger), hash(b.ledger)); assert.equal(r.ledger.sourceImports[0].codeCommit, "synthetic-commit");
+});
 test("same manual review reimport is idempotent", async () => {
   const b = await reviewed(); const repeated = buildReview(b.ledger, b.review, { recordedAt: AS_OF });
   const r = append(b.ledger, repeated); assert.equal(r.status, "DUPLICATE"); assert.equal(hash(r.ledger), hash(b.ledger));
