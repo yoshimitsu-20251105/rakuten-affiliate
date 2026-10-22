@@ -1,0 +1,13 @@
+{
+  "schemaVersion":1,
+  "purpose":"AFFILIATE_MONETIZATION",
+  "proposalId":"synthetic-proposal",
+  "isSynthetic":true,
+  "scope":{"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},
+  "relatedExperimentIds":["synthetic-exp"],
+  "WHY_REVISIT":"A new scoped observation is available",
+  "whatChanged":"New observation, proposal only; no LP or experiment changes",
+  "newEvidenceRefs":[],
+  "changes":[],
+  "confirmations":[]
+}

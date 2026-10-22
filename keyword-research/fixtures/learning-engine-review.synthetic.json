@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "purpose": "AFFILIATE_MONETIZATION",
+  "reviewId": "synthetic-review",
+  "isSynthetic": true,
+  "reviewedAt": "2026-10-20T00:00:00Z",
+  "reviewedBy": "synthetic-reviewer",
+  "confirmationReference": "synthetic-test-only-not-a-real-business-decision",
+  "decisions": [
+    {"logicalId":"synthetic-kill","revisionId":"v1","experimentIds":["synthetic-exp"],"scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},"decision":"KILL","reason":"Synthetic scoped decision, no execution","evidenceRefs":[],"counterEvidenceRefs":[],"retryPolicy":{"mode":"UNKNOWN","reason":"Conditions need review"}},
+    {"logicalId":"synthetic-improve","revisionId":"v1","experimentIds":["synthetic-exp"],"scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},"decision":"IMPROVE","reason":"Synthetic review only","evidenceRefs":[],"counterEvidenceRefs":[],"retryPolicy":{"mode":"UNKNOWN","reason":"Conditions need review"}},
+    {"logicalId":"synthetic-hold","revisionId":"v1","experimentIds":["synthetic-exp"],"scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},"decision":"HOLD","reason":"Synthetic missing evidence","evidenceRefs":[],"counterEvidenceRefs":[],"retryPolicy":{"mode":"UNKNOWN","reason":"Insufficient observation"}},
+    {"logicalId":"synthetic-scale","revisionId":"v1","experimentIds":["synthetic-exp"],"scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},"decision":"SCALE","reason":"Record a judgment, never execute","evidenceRefs":[],"counterEvidenceRefs":[],"retryPolicy":{"mode":"NO_RETRY_PROPOSED","reason":"No new action authorized"}}
+  ],
+  "learnings": [{
+    "logicalId":"synthetic-learning","revisionId":"v1","experimentIds":["synthetic-exp"],
+    "scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},
+    "claim":{"text":"Intent mismatch is an unverified possible cause","metricOrClaim":"intent_mismatch","value":null,"evidenceType":"HYPOTHESIS"},
+    "reason":"Keep interpretation separate from failure and KILL",
+    "evidenceRefs":[],"counterEvidenceRefs":[],"scopeEvidenceRefs":[],"decisionRefs":[],
+    "reviewStatus":"ACCEPTED","unknowns":["Revenue attribution","Market demand"],"limitations":["Synthetic software fixture, no real learning"],
+    "falsification":{"hypothesisRef":"synthetic-exp","conditionText":"Original exposure test condition","status":"INCONCLUSIVE","evidenceRefs":[],"counterEvidenceRefs":[],"reason":"No causal conclusion"},
+    "retryConditions":[{"conditionId":"new-demand","type":"NEW_EVIDENCE","required":true,"predicate":"OBSERVED_AFTER_REVIEW","expectedValue":{"metric":"search_console_impressions","after":"2026-10-20T00:00:00Z","maxAgeDays":30},"scope":{"experimentIds":["synthetic-exp"],"targetLP":"https://example.test/rankings/test.html","channel":"organic_search"},"evidenceRefs":[],"reason":"Require a new scoped observation"}]
+  }]
+}

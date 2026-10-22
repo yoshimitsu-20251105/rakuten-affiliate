@@ -29,7 +29,11 @@
     "funnel:validate-measurement": "node funnel-measurement/cli.js validate-measurement",
     "funnel:check-note-start": "node funnel-measurement/cli.js check-note-start",
     "market:scan": "node market-scanner/cli.js",
-    "opportunity:score": "node opportunity-scorer/cli.js"
+    "opportunity:score": "node opportunity-scorer/cli.js",
+    "learning:import": "node learning-engine/cli.js import",
+    "learning:record": "node learning-engine/cli.js record",
+    "learning:review": "node learning-engine/cli.js review",
+    "learning:report": "node learning-engine/cli.js report"
   },
   "repository": {
     "type": "git",
