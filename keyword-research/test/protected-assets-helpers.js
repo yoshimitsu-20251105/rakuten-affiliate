@@ -20,7 +20,7 @@ export function permittedGeneratedUpdate(path, before, after, readCurrent) {
     // Existing urgency text may expire; adding/replacing claims, CTA, links or
     // other article content is not made legitimate by its generated location.
     const oldClaims = before.match(urgency) ?? [], newClaims = after.match(urgency) ?? [];
-    return newClaims.every((claim) => oldClaims.includes(claim)) &&
+    return newClaims.every((claim) => newClaims.filter(x=>x===claim).length <= oldClaims.filter(x=>x===claim).length) &&
       before.replace(stamp, "$1:").replace(urgency, "") === after.replace(stamp, "$1:").replace(urgency, "");
   }
   if (path === "docs/sitemap.xml") {
