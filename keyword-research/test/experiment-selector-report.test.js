@@ -1,3 +1,4 @@
+import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./protected-assets-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, stat, symlink } from "node:fs/promises";
@@ -26,10 +27,12 @@ test("Markdown escapes candidate-controlled text and preserves missing indicator
 });
 test("CLI produces private report without changing any of its inputs", async (t) => {
   const temp = await temporary(t), b = await setup(), manifest = await writeInputs(temp, b);
+  const protectedBefore = captureProtectedTree(repo);
   const paths = Object.keys(b.hashes).map((k) => join(temp.root, `${k}.json`)), before = await Promise.all(paths.map((p) => readFile(p, "utf8")));
   const child = spawnSync(process.execPath, ["experiment-selector/cli.js", "--manifest", manifest, "--as-of", AS_OF, "--run-id", "cli-test", "--private-dir", join(temp.root, "out")], { cwd: repo, encoding: "utf8" });
   assert.equal(child.status, 0, child.stderr); assert.equal(JSON.parse(child.stdout).canStartExperiment, false);
   assert.deepEqual(await Promise.all(paths.map((p) => readFile(p, "utf8"))), before);
+  assertProtectedTreeUnchanged(protectedBefore, captureProtectedTree(repo));
 });
 test("CLI rejects start/publish/post, duplicate options and sensitive failures with no output run", async (t) => {
   const temp = await temporary(t);
@@ -49,10 +52,7 @@ test("Selector modules have no network, state transition, publication, posting o
 });
 test("All preexisting tracked assets remain byte-identical to approved merge base except additive CLI script", async () => {
   const base = "be82af82efa76fa091586d8cd4ff563e680d285f", git = (args) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
-  const files = git(["ls-tree", "-r", "--name-only", base]).trim().split("\n");
-  const approvedTestChanges = new Set(["keyword-research/test/learning-engine-report.test.js"]);
-  const protectedFiles = files.filter((f) => f !== "package.json" && !approvedTestChanges.has(f));
-  assert.equal(git(["diff", "--name-only", base, "--", ...protectedFiles]), "");
+  assertHistoricalProtection(repo, { base, modules: { "experiment-selector": "7d0f60d84ac7e4f0890d1b962d805323dd14873c" } });
   const before = JSON.parse(git(["show", `${base}:package.json`])), actual = JSON.parse(await readFile(join(repo, "package.json"), "utf8"));
   assert.equal(actual.scripts["experiment:select"], "node experiment-selector/cli.js"); delete actual.scripts["experiment:select"]; assert.deepEqual(actual, before);
   assert.equal((await readdir(join(repo, "docs/articles"))).filter((f) => f.endsWith(".html")).length, 408);

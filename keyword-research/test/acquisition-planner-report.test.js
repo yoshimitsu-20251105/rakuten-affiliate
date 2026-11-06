@@ -1,3 +1,4 @@
+import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./protected-assets-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, stat, symlink } from "node:fs/promises";
@@ -40,10 +41,12 @@ test("Markdown escapes input-controlled text and keeps null outcomes visible", a
 });
 test("CLI executes only planning and leaves all explicit input files byte-identical", async (t) => {
   const temp = await temporary(t), b = await setup({ channel: "note" }), manifest = await writeInputs(temp, b);
+  const protectedBefore = captureProtectedTree(repo);
   const files = (await readdir(temp.root)).map((f) => join(temp.root, f)), before = await Promise.all(files.map((f) => readFile(f)));
   const child = spawnSync(process.execPath, ["acquisition-planner/cli.js", "--manifest", manifest, "--as-of", AS_OF, "--private-dir", join(temp.root, "out")], { cwd: repo, encoding: "utf8" });
   assert.equal(child.status, 0, child.stderr); assert.equal(JSON.parse(child.stdout).planStatus, "READY");
   for (const[i,f]of files.entries()) assert.equal(hash(await readFile(f)), hash(before[i]));
+  assertProtectedTreeUnchanged(protectedBefore, captureProtectedTree(repo));
 });
 test("CLI rejects action/bypass options, implicit current asOf and sensitive failures", () => {
   for (const args of [["--post", "true"], ["--publish", "true"], ["--start", "true"], ["--allow-unverified", "true"], ["--manifest", "DO_NOT_PRINT_SECRET"], ["--manifest", "DO_NOT_PRINT_SECRET", "--as-of", AS_OF]]) {
@@ -59,8 +62,8 @@ test("Planner module calls contain no API, publication, generation, ledger mutat
 });
 test("Approved existing assets, code, package, tests and 408 articles match implementation base", async () => {
   const base = "7d0f60d84ac7e4f0890d1b962d805323dd14873c", git = (args) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
-  const files = git(["ls-tree", "-r", "--name-only", base]).trim().split("\n");
-  assert.equal(git(["diff", "--name-only", base, "--", ...files]), "");
+  assertHistoricalProtection(repo, { base, modules: { "acquisition-planner": "4c3b8532a1b49192d65276a787682675f59e5d92", "experiment-selector": base } });
+  assert.deepEqual(JSON.parse(await readFile(join(repo, "package.json"), "utf8")), JSON.parse(git(["show", `${base}:package.json`])));
   assert.equal((await readdir(join(repo, "docs/articles"))).filter((f) => f.endsWith(".html")).length, 408);
 });
 test("Blocked zero-recommendation output also keeps every operation false", async () => {
