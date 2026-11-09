@@ -7,7 +7,7 @@ import { classifyRegistry, concurrency, assessRetry } from "../../experiment-sel
 import { GROUP } from "../../experiment-selector/policy.js";
 import { setup, run, active, classify, fixture, AS_OF, refresh } from "./experiment-selector-helpers.js";
 import { base, readFixture, verified, pageHash, spec, input as learningInput } from "./learning-engine-helpers.js";
-import { emptyLedger } from "../../learning-engine/model.js";
+import { emptyLedger, hash } from "../../learning-engine/model.js";
 import { append } from "../../learning-engine/store.js";
 
 for (const row of (await fixture("cases")).concurrency) test(`Concurrency counts only declared same group: ${row.class}/${row.group}`, async () => {
@@ -137,8 +137,15 @@ test("An explicitly unavailable offer cannot be rescued by a high hypothesis sco
   const r = run(b); assert.equal(r.recommendationCount, 0); assert(r.proposals[0].rejectionReason.includes("DECLARED_LP_OR_OFFER_UNAVAILABLE"));
 });
 
-test("Current explicitly closed registry frees the monetization slot without losing objective classification", async () => {
-  const registry = JSON.parse(await readFile(new URL("../../strategy/experiments.json", import.meta.url), "utf8"));
+test("Explicit closing evidence frees a historical monetization slot without freezing future live registry state", async () => {
+  const registry = historicalRegistry();
+  for (const name of ["note-vs-x", "grain-free-dog-food-seo", "senior-cat-food-seo", "domestic-additive-free-dog-treats-seo"]) {
+    const closure=JSON.parse(await readFile(new URL(`../../strategy/experiment-closures/2026-11-09-${name}.json`, import.meta.url), "utf8"));
+    const row=registry.items.find(e=>e.experimentId===closure.experimentId);
+    assert.equal(hash(row),closure.priorRecordHash);
+    Object.assign(row,{status:closure.toStatus,result:closure.result,decision:closure.decision,metrics:[...row.metrics,...closure.appendedMetrics],learnings:[...row.learnings,...closure.appendedLearnings]});
+    assert.equal(hash(row),closure.finalRecordHash);
+  }
   const b = await setup(); b.experimentsSnapshot = registry;
   const rows = classifyRegistry(b); assert.equal(rows.length, 6); assert(rows.every(r => r.experimentClass !== "UNKNOWN"));
   assert.equal(rows.filter(r => r.status === "RUNNING").length, 0);
