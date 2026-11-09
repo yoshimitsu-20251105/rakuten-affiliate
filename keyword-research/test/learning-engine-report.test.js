@@ -1,3 +1,4 @@
+import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./experiment-review-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, symlink, lstat } from "node:fs/promises";
@@ -49,6 +50,7 @@ test("known-at report excludes later records and reports conflicting source snap
 });
 test("CLI import / duplicate import / record / report / review perform only explicit private operations", async (t) => {
   const temp = await temporary(t), b = await reviewed();
+  const protectedBefore = captureProtectedTree(repo);
   const exps = await temp.write("experiments.json", { items: [experiment()] });
   const manifest = await temp.write("manifest.json", { schemaVersion: 1, purpose: "AFFILIATE_MONETIZATION", sources: [{ ...spec("experiments"), path: exps }], links: [] });
   const imported = command(["import", "--manifest", manifest, "--private-dir", temp.root]); assert.equal(imported.status, 0, imported.stderr);
@@ -62,6 +64,7 @@ test("CLI import / duplicate import / record / report / review perform only expl
   const proposed = command(["review", "--proposal", proposal, "--run-id", "cli-proposal", "--synthetic", "--private-dir", temp.root]); assert.equal(proposed.status, 0, proposed.stderr);
   assert.equal(JSON.parse(proposed.stdout).canStartExperiment, false);
   assert.deepEqual(await readFile(join(temp.root, "ledger.json")), ledgerBefore);
+  assertProtectedTreeUnchanged(protectedBefore, captureProtectedTree(repo));
 });
 test("CLI failures redact raw private input and never fall back to fixtures", async (t) => {
   const temp = await temporary(t), marker = "PRIVATE_MARKER_MUST_NOT_LEAK";
@@ -82,10 +85,7 @@ test("Markdown escapes source HTML and independent judgments are not actions", a
 });
 test("protected tracked files remain unchanged; Learning scripts stay intact while later approved scripts may be additive", async () => {
   const baseline = "origin/master";
-  const files = execFileSync("git", ["ls-tree", "-r", "--name-only", baseline], { cwd: repo, encoding: "utf8" }).trim().split("\n");
-  const approvedSelfChange = new Set(["keyword-research/test/learning-engine-report.test.js"]);
-  const oldFiles = files.filter((f) => f !== "package.json" && !approvedSelfChange.has(f));
-  assert.equal(execFileSync("git", ["diff", "--name-only", baseline, "--", ...oldFiles], { cwd: repo, encoding: "utf8" }), "");
+  assertHistoricalProtection(repo, { base: baseline, modules: { "learning-engine": "be82af82efa76fa091586d8cd4ff563e680d285f" } });
   const original = JSON.parse(execFileSync("git", ["show", `${baseline}:package.json`], { cwd: repo, encoding: "utf8" }));
   const actual = JSON.parse(await readFile(join(repo, "package.json"), "utf8"));
   for (const key of Object.keys(original.scripts)) assert.equal(actual.scripts[key], original.scripts[key]);

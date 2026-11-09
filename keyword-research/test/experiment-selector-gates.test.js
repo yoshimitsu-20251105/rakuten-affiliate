@@ -1,11 +1,13 @@
 import test from "node:test";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { classifyRegistry, concurrency, assessRetry } from "../../experiment-selector/gates.js";
 import { GROUP } from "../../experiment-selector/policy.js";
 import { setup, run, active, classify, fixture, AS_OF, refresh } from "./experiment-selector-helpers.js";
 import { base, readFixture, verified, pageHash, spec, input as learningInput } from "./learning-engine-helpers.js";
-import { emptyLedger } from "../../learning-engine/model.js";
+import { emptyLedger, hash } from "../../learning-engine/model.js";
 import { append } from "../../learning-engine/store.js";
 
 for (const row of (await fixture("cases")).concurrency) test(`Concurrency counts only declared same group: ${row.class}/${row.group}`, async () => {
@@ -15,8 +17,9 @@ for (const row of (await fixture("cases")).concurrency) test(`Concurrency counts
   const r = concurrency(b, GROUP); assert.equal(r.status, row.expected);
   if (row.expected === "UNKNOWN") assert.equal(r.runningCount, null);
 });
-test("Real registered RUNNING four classify as three exposure tests and one revenue acquisition test", async () => {
-  const registry = JSON.parse(await readFile(new URL("../../strategy/experiments.json", import.meta.url), "utf8"));
+const historicalRegistry = () => JSON.parse(execFileSync("git", ["show", "7d0f60d84ac7e4f0890d1b962d805323dd14873c:strategy/experiments.json"], { cwd: fileURLToPath(new URL("../../", import.meta.url)), encoding: "utf8" }));
+test("Historical registered RUNNING four classify as three exposure tests and one revenue acquisition test", async () => {
+  const registry = historicalRegistry();
   const b = await setup(); b.experimentsSnapshot = registry; const rows = classifyRegistry(b).filter((r) => r.status === "RUNNING");
   assert.equal(rows.length, 4); assert.equal(rows.filter((r) => r.experimentClass === "SEO_DISCOVERY").length, 3);
   assert.equal(rows.filter((r) => r.monetizationGroup === GROUP).length, 1);
@@ -24,7 +27,7 @@ test("Real registered RUNNING four classify as three exposure tests and one reve
   assert.equal(concurrency(b, GROUP).runningCount, 1);
 });
 test("Legacy declared objective mutation invalidates the pinned classification", async () => {
-  const registry = JSON.parse(await readFile(new URL("../../strategy/experiments.json", import.meta.url), "utf8"));
+  const registry = historicalRegistry();
   const b = await setup(); b.experimentsSnapshot = registry; registry.items.find((e) => e.status === "RUNNING").successThreshold = { revenue: 1 };
   assert.equal(concurrency(b, GROUP).status, "UNKNOWN");
 });
@@ -132,4 +135,20 @@ test("An explicitly unavailable offer cannot be rescued by a high hypothesis sco
   const b = await setup({ mutate: (d) => { d.scanner.candidates[0].existingOffers[0].currentAvailability.value = false; } });
   b.selectionContext.proposals = b.selectionContext.proposals.filter((p) => p.candidateId === b.scannerReport.candidates[0].candidateId);
   const r = run(b); assert.equal(r.recommendationCount, 0); assert(r.proposals[0].rejectionReason.includes("DECLARED_LP_OR_OFFER_UNAVAILABLE"));
+});
+
+test("Explicit closing evidence frees a historical monetization slot without freezing future live registry state", async () => {
+  const registry = historicalRegistry();
+  const bundle = JSON.parse(await readFile(new URL("../../strategy/experiment-reviews/2026-11-09/registry-closures.json", import.meta.url), "utf8"));
+  for (const closure of bundle.closures) {
+    const row=registry.items.find(e=>e.experimentId===closure.experimentId);
+    assert.equal(hash(row),closure.priorRecordHash);
+    Object.assign(row,{status:closure.toStatus,result:closure.result,decision:closure.decision,metrics:[...row.metrics,...closure.appendedMetrics],learnings:[...row.learnings,...closure.appendedLearnings]});
+    assert.equal(hash(row),closure.finalRecordHash);
+  }
+  const b = await setup(); b.experimentsSnapshot = registry;
+  const rows = classifyRegistry(b); assert.equal(rows.length, 6); assert(rows.every(r => r.experimentClass !== "UNKNOWN"));
+  assert.equal(rows.filter(r => r.status === "RUNNING").length, 0);
+  assert.equal(concurrency(b, GROUP).runningCount, 0); assert.equal(concurrency(b, GROUP).status, "PASS");
+  const closed=rows.find(r=>r.experimentId.includes("note-vs-x"));assert.equal(closed.status,"INCONCLUSIVE");
 });

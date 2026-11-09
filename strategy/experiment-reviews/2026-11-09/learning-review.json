@@ -1,0 +1,1077 @@
+{
+  "schemaVersion": 1,
+  "purpose": "AFFILIATE_MONETIZATION",
+  "reviewId": "isolated-closure-audit-20261109",
+  "isSynthetic": false,
+  "reviewedAt": "2026-11-09T08:51:06.608Z",
+  "reviewedBy": "Codex — explicit user closure and audit instructions",
+  "confirmationReference": "User confirmed reviewDate vs post-period data and authorized INCONCLUSIVE/HOLD note closure plus SEO review; no KILL/start/publication",
+  "decisions": [
+    {
+      "experimentIds": [
+        "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+      ],
+      "reason": "Both channels 1 session, below predefined 20. No winner or LP verdict.",
+      "logicalId": "review-20261107-note-vs-x-missing-v1:decision",
+      "revisionId": "v5-isolated-20261109",
+      "supersedesRevisionId": "v4-conditional-20261109",
+      "decision": "HOLD",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "All four explicit prerequisites must be reviewed before any new experiment"
+      }
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-senior-cat-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-senior-cat-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+      ],
+      "reason": "Primary 6 impressions is above falsification=0 and below success=10; post-period +3 excluded.",
+      "logicalId": "seo-operational-review:exp-2026-10-05-senior-cat-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "decision": "IMPROVE",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "Improvement requires new evidence and changed discovery/acquisition plan"
+      }
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-grain-free-dog-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-grain-free-dog-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+      ],
+      "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+      "logicalId": "seo-operational-review:exp-2026-10-05-grain-free-dog-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "decision": "IMPROVE",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "Improvement requires new evidence and changed discovery/acquisition plan"
+      }
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-domestic-additive-free-dog-treats"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-domestic-additive-free-dog-treats"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+      ],
+      "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+      "logicalId": "seo-operational-review:exp-2026-10-05-domestic-additive-free-dog-treats",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "decision": "IMPROVE",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "Improvement requires new evidence and changed discovery/acquisition plan"
+      }
+    },
+    {
+      "experimentIds": [
+        "exp-2026-09-10-grain-free-cat-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-09-10-grain-free-cat-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-cat-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "reason": "Not an overdue RUNNING experiment: officially closed 10/10 FAILED/IMPROVE; current follow-up metrics not supplied.",
+      "logicalId": "closed-seo-review:exp-2026-09-10-grain-free-cat-food:decision",
+      "revisionId": "v1",
+      "decision": "IMPROVE",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "A changed indexing/discovery mechanism and new scoped evidence are needed before retry"
+      }
+    },
+    {
+      "experimentIds": [
+        "exp-2026-09-10-grain-free-cat-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-09-10-grain-free-cat-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-cat-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "reason": "Not an overdue RUNNING experiment: officially closed 10/10 FAILED/IMPROVE; current follow-up metrics not supplied.",
+      "logicalId": "legacy-experiment:exp-2026-09-10-grain-free-cat-food",
+      "revisionId": "audit-aligned-20261109",
+      "supersedesRevisionId": "989394176ffa680b9ac4b9a47008ecb8f1cf986507a9da077295af356ce44734",
+      "decision": "IMPROVE",
+      "retryPolicy": {
+        "mode": "CONDITIONAL",
+        "reason": "A changed indexing/discovery mechanism and new scoped evidence are needed before retry"
+      }
+    }
+  ],
+  "learnings": [
+    {
+      "experimentIds": [
+        "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+      ],
+      "reason": "Both channels 1 session, below predefined 20. No winner or LP verdict.",
+      "logicalId": "review-20261107-note-vs-x-missing-v1:learning",
+      "revisionId": "v5-isolated-20261109",
+      "supersedesRevisionId": "v4-conditional-20261109",
+      "claim": {
+        "text": "Both channels 1 session, below predefined 20. No winner or LP verdict.",
+        "metricOrClaim": "experiment_final_review",
+        "value": "TRAFFIC_EXPOSURE_BOTTLENECK_ONLY",
+        "evidenceType": "FACT"
+      },
+      "reviewStatus": "ACCEPTED",
+      "scopeEvidenceRefs": [],
+      "decisionRefs": [],
+      "unknowns": [
+        "Attributable conversion and revenue",
+        "Exact LP affiliate_click receipt evidence",
+        "Current reach/offer validity"
+      ],
+      "limitations": [
+        "User-confirmed summary is not local raw API verification",
+        "Post-review-date data excluded from primary judgment",
+        "FAILED discovery hypothesis does not mean no demand or KILL",
+        "No automatic retry, start or publication"
+      ],
+      "falsification": {
+        "hypothesisRef": "exp-2026-10-13-grain-free-dog-channel-note-vs-x",
+        "conditionText": "観測期間(公開日から14日)終了時に、(a)両チャネルともsessionsが20未満ならチャネル比較は成立せず終了(CH1/CH2が有力、LPの優劣は結論しない)、(b)両チャネルがsessions20以上でaffiliate_clickが合計0件ならチャネルではなくLP/CTA/商品側の問題候補(CH3)、(c)両チャネルのaffiliate_clickが各5件以上ある場合のみ、noteのAffiliate CTRがX以下ならH1を反証、X以上ならH2を反証。5件未満の場合はH1/H2ともINCONCLUSIVE",
+        "status": "INCONCLUSIVE",
+        "evidenceRefs": [
+          "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+        ],
+        "counterEvidenceRefs": [
+          "evidence:3fbb8f03eb7914a3968c3351347db83fdcf2e3bc724a02894ff1c1e8358c9fb8"
+        ],
+        "reason": "Both channels 1 session, below predefined 20. No winner or LP verdict."
+      },
+      "retryConditions": [
+        {
+          "conditionId": "new-acquisition-method-defined",
+          "type": "REVIEW_CONFIRMATION",
+          "predicate": "REVIEWED",
+          "expectedValue": {
+            "reviewer": "acquisition-definition-review"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Define a new acquisition method, not an unchanged repeat"
+        },
+        {
+          "conditionId": "traffic-evidence-20-per-channel-in-14-days",
+          "type": "NEW_EVIDENCE",
+          "predicate": "OBSERVED_AFTER_REVIEW",
+          "expectedValue": {
+            "metric": "traffic_capacity_14d_each_channel_ge20",
+            "after": "2026-11-09T08:51:06.608Z"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Evidence supporting at least 20 sessions for EACH channel within 14 days"
+        },
+        {
+          "conditionId": "target-lp-affiliate-click-verified",
+          "type": "MEASUREMENT_VERIFIED",
+          "predicate": "VALID_AT_REVIEW",
+          "expectedValue": {},
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Exact target LP affiliateClickMeasurementStatus must be VERIFIED"
+        },
+        {
+          "conditionId": "rakuten-snapshot-retrievable",
+          "type": "NEW_EVIDENCE",
+          "predicate": "OBSERVED_AFTER_REVIEW",
+          "expectedValue": {
+            "metric": "rakuten_snapshot_acquisition_available",
+            "after": "2026-11-09T08:51:06.608Z"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Official Rakuten snapshot acquisition with period/retrieval metadata must be possible"
+        }
+      ]
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-senior-cat-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-senior-cat-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+      ],
+      "reason": "Primary 6 impressions is above falsification=0 and below success=10; post-period +3 excluded.",
+      "logicalId": "seo-operational-learning:exp-2026-10-05-senior-cat-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "claim": {
+        "text": "Primary 6 impressions is above falsification=0 and below success=10; post-period +3 excluded.",
+        "metricOrClaim": "experiment_final_review",
+        "value": "SEARCH_EXPOSURE_EXISTS_BELOW_SUCCESS_THRESHOLD",
+        "evidenceType": "FACT"
+      },
+      "reviewStatus": "ACCEPTED",
+      "scopeEvidenceRefs": [],
+      "decisionRefs": [],
+      "unknowns": [
+        "Attributable conversion and revenue",
+        "Exact LP affiliate_click receipt evidence",
+        "Current reach/offer validity"
+      ],
+      "limitations": [
+        "User-confirmed summary is not local raw API verification",
+        "Post-review-date data excluded from primary judgment",
+        "FAILED discovery hypothesis does not mean no demand or KILL",
+        "No automatic retry, start or publication"
+      ],
+      "falsification": {
+        "hypothesisRef": "exp-2026-10-05-senior-cat-food",
+        "conditionText": "reviewDate(2026-11-04)までにSearch Console impressionsが累計0件のままの場合、この仮説は反証される",
+        "status": "INCONCLUSIVE",
+        "evidenceRefs": [
+          "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+        ],
+        "counterEvidenceRefs": [
+          "evidence:8c377fbb24532d5286c650d8f71ae0355e9436e6ae855584a9e6cb511c3fdfc7"
+        ],
+        "reason": "Primary 6 impressions is above falsification=0 and below success=10; post-period +3 excluded."
+      },
+      "retryConditions": [
+        {
+          "conditionId": "review-materially-changed-discovery-plan",
+          "type": "REVIEW_CONFIRMATION",
+          "predicate": "REVIEWED",
+          "expectedValue": {
+            "reviewer": "seo-discovery-improvement-review"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-senior-cat-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Review changed discovery/acquisition mechanism; do not repeat unchanged conditions"
+        },
+        {
+          "conditionId": "new-scoped-traffic-evidence",
+          "type": "NEW_EVIDENCE",
+          "predicate": "OBSERVED_AFTER_REVIEW",
+          "expectedValue": {
+            "metric": "scoped_gsc_ga4_review",
+            "after": "2026-11-09T08:51:06.608Z"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-senior-cat-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "New exact-LP period-scoped traffic evidence"
+        },
+        {
+          "conditionId": "lp-measurement-verified",
+          "type": "MEASUREMENT_VERIFIED",
+          "predicate": "VALID_AT_REVIEW",
+          "expectedValue": {},
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-senior-cat-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Verify exact target LP affiliate_click before a monetization experiment"
+        }
+      ]
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-grain-free-dog-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-grain-free-dog-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+      ],
+      "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+      "logicalId": "seo-operational-learning:exp-2026-10-05-grain-free-dog-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "claim": {
+        "text": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+        "metricOrClaim": "experiment_final_review",
+        "value": "BASELINE_SEO_DID_NOT_ACHIEVE_GOOGLE_DISCOVERY_WITHIN_WINDOW",
+        "evidenceType": "FACT"
+      },
+      "reviewStatus": "ACCEPTED",
+      "scopeEvidenceRefs": [],
+      "decisionRefs": [],
+      "unknowns": [
+        "Attributable conversion and revenue",
+        "Exact LP affiliate_click receipt evidence",
+        "Current reach/offer validity"
+      ],
+      "limitations": [
+        "User-confirmed summary is not local raw API verification",
+        "Post-review-date data excluded from primary judgment",
+        "FAILED discovery hypothesis does not mean no demand or KILL",
+        "No automatic retry, start or publication"
+      ],
+      "falsification": {
+        "hypothesisRef": "exp-2026-10-05-grain-free-dog-food",
+        "conditionText": "reviewDate(2026-11-04)までにSearch Console impressionsが累計0件のままの場合、この仮説は反証される",
+        "status": "FALSIFIED",
+        "evidenceRefs": [
+          "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+        ],
+        "counterEvidenceRefs": [
+          "evidence:0272f36b38bddd77cd9fc5051e0b21e19ac4868c74ecbff0b779e5fd903ee2f4"
+        ],
+        "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL."
+      },
+      "retryConditions": [
+        {
+          "conditionId": "review-materially-changed-discovery-plan",
+          "type": "REVIEW_CONFIRMATION",
+          "predicate": "REVIEWED",
+          "expectedValue": {
+            "reviewer": "seo-discovery-improvement-review"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-grain-free-dog-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Review changed discovery/acquisition mechanism; do not repeat unchanged conditions"
+        },
+        {
+          "conditionId": "new-scoped-traffic-evidence",
+          "type": "NEW_EVIDENCE",
+          "predicate": "OBSERVED_AFTER_REVIEW",
+          "expectedValue": {
+            "metric": "scoped_gsc_ga4_review",
+            "after": "2026-11-09T08:51:06.608Z"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-grain-free-dog-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "New exact-LP period-scoped traffic evidence"
+        },
+        {
+          "conditionId": "lp-measurement-verified",
+          "type": "MEASUREMENT_VERIFIED",
+          "predicate": "VALID_AT_REVIEW",
+          "expectedValue": {},
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-grain-free-dog-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Verify exact target LP affiliate_click before a monetization experiment"
+        }
+      ]
+    },
+    {
+      "experimentIds": [
+        "exp-2026-10-05-domestic-additive-free-dog-treats"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-10-05-domestic-additive-free-dog-treats"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+      ],
+      "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+      "logicalId": "seo-operational-learning:exp-2026-10-05-domestic-additive-free-dog-treats",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1",
+      "claim": {
+        "text": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL.",
+        "metricOrClaim": "experiment_final_review",
+        "value": "BASELINE_SEO_DID_NOT_ACHIEVE_GOOGLE_DISCOVERY_WITHIN_WINDOW",
+        "evidenceType": "FACT"
+      },
+      "reviewStatus": "ACCEPTED",
+      "scopeEvidenceRefs": [],
+      "decisionRefs": [],
+      "unknowns": [
+        "Attributable conversion and revenue",
+        "Exact LP affiliate_click receipt evidence",
+        "Current reach/offer validity"
+      ],
+      "limitations": [
+        "User-confirmed summary is not local raw API verification",
+        "Post-review-date data excluded from primary judgment",
+        "FAILED discovery hypothesis does not mean no demand or KILL",
+        "No automatic retry, start or publication"
+      ],
+      "falsification": {
+        "hypothesisRef": "exp-2026-10-05-domestic-additive-free-dog-treats",
+        "conditionText": "reviewDate(2026-11-04)までにSearch Console impressionsが累計0件のままの場合、この仮説は反証される",
+        "status": "FALSIFIED",
+        "evidenceRefs": [
+          "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+        ],
+        "counterEvidenceRefs": [
+          "evidence:42c962dc4d15f4818ddc82daafc883f9111fb02b116c7fa0d9ce27c75473a1de"
+        ],
+        "reason": "User-confirmed no GSC exposure by reviewDate and unknown-to-Google URL; failure of the baseline discovery hypothesis, not no demand or KILL."
+      },
+      "retryConditions": [
+        {
+          "conditionId": "review-materially-changed-discovery-plan",
+          "type": "REVIEW_CONFIRMATION",
+          "predicate": "REVIEWED",
+          "expectedValue": {
+            "reviewer": "seo-discovery-improvement-review"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-domestic-additive-free-dog-treats"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Review changed discovery/acquisition mechanism; do not repeat unchanged conditions"
+        },
+        {
+          "conditionId": "new-scoped-traffic-evidence",
+          "type": "NEW_EVIDENCE",
+          "predicate": "OBSERVED_AFTER_REVIEW",
+          "expectedValue": {
+            "metric": "scoped_gsc_ga4_review",
+            "after": "2026-11-09T08:51:06.608Z"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-domestic-additive-free-dog-treats"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "New exact-LP period-scoped traffic evidence"
+        },
+        {
+          "conditionId": "lp-measurement-verified",
+          "type": "MEASUREMENT_VERIFIED",
+          "predicate": "VALID_AT_REVIEW",
+          "expectedValue": {},
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-10-05-domestic-additive-free-dog-treats"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Verify exact target LP affiliate_click before a monetization experiment"
+        }
+      ]
+    },
+    {
+      "experimentIds": [
+        "exp-2026-09-10-grain-free-cat-food"
+      ],
+      "scope": {
+        "experimentIds": [
+          "exp-2026-09-10-grain-free-cat-food"
+        ],
+        "theme": null,
+        "opportunityIds": null,
+        "candidateIds": null,
+        "itemCodes": null,
+        "channel": null,
+        "arm": null,
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-cat-food.html",
+        "contentPattern": null,
+        "titlePattern": null,
+        "CTA": null,
+        "category": null,
+        "priceBand": null,
+        "country": null,
+        "language": null,
+        "period": null,
+        "accountScopeId": null,
+        "measurementId": null
+      },
+      "evidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "counterEvidenceRefs": [
+        "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+      ],
+      "reason": "Not an overdue RUNNING experiment: officially closed 10/10 FAILED/IMPROVE; current follow-up metrics not supplied.",
+      "logicalId": "closed-seo-review:exp-2026-09-10-grain-free-cat-food:learning",
+      "revisionId": "v1",
+      "claim": {
+        "text": "Not an overdue RUNNING experiment: officially closed 10/10 FAILED/IMPROVE; current follow-up metrics not supplied.",
+        "metricOrClaim": "experiment_final_review",
+        "value": "ALREADY_CLOSED_2026_10_10_NOT_A_RUNNING_SLOT",
+        "evidenceType": "FACT"
+      },
+      "reviewStatus": "ACCEPTED",
+      "scopeEvidenceRefs": [],
+      "decisionRefs": [],
+      "unknowns": [
+        "Attributable conversion and revenue",
+        "Exact LP affiliate_click receipt evidence",
+        "Current reach/offer validity"
+      ],
+      "limitations": [
+        "User-confirmed summary is not local raw API verification",
+        "Post-review-date data excluded from primary judgment",
+        "FAILED discovery hypothesis does not mean no demand or KILL",
+        "No automatic retry, start or publication"
+      ],
+      "falsification": {
+        "hypothesisRef": "exp-2026-09-10-grain-free-cat-food",
+        "conditionText": "reviewDate(2026-10-10)までにSearch Console impressionsが累計0件のままの場合、この仮説は反証される",
+        "status": "FALSIFIED",
+        "evidenceRefs": [
+          "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+        ],
+        "counterEvidenceRefs": [
+          "evidence:2f621163d4ea4c9983293499337511da06fe95d54345d68863382e05d81b706a"
+        ],
+        "reason": "Not an overdue RUNNING experiment: officially closed 10/10 FAILED/IMPROVE; current follow-up metrics not supplied."
+      },
+      "retryConditions": [
+        {
+          "conditionId": "changed-discovery-plan",
+          "type": "REVIEW_CONFIRMATION",
+          "predicate": "REVIEWED",
+          "expectedValue": {
+            "reviewer": "seo-discovery-improvement-review"
+          },
+          "required": true,
+          "scope": {
+            "experimentIds": [
+              "exp-2026-09-10-grain-free-cat-food"
+            ],
+            "theme": null,
+            "opportunityIds": null,
+            "candidateIds": null,
+            "itemCodes": null,
+            "channel": null,
+            "arm": null,
+            "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-cat-food.html",
+            "contentPattern": null,
+            "titlePattern": null,
+            "CTA": null,
+            "category": null,
+            "priceBand": null,
+            "country": null,
+            "language": null,
+            "period": null,
+            "accountScopeId": null,
+            "measurementId": null
+          },
+          "evidenceRefs": [],
+          "reason": "Review a changed discovery approach rather than unchanged rerun"
+        }
+      ]
+    }
+  ]
+}
