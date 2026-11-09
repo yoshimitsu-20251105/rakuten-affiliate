@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-09T08:51:06.608Z",
+  "priorPrivateLedgerRawHash": "d661c54b12eefeeda1a3e10359bc789c0c721f2dc68ee5e48714feb3d94755d7",
+  "priorLedgerHash": "b64f5e4da94ce6c8e0ffbe0ec330eedacdc6c0c53345f7b3507e355cc57dd7a4",
+  "finalLedgerHash": "5624f92d987fa4429021b229bf842065dced70f4166eceeb6aa094cba74dec2c",
+  "added": 40,
+  "oldRecordsUnchanged": true,
+  "priorCounts": {
+    "sourceImports": 18,
+    "experimentSnapshots": 10,
+    "evidence": 72,
+    "decisions": 19,
+    "learnings": 7
+  },
+  "finalCounts": {
+    "sourceImports": 21,
+    "experimentSnapshots": 14,
+    "evidence": 90,
+    "decisions": 29,
+    "learnings": 12
+  },
+  "revisions": [
+    {
+      "logicalId": "review-20261107-note-vs-x-missing-v1:learning",
+      "revisionId": "v5-isolated-20261109",
+      "supersedesRevisionId": "v4-conditional-20261109"
+    },
+    {
+      "logicalId": "seo-operational-learning:exp-2026-10-05-senior-cat-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1"
+    },
+    {
+      "logicalId": "seo-operational-learning:exp-2026-10-05-grain-free-dog-food",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1"
+    },
+    {
+      "logicalId": "seo-operational-learning:exp-2026-10-05-domestic-additive-free-dog-treats",
+      "revisionId": "v2-audit-20261109",
+      "supersedesRevisionId": "v1"
+    },
+    {
+      "logicalId": "closed-seo-review:exp-2026-09-10-grain-free-cat-food:learning",
+      "revisionId": "v1",
+      "supersedesRevisionId": null
+    }
+  ],
+  "replay": {
+    "registrySourceId": "experiments",
+    "registryRawHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578",
+    "evidenceFile": "learning-evidence.json",
+    "reviewFile": "learning-review.json",
+    "requiredPriorRevisions": [
+      {
+        "logicalId": "review-20261107-note-vs-x-missing-v1:learning",
+        "revisionId": "v4-conditional-20261109"
+      },
+      {
+        "logicalId": "seo-operational-learning:exp-2026-10-05-senior-cat-food",
+        "revisionId": "v1"
+      },
+      {
+        "logicalId": "seo-operational-learning:exp-2026-10-05-grain-free-dog-food",
+        "revisionId": "v1"
+      },
+      {
+        "logicalId": "seo-operational-learning:exp-2026-10-05-domestic-additive-free-dog-treats",
+        "revisionId": "v1"
+      }
+    ],
+    "note": "Private prior ledger is retained and required for parent revisions; it is not copied into this public strategy review. Apply registry import, append evidence, then buildReview/append; do not rewrite parents."
+  }
+}

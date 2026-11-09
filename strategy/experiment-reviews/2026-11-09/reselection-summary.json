@@ -1,0 +1,970 @@
+{
+  "runId": "isolated-closure-20261109-01",
+  "asOf": "2026-11-09T08:51:54.418Z",
+  "codeCommit": "0376dd712783b7c112f5065f2c7bba05a4b7a6a0",
+  "monetization": [
+    {
+      "status": "PASS",
+      "count": 0,
+      "limit": 1,
+      "reason": "CAPACITY_AVAILABLE_RECHECK_BEFORE_START"
+    }
+  ],
+  "scanner": {
+    "status": "COMPLETED",
+    "candidates": 3
+  },
+  "scorer": {
+    "status": "COMPLETED_WITH_GAPS",
+    "financialMetrics": "NULL_NO_EXCLUSIVE_ATTRIBUTED_ROWS",
+    "noFinalRank": true
+  },
+  "selector": {
+    "status": "NO_RECOMMENDATION",
+    "recommendationCount": 0,
+    "candidates": [
+      {
+        "candidateId": "3b77c900db18ce361e27478796162c99446a97fe63f5c4f6e90cb7ea8836f200",
+        "eligibility": "MANUAL_REVIEW_REQUIRED",
+        "rejectionReason": [
+          "NO_EXPLICIT_PROPOSAL_DEFINED"
+        ]
+      },
+      {
+        "candidateId": "7d0b20ffb65e18e25a06811bde45341d7d93f5c3a624458846cc46b4447eb273",
+        "eligibility": "MANUAL_REVIEW_REQUIRED",
+        "rejectionReason": [
+          "NO_EXPLICIT_PROPOSAL_DEFINED"
+        ]
+      },
+      {
+        "candidateId": "94e8ec08b53321fe060782dc15153a97ea986e2918cb9ba39ad0bacac4992afa",
+        "eligibility": "MANUAL_REVIEW_REQUIRED",
+        "rejectionReason": [
+          "NO_EXPLICIT_PROPOSAL_DEFINED"
+        ]
+      }
+    ]
+  },
+  "planner": {
+    "status": "BLOCKED",
+    "plans": 0,
+    "reasons": [
+      {
+        "code": "NO_SELECTOR_RECOMMENDATION",
+        "status": "BLOCKED",
+        "sourceId": "selectorReport",
+        "jsonPointer": "/recommendations",
+        "detail": null
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "slug": "senior-cat-food",
+      "keyword": "シニア猫 フード",
+      "theme": "既存シニア猫LPの非SNS収益化準備",
+      "whoPays": "シニア猫の飼い主が楽天の販売店へ商品代金を支払う。紹介側は成果報酬",
+      "whyPays": "年齢と原料・価格条件に合うフードを比較購入したい（HYPOTHESIS）",
+      "freeAlternative": "販売店の商品説明、無料比較記事。情報への課金は想定しない",
+      "historical": {
+        "ga4Sessions": null,
+        "views": null,
+        "gscImpressions": 6,
+        "gscClicks": null,
+        "googleIndexStatus": "Indexed / index allowed",
+        "observedAt": "2026-11-09",
+        "retrievedAt": "2026-11-09T07:51:00Z",
+        "evidencePeriod": {
+          "start": "2026-10-05",
+          "end": "2026-11-04"
+        },
+        "postPeriod": {
+          "start": "2026-11-05",
+          "end": "2026-11-06",
+          "additionalImpressions": 3,
+          "includedInPrimary": false
+        },
+        "auditPeriod": {
+          "start": "2026-09-10",
+          "end": "2026-11-06"
+        },
+        "auditClicks": 0,
+        "averagePositionApprox": 7.1,
+        "periodNote": "ReviewDate primary 6, post-period +3 excluded; GA4 values not provided",
+        "qaExclusion": "UNKNOWN"
+      },
+      "production": "LOW: existing LP, no new page",
+      "maintenance": "MEDIUM: offer validity, measurement and intent review",
+      "why": "Most recent confirmed positive GSC exposure and current index-allowed proof among compared LPs; traffic still small and GA4 unknown",
+      "candidateId": "3b77c900db18ce361e27478796162c99446a97fe63f5c4f6e90cb7ea8836f200",
+      "whoPaysEvidenceType": "HYPOTHESIS",
+      "whyPaysEvidenceType": "HYPOTHESIS",
+      "historicalTrafficEvidenceType": "FACT_AS_RECORDED_NOT_CURRENT_VERIFICATION",
+      "measurementReadiness": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "evidenceId": null,
+          "reason": "NO_MEASUREMENT_RECORD",
+          "verificationScope": "OFFLINE_CURRENT_REPOSITORY_HASH_NOT_LIVE_CHECK",
+          "canStartExperiment": false,
+          "evidenceRefs": []
+        }
+      ],
+      "offerFit": {
+        "value": null,
+        "evidenceType": "UNKNOWN",
+        "recordedAffiliateAnchorCount": 4,
+        "skuMapping": "NOT_CONFIRMED",
+        "liveAvailability": "UNKNOWN"
+      },
+      "LPReuseReadiness": {
+        "value": "EXISTING_LOCAL_FILE",
+        "evidenceType": "FACT",
+        "pageHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368"
+      },
+      "purchaseIntent": {
+        "value": 26.25,
+        "maxScore": 35,
+        "evidenceRefs": [
+          "83914bdf7c5db93ec53d2b831e9232741ef65dd35e207e464c5ac046b4cc21e1"
+        ],
+        "evidenceType": "HYPOTHESIS",
+        "source": [
+          {
+            "evidenceId": "83914bdf7c5db93ec53d2b831e9232741ef65dd35e207e464c5ac046b4cc21e1",
+            "sourceId": "saved_traffic_seeds",
+            "sourceType": "manual_csv",
+            "provider": "repository_recorded_history",
+            "sourceReference": "Derived from saved strategy/experiments.json and user-confirmed Primary evidence; timestamps/QA completeness not refreshed",
+            "sourceFileHash": "f72d6ca05a006246c2c19419e0c88094cf208a82a941f13b3f4b9ed8f6c1141f",
+            "sourceRecordReference": "record-1",
+            "retrievedAt": null,
+            "evidenceType": "HYPOTHESIS",
+            "isSynthetic": false
+          },
+          {
+            "sourceId": null,
+            "sourceType": "scanner_snapshot",
+            "provider": "scanner_snapshot",
+            "sourceReference": "run:isolated-closure-20261109-01/candidates/0/intent",
+            "sourceFileHash": "8bc3070cf7e8fb8f7b3335e16ef36f5a5a1fdea3dbb44beacf6d498750351ce5",
+            "retrievedAt": null,
+            "observedAt": "2026-11-09T08:51:54.418Z",
+            "evidenceType": "HYPOTHESIS",
+            "reason": "SCANNER_FIELD_REFERENCE_NOT_BLANKET_FACT",
+            "isSynthetic": false
+          }
+        ],
+        "period": {
+          "applicablePeriod": null,
+          "evidencePeriods": [
+            {
+              "evidenceId": "83914bdf7c5db93ec53d2b831e9232741ef65dd35e207e464c5ac046b4cc21e1",
+              "start": null,
+              "end": null,
+              "timezone": null,
+              "scope": {
+                "sourceScope": "OWN_SITE_HISTORICAL_OBSERVATIONS_NOT_CURRENT_MARKET_DEMAND",
+                "keyword": "シニア猫 フード",
+                "opportunityId": null,
+                "pageUrl": null
+              }
+            }
+          ]
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "STATIC_RULE_SNAPSHOT",
+          "assessedAt": null,
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": [
+            {
+              "evidenceId": "83914bdf7c5db93ec53d2b831e9232741ef65dd35e207e464c5ac046b4cc21e1",
+              "status": "FRESHNESS_NOT_EVALUATED",
+              "retrievedAt": null,
+              "periodEnd": null,
+              "retrievedAgeDays": null,
+              "periodAgeDays": null,
+              "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+              "policy": {}
+            }
+          ]
+        },
+        "reason": "INTENT_RULE_INITIAL_HYPOTHESIS_NOT_PURCHASE_PROOF",
+        "missingReason": null,
+        "inputRefs": [
+          "/candidates/0/intent"
+        ],
+        "originalAssessments": [],
+        "derivedFromRule": true
+      },
+      "demand": {
+        "value": null,
+        "maxScore": 15,
+        "evidenceRefs": [],
+        "evidenceType": "UNKNOWN",
+        "source": [],
+        "period": {
+          "applicablePeriod": {
+            "start": "2026-11-09",
+            "end": "2026-11-09"
+          },
+          "evidencePeriods": []
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "NOT_PROVIDED",
+          "assessedAt": "2026-11-09T08:51:54.418Z",
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": []
+        },
+        "reason": "NO_POINTS_ASSIGNED",
+        "missingReason": "NOT_PROVIDED",
+        "inputRefs": [],
+        "originalAssessments": [
+          {
+            "value": null,
+            "maxScore": 15,
+            "evidenceType": "UNKNOWN",
+            "reason": "Historical own-site traffic is not current market demand proof"
+          }
+        ],
+        "derivedFromRule": false
+      },
+      "exploration": {
+        "totalScore": null,
+        "components": {
+          "purchaseIntent": 26.25,
+          "offerFit": null,
+          "lpReuse": 20,
+          "demand": null
+        }
+      },
+      "observedPerformance": {
+        "approvedRevenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "revenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "conversions": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "epc": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        }
+      },
+      "nonSocialAcquisition": {
+        "value": "Recent user-confirmed GSC exposure and indexed status; clicks zero in broader audit, acquisition capacity unknown",
+        "evidenceType": "HYPOTHESIS"
+      },
+      "revenueDistance": "Existing LP reduces production; attributable conversion still blocked by measurement, SKU fit and acquisition evidence",
+      "evidenceRefs": [
+        {
+          "source": "strategy/experiments.json",
+          "experimentId": "exp-2026-10-05-senior-cat-food",
+          "sourceFileHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578"
+        },
+        {
+          "source": "current local LP",
+          "pageHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368"
+        }
+      ],
+      "formalProposalBlockers": [
+        "Exact saved Rakuten itemCode mapping not confirmed",
+        "Target LP measurement NOT_VERIFIED",
+        "No current comparable demand/attributed revenue facts",
+        "Relevant history/retry review required"
+      ]
+    },
+    {
+      "slug": "senior-dog-pork",
+      "keyword": "シニア犬 豚肉 ドッグフード",
+      "theme": "既存シニア犬・豚肉LPの非SNS収益化準備",
+      "whoPays": "シニア犬の飼い主が楽天の販売店へ商品代金を支払う。紹介側は成果報酬",
+      "whyPays": "年齢・原料条件に合うフードを購入したい（HYPOTHESIS）",
+      "freeAlternative": "無料の商品説明・比較記事",
+      "historical": {
+        "ga4Sessions": 10,
+        "views": 12,
+        "gscImpressions": 1,
+        "gscClicks": 0,
+        "googleIndexStatus": "Submitted and indexed",
+        "observedAt": "2026-10-10",
+        "retrievedAt": null,
+        "evidencePeriod": {
+          "start": "2026-09-10",
+          "end": "2026-10-10"
+        },
+        "organicSearchSessions": 1,
+        "directSessions": 9,
+        "periodNote": "Historical review, current audit values not supplied",
+        "qaExclusion": "UNKNOWN"
+      },
+      "production": "LOW: existing LP",
+      "maintenance": "MEDIUM: current index and offer revalidation",
+      "why": "Historical positive GSC/index evidence and GA4 sessions; nine of ten sessions Direct, no inference of qualified new buyers",
+      "candidateId": "7d0b20ffb65e18e25a06811bde45341d7d93f5c3a624458846cc46b4447eb273",
+      "whoPaysEvidenceType": "HYPOTHESIS",
+      "whyPaysEvidenceType": "HYPOTHESIS",
+      "historicalTrafficEvidenceType": "FACT_AS_RECORDED_NOT_CURRENT_VERIFICATION",
+      "measurementReadiness": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-dog-pork.html",
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "evidenceId": null,
+          "reason": "NO_MEASUREMENT_RECORD",
+          "verificationScope": "OFFLINE_CURRENT_REPOSITORY_HASH_NOT_LIVE_CHECK",
+          "canStartExperiment": false,
+          "evidenceRefs": []
+        }
+      ],
+      "offerFit": {
+        "value": null,
+        "evidenceType": "UNKNOWN",
+        "recordedAffiliateAnchorCount": 3,
+        "skuMapping": "NOT_CONFIRMED",
+        "liveAvailability": "UNKNOWN"
+      },
+      "LPReuseReadiness": {
+        "value": "EXISTING_LOCAL_FILE",
+        "evidenceType": "FACT",
+        "pageHash": "a1330c971fe9f902abc9a0e4571b0607818b39936beb9f1768b86867fd10150e"
+      },
+      "purchaseIntent": {
+        "value": 26.25,
+        "maxScore": 35,
+        "evidenceRefs": [
+          "4f96221900cca2bccc92a8773132a3bcfd798ddb04a04268bf56e38497390c5b"
+        ],
+        "evidenceType": "HYPOTHESIS",
+        "source": [
+          {
+            "evidenceId": "4f96221900cca2bccc92a8773132a3bcfd798ddb04a04268bf56e38497390c5b",
+            "sourceId": "saved_traffic_seeds",
+            "sourceType": "manual_csv",
+            "provider": "repository_recorded_history",
+            "sourceReference": "Derived from saved strategy/experiments.json and user-confirmed Primary evidence; timestamps/QA completeness not refreshed",
+            "sourceFileHash": "f72d6ca05a006246c2c19419e0c88094cf208a82a941f13b3f4b9ed8f6c1141f",
+            "sourceRecordReference": "record-2",
+            "retrievedAt": null,
+            "evidenceType": "HYPOTHESIS",
+            "isSynthetic": false
+          },
+          {
+            "sourceId": null,
+            "sourceType": "scanner_snapshot",
+            "provider": "scanner_snapshot",
+            "sourceReference": "run:isolated-closure-20261109-01/candidates/1/intent",
+            "sourceFileHash": "8bc3070cf7e8fb8f7b3335e16ef36f5a5a1fdea3dbb44beacf6d498750351ce5",
+            "retrievedAt": null,
+            "observedAt": "2026-11-09T08:51:54.418Z",
+            "evidenceType": "HYPOTHESIS",
+            "reason": "SCANNER_FIELD_REFERENCE_NOT_BLANKET_FACT",
+            "isSynthetic": false
+          }
+        ],
+        "period": {
+          "applicablePeriod": null,
+          "evidencePeriods": [
+            {
+              "evidenceId": "4f96221900cca2bccc92a8773132a3bcfd798ddb04a04268bf56e38497390c5b",
+              "start": null,
+              "end": null,
+              "timezone": null,
+              "scope": {
+                "sourceScope": "OWN_SITE_HISTORICAL_OBSERVATIONS_NOT_CURRENT_MARKET_DEMAND",
+                "keyword": "シニア犬 豚肉 ドッグフード",
+                "opportunityId": null,
+                "pageUrl": null
+              }
+            }
+          ]
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "STATIC_RULE_SNAPSHOT",
+          "assessedAt": null,
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": [
+            {
+              "evidenceId": "4f96221900cca2bccc92a8773132a3bcfd798ddb04a04268bf56e38497390c5b",
+              "status": "FRESHNESS_NOT_EVALUATED",
+              "retrievedAt": null,
+              "periodEnd": null,
+              "retrievedAgeDays": null,
+              "periodAgeDays": null,
+              "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+              "policy": {}
+            }
+          ]
+        },
+        "reason": "INTENT_RULE_INITIAL_HYPOTHESIS_NOT_PURCHASE_PROOF",
+        "missingReason": null,
+        "inputRefs": [
+          "/candidates/1/intent"
+        ],
+        "originalAssessments": [],
+        "derivedFromRule": true
+      },
+      "demand": {
+        "value": null,
+        "maxScore": 15,
+        "evidenceRefs": [],
+        "evidenceType": "UNKNOWN",
+        "source": [],
+        "period": {
+          "applicablePeriod": {
+            "start": "2026-11-09",
+            "end": "2026-11-09"
+          },
+          "evidencePeriods": []
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "NOT_PROVIDED",
+          "assessedAt": "2026-11-09T08:51:54.418Z",
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": []
+        },
+        "reason": "NO_POINTS_ASSIGNED",
+        "missingReason": "NOT_PROVIDED",
+        "inputRefs": [],
+        "originalAssessments": [
+          {
+            "value": null,
+            "maxScore": 15,
+            "evidenceType": "UNKNOWN",
+            "reason": "Historical own-site traffic is not current market demand proof"
+          }
+        ],
+        "derivedFromRule": false
+      },
+      "exploration": {
+        "totalScore": null,
+        "components": {
+          "purchaseIntent": 26.25,
+          "offerFit": null,
+          "lpReuse": 20,
+          "demand": null
+        }
+      },
+      "observedPerformance": {
+        "approvedRevenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "revenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "conversions": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "epc": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        }
+      },
+      "nonSocialAcquisition": {
+        "value": "Organic acquisition possible as hypothesis, current Google discovery unknown",
+        "evidenceType": "HYPOTHESIS"
+      },
+      "revenueDistance": "Existing LP reduces production; attributable conversion still blocked by measurement, SKU fit and acquisition evidence",
+      "evidenceRefs": [
+        {
+          "source": "strategy/experiments.json",
+          "experimentId": "exp-2026-09-10-senior-dog-pork",
+          "sourceFileHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578"
+        },
+        {
+          "source": "current local LP",
+          "pageHash": "a1330c971fe9f902abc9a0e4571b0607818b39936beb9f1768b86867fd10150e"
+        }
+      ],
+      "formalProposalBlockers": [
+        "Exact saved Rakuten itemCode mapping not confirmed",
+        "Target LP measurement NOT_VERIFIED",
+        "No current comparable demand/attributed revenue facts",
+        "Relevant history/retry review required"
+      ]
+    },
+    {
+      "slug": "grain-free-cat-food",
+      "keyword": "グレインフリー キャットフード",
+      "theme": "既存グレインフリー猫LPの再観測準備",
+      "whoPays": "猫の飼い主が楽天の販売店へ商品代金を支払う。紹介側は成果報酬",
+      "whyPays": "原料条件に合うキャットフードを比較購入したい（HYPOTHESIS）",
+      "freeAlternative": "無料の商品説明・比較サイト",
+      "historical": {
+        "ga4Sessions": 11,
+        "views": 12,
+        "gscImpressions": 0,
+        "gscClicks": 0,
+        "googleIndexStatus": "URL is unknown to Google",
+        "observedAt": "2026-10-10",
+        "retrievedAt": null,
+        "evidencePeriod": {
+          "start": "2026-09-10",
+          "end": "2026-10-10"
+        },
+        "organicSearchSessions": 1,
+        "directSessions": 10,
+        "periodNote": "Already closed FAILED/IMPROVE on 10/10; current audit metrics unknown",
+        "qaExclusion": "UNKNOWN"
+      },
+      "production": "LOW: existing LP",
+      "maintenance": "MEDIUM/HIGH: discovery and current measurement review",
+      "why": "Historical sessions exist; indexing failed previously, not proof of no demand. No automatic exclusion for FAILED",
+      "candidateId": "94e8ec08b53321fe060782dc15153a97ea986e2918cb9ba39ad0bacac4992afa",
+      "whoPaysEvidenceType": "HYPOTHESIS",
+      "whyPaysEvidenceType": "HYPOTHESIS",
+      "historicalTrafficEvidenceType": "FACT_AS_RECORDED_NOT_CURRENT_VERIFICATION",
+      "measurementReadiness": [
+        {
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-cat-food.html",
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "evidenceId": null,
+          "reason": "NO_MEASUREMENT_RECORD",
+          "verificationScope": "OFFLINE_CURRENT_REPOSITORY_HASH_NOT_LIVE_CHECK",
+          "canStartExperiment": false,
+          "evidenceRefs": []
+        }
+      ],
+      "offerFit": {
+        "value": null,
+        "evidenceType": "UNKNOWN",
+        "recordedAffiliateAnchorCount": 4,
+        "skuMapping": "NOT_CONFIRMED",
+        "liveAvailability": "UNKNOWN"
+      },
+      "LPReuseReadiness": {
+        "value": "EXISTING_LOCAL_FILE",
+        "evidenceType": "FACT",
+        "pageHash": "b0e2a554128282a449e2a194936700b90a8a62562530f02444028c770afe44f0"
+      },
+      "purchaseIntent": {
+        "value": 26.25,
+        "maxScore": 35,
+        "evidenceRefs": [
+          "fb6a5d22f8612545fced9accd886f76b0ee37458f830323c8e10bd7d2c13b054"
+        ],
+        "evidenceType": "HYPOTHESIS",
+        "source": [
+          {
+            "evidenceId": "fb6a5d22f8612545fced9accd886f76b0ee37458f830323c8e10bd7d2c13b054",
+            "sourceId": "saved_traffic_seeds",
+            "sourceType": "manual_csv",
+            "provider": "repository_recorded_history",
+            "sourceReference": "Derived from saved strategy/experiments.json and user-confirmed Primary evidence; timestamps/QA completeness not refreshed",
+            "sourceFileHash": "f72d6ca05a006246c2c19419e0c88094cf208a82a941f13b3f4b9ed8f6c1141f",
+            "sourceRecordReference": "record-3",
+            "retrievedAt": null,
+            "evidenceType": "HYPOTHESIS",
+            "isSynthetic": false
+          },
+          {
+            "sourceId": null,
+            "sourceType": "scanner_snapshot",
+            "provider": "scanner_snapshot",
+            "sourceReference": "run:isolated-closure-20261109-01/candidates/2/intent",
+            "sourceFileHash": "8bc3070cf7e8fb8f7b3335e16ef36f5a5a1fdea3dbb44beacf6d498750351ce5",
+            "retrievedAt": null,
+            "observedAt": "2026-11-09T08:51:54.418Z",
+            "evidenceType": "HYPOTHESIS",
+            "reason": "SCANNER_FIELD_REFERENCE_NOT_BLANKET_FACT",
+            "isSynthetic": false
+          }
+        ],
+        "period": {
+          "applicablePeriod": null,
+          "evidencePeriods": [
+            {
+              "evidenceId": "fb6a5d22f8612545fced9accd886f76b0ee37458f830323c8e10bd7d2c13b054",
+              "start": null,
+              "end": null,
+              "timezone": null,
+              "scope": {
+                "sourceScope": "OWN_SITE_HISTORICAL_OBSERVATIONS_NOT_CURRENT_MARKET_DEMAND",
+                "keyword": "グレインフリー キャットフード",
+                "opportunityId": null,
+                "pageUrl": null
+              }
+            }
+          ]
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "STATIC_RULE_SNAPSHOT",
+          "assessedAt": null,
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": [
+            {
+              "evidenceId": "fb6a5d22f8612545fced9accd886f76b0ee37458f830323c8e10bd7d2c13b054",
+              "status": "FRESHNESS_NOT_EVALUATED",
+              "retrievedAt": null,
+              "periodEnd": null,
+              "retrievedAgeDays": null,
+              "periodAgeDays": null,
+              "periodAgeBasis": "AS_OF_UTC_CALENDAR_DATE_NOT_SOURCE_END_TIMESTAMP",
+              "policy": {}
+            }
+          ]
+        },
+        "reason": "INTENT_RULE_INITIAL_HYPOTHESIS_NOT_PURCHASE_PROOF",
+        "missingReason": null,
+        "inputRefs": [
+          "/candidates/2/intent"
+        ],
+        "originalAssessments": [],
+        "derivedFromRule": true
+      },
+      "demand": {
+        "value": null,
+        "maxScore": 15,
+        "evidenceRefs": [],
+        "evidenceType": "UNKNOWN",
+        "source": [],
+        "period": {
+          "applicablePeriod": {
+            "start": "2026-11-09",
+            "end": "2026-11-09"
+          },
+          "evidencePeriods": []
+        },
+        "freshness": {
+          "asOf": "2026-11-09T08:51:54.418Z",
+          "status": "NOT_PROVIDED",
+          "assessedAt": "2026-11-09T08:51:54.418Z",
+          "scannerAsOf": "2026-11-09T08:51:54.418Z",
+          "observations": []
+        },
+        "reason": "NO_POINTS_ASSIGNED",
+        "missingReason": "NOT_PROVIDED",
+        "inputRefs": [],
+        "originalAssessments": [
+          {
+            "value": null,
+            "maxScore": 15,
+            "evidenceType": "UNKNOWN",
+            "reason": "Historical own-site traffic is not current market demand proof"
+          }
+        ],
+        "derivedFromRule": false
+      },
+      "exploration": {
+        "totalScore": null,
+        "components": {
+          "purchaseIntent": 26.25,
+          "offerFit": null,
+          "lpReuse": 20,
+          "demand": null
+        }
+      },
+      "observedPerformance": {
+        "approvedRevenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "revenue": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "conversions": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        },
+        "epc": {
+          "value": null,
+          "evidenceType": "UNKNOWN",
+          "availability": "NOT_AVAILABLE",
+          "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "missingReason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+          "evidenceRefs": [],
+          "source": [],
+          "sourceObservation": {
+            "value": null,
+            "evidenceType": "UNKNOWN",
+            "availability": "NOT_AVAILABLE",
+            "reason": "NO_ATTRIBUTABLE_FUNNEL_EVIDENCE",
+            "evidenceRefs": []
+          },
+          "period": null,
+          "currency": null,
+          "validationStatus": null,
+          "final": null,
+          "context": null
+        }
+      },
+      "nonSocialAcquisition": {
+        "value": "Organic acquisition possible as hypothesis, current Google discovery unknown",
+        "evidenceType": "HYPOTHESIS"
+      },
+      "revenueDistance": "Existing LP reduces production; attributable conversion still blocked by measurement, SKU fit and acquisition evidence",
+      "evidenceRefs": [
+        {
+          "source": "strategy/experiments.json",
+          "experimentId": "exp-2026-09-10-grain-free-cat-food",
+          "sourceFileHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578"
+        },
+        {
+          "source": "current local LP",
+          "pageHash": "b0e2a554128282a449e2a194936700b90a8a62562530f02444028c770afe44f0"
+        }
+      ],
+      "formalProposalBlockers": [
+        "Exact saved Rakuten itemCode mapping not confirmed",
+        "Target LP measurement NOT_VERIFIED",
+        "No current comparable demand/attributed revenue facts",
+        "Relevant history/retry review required"
+      ]
+    }
+  ],
+  "recommendation": {
+    "candidateId": "3b77c900db18ce361e27478796162c99446a97fe63f5c4f6e90cb7ea8836f200",
+    "theme": "既存シニア猫LPの非SNS収益化準備",
+    "role": "RESEARCH_AND_MEASUREMENT_PREPARATION_PRIORITY_NOT_SELECTOR_RECOMMENDATION",
+    "evidenceType": "HYPOTHESIS",
+    "reason": "Most recent confirmed positive GSC exposure and current index-allowed proof among compared LPs; traffic still small and GA4 unknown",
+    "evidenceRefs": [
+      {
+        "source": "strategy/experiments.json",
+        "experimentId": "exp-2026-10-05-senior-cat-food",
+        "sourceFileHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578"
+      },
+      {
+        "source": "current local LP",
+        "pageHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368"
+      }
+    ],
+    "canStartExperiment": false,
+    "formalSelectorRecommendationCount": 0
+  },
+  "excludedOption": {
+    "theme": "月次利益管理シート",
+    "reason": "No saved actual traffic, existing LP, verified paid offer or checkout/attribution path. Excluded from top-three under user actual-traffic-first rule, not rejected as a business market"
+  },
+  "scenarioAssessment": {
+    "cautious": "Current observability blocked; no start or revenue forecast",
+    "standard": "Verify one existing LP and real offer mapping, then reevaluate one controlled acquisition proposal; revenue unknown",
+    "strong": "Only actual attributed conversion and approved commission can support later expansion; no automatic SCALE"
+  },
+  "canStartExperiment": false,
+  "paths": {
+    "inputs": "reports/revalidation-inputs/isolated-closure-20261109-01",
+    "scanner": "reports/market-scanner/isolated-closure-20261109-01/candidates.json",
+    "scorer": "reports/opportunity-scorer/isolated-closure-20261109-01/assessments.json",
+    "selector": "reports/experiment-selector/isolated-closure-20261109-01/selection.json",
+    "planner": "reports/acquisition-planner/isolated-closure-20261109-01/plan.json"
+  },
+  "publishingConfigurationChanged": false,
+  "sourceHashes": {
+    "scanner": "8bc3070cf7e8fb8f7b3335e16ef36f5a5a1fdea3dbb44beacf6d498750351ce5",
+    "scorer": "b81294d5b80a293ba9f515128a76076a8bc59ff4f32008a6bc07134342e09a39",
+    "selector": "f209b114f3d3608175438a9cbf3bc2b41bc8e47a3f4e8c1fbcaeb26279448fd1",
+    "planner": "c42074e333cfc2e5eac4794745fde87256ccb96b4c2127bfe7098b1f91e2f5aa"
+  },
+  "registryRawHash": "ebf765f966f76364442ee77a4e8bd6fed41f207b91a53719717a0c4a56741578",
+  "dataProvenance": "User-confirmed 2026-11-09 audit summary plus tracked 2026-10-10 review; raw audit absent locally",
+  "inputsWereUncommittedAtRun": true,
+  "limitations": [
+    "Full runtime inputs/reports and historical Learning ledger remain private/ignored; this file is a bounded review summary, not a replacement selector input",
+    "Formal proposal list intentionally empty: verified actual Rakuten itemCode mappings not confirmed",
+    "All exploration totals null; no finalRank or financial-score combination",
+    "Learning preserves historical snapshot conflicts conservatively; no old records discarded"
+  ]
+}
