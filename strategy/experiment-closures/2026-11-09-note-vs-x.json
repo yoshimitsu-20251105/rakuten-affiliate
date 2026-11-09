@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "kind": "EXPERIMENT_CLOSURE",
+  "experimentId": "exp-2026-10-13-grain-free-dog-channel-note-vs-x",
+  "authorizedBy": "user",
+  "authorizationReference": "Current explicit user instruction: close 10/13 experiment, INCONCLUSIVE/HOLD, free monetization slot; no new experiment start",
+  "recordedAt": "2026-11-09T07:45:47.276Z",
+  "priorRecordHash": "1109cd319d10640ac014cc1560a50fbee407ee688555013b33491e334d9cef91",
+  "finalRecordHash": "99ac20e7a350cc1a43dc49859373c376c55263f341e49d43c7319208cf4b7e8a",
+  "fromStatus": "RUNNING",
+  "toStatus": "INCONCLUSIVE",
+  "result": "INCONCLUSIVE",
+  "decision": "HOLD",
+  "period": {
+    "start": "2026-10-13",
+    "end": "2026-10-27"
+  },
+  "evidence": {
+    "source": "USER_CONFIRMED_FINAL_EVIDENCE_2026_11_09",
+    "period": {
+      "start": "2026-10-13",
+      "end": "2026-10-27"
+    },
+    "ga4": {
+      "note": {
+        "source": "note",
+        "medium": "referral",
+        "campaign": "grain_free_dog_test_01",
+        "sessions": 1,
+        "engagedSessions": 0,
+        "views": 1
+      },
+      "x": {
+        "source": "x",
+        "medium": "social",
+        "campaign": "grain_free_dog_test_01",
+        "sessions": 1,
+        "engagedSessions": 1,
+        "views": 6
+      },
+      "totalSessions": 2,
+      "affiliateClick": {
+        "value": null,
+        "status": "NO_ROWS_RETURNED"
+      },
+      "retrievedAt": null,
+      "timezone": null,
+      "qaInternalTrafficExclusion": "UNKNOWN",
+      "postPeriodIncluded": false
+    },
+    "rakuten": {
+      "reportLabel": "2026.10",
+      "rawSourceHash": "37e791d95ba16f81c299012e375a74d238f88e2c737e8b5cec94158bd32fa9de",
+      "availability": "ZERO_RECORD_SNAPSHOT",
+      "dataRows": 0,
+      "pendingRows": 0,
+      "approvedRows": 0,
+      "cancelledRows": 0,
+      "conversions": 0,
+      "revenue": 0,
+      "approvedRevenue": 0,
+      "merchandiseSales": 0,
+      "currency": "JPY",
+      "commissionField": "rewards",
+      "merchandiseSalesField": "amount",
+      "measurementIdAttributedRows": 0,
+      "scope": "OFFICIAL_ACCOUNT_SNAPSHOT_NOT_CHANNEL_OR_CANDIDATE_ALLOCATION",
+      "snapshotAsOf": null,
+      "retrievedAt": null
+    },
+    "trafficSufficiency": {
+      "value": "FAILED",
+      "thresholdPerChannel": 20,
+      "noteSessions": 1,
+      "xSessions": 1,
+      "experimentResultIsNotFailed": true
+    }
+  },
+  "appendedMetrics": [
+    {
+      "metric": "primary_ga4_note",
+      "value": {
+        "source": "note",
+        "medium": "referral",
+        "campaign": "grain_free_dog_test_01",
+        "sessions": 1,
+        "engagedSessions": 0,
+        "views": 1
+      },
+      "sourceType": "user_verified",
+      "source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied",
+      "observedAt": null
+    },
+    {
+      "metric": "primary_ga4_x",
+      "value": {
+        "source": "x",
+        "medium": "social",
+        "campaign": "grain_free_dog_test_01",
+        "sessions": 1,
+        "engagedSessions": 1,
+        "views": 6
+      },
+      "sourceType": "user_verified",
+      "source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied",
+      "observedAt": null
+    },
+    {
+      "metric": "primary_affiliate_click",
+      "value": {
+        "value": null,
+        "status": "NO_ROWS_RETURNED"
+      },
+      "sourceType": "user_verified",
+      "source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied",
+      "observedAt": null
+    },
+    {
+      "metric": "primary_traffic_sufficiency",
+      "value": {
+        "value": "FAILED",
+        "thresholdPerChannel": 20,
+        "noteSessions": 1,
+        "xSessions": 1,
+        "experimentResultIsNotFailed": true
+      },
+      "sourceType": "user_verified",
+      "source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied",
+      "observedAt": null
+    },
+    {
+      "metric": "rakuten_official_202610_snapshot",
+      "value": {
+        "reportLabel": "2026.10",
+        "rawSourceHash": "37e791d95ba16f81c299012e375a74d238f88e2c737e8b5cec94158bd32fa9de",
+        "availability": "ZERO_RECORD_SNAPSHOT",
+        "dataRows": 0,
+        "pendingRows": 0,
+        "approvedRows": 0,
+        "cancelledRows": 0,
+        "conversions": 0,
+        "revenue": 0,
+        "approvedRevenue": 0,
+        "merchandiseSales": 0,
+        "currency": "JPY",
+        "commissionField": "rewards",
+        "merchandiseSalesField": "amount",
+        "measurementIdAttributedRows": 0,
+        "scope": "OFFICIAL_ACCOUNT_SNAPSHOT_NOT_CHANNEL_OR_CANDIDATE_ALLOCATION",
+        "snapshotAsOf": null,
+        "retrievedAt": null
+      },
+      "sourceType": "user_verified",
+      "source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied",
+      "observedAt": null
+    }
+  ],
+  "appendedLearnings": [
+    "FACT: Primary 2026-10-13..2026-10-27 note=1 session, X=1 session; both below predefined 20/session threshold. trafficSufficiency=FAILED; overall experiment remains INCONCLUSIVE.",
+    "FACT: Primary bottleneck observed in this experiment is TRAFFIC / EXPOSURE. Channel superiority, product fit, CTA and LP quality are not established.",
+    "UNKNOWN: affiliate_click NO_ROWS_RETURNED is not 0 clicks; X platform link clicks are not affiliate_click. EPC and channel-attributed commission remain unknown.",
+    "FACT: Official 2026.10 Rakuten snapshot has 0 records and 0 JPY commission/approved commission/merchandise sales. This account snapshot is not apportioned to channels or future candidates."
+  ],
+  "actions": {
+    "closeExistingExperiment": true,
+    "startNewExperiment": false,
+    "publish": false,
+    "post": false,
+    "AUTO_PUBLISH": false
+  },
+  "retryPolicy": {
+    "mode": "CONDITIONAL",
+    "reason": "Define a materially new acquisition method; do not repeat the same note/X conditions; Require evidence supporting at least 20 sessions per channel over 14 days; Target LP affiliateClickMeasurementStatus must be VERIFIED; Require evidence that official Rakuten performance snapshots can be acquired with period/retrieval metadata",
+    "conditions": [
+      {
+        "conditionId": "new-acquisition-method-defined",
+        "type": "REVIEW_CONFIRMATION",
+        "predicate": "REVIEWED",
+        "expectedValue": {
+          "reviewer": "acquisition-definition-review"
+        },
+        "required": true,
+        "scope": {
+          "experimentIds": [
+            "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+          ],
+          "theme": null,
+          "opportunityIds": null,
+          "candidateIds": null,
+          "itemCodes": null,
+          "channel": null,
+          "arm": null,
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+          "contentPattern": null,
+          "titlePattern": null,
+          "CTA": null,
+          "category": null,
+          "priceBand": null,
+          "country": null,
+          "language": null,
+          "period": null,
+          "accountScopeId": null,
+          "measurementId": null
+        },
+        "evidenceRefs": [],
+        "reason": "Define a materially new acquisition method; do not repeat the same note/X conditions"
+      },
+      {
+        "conditionId": "traffic-evidence-20-per-channel-in-14-days",
+        "type": "NEW_EVIDENCE",
+        "predicate": "OBSERVED_AFTER_REVIEW",
+        "expectedValue": {
+          "metric": "traffic_capacity_14d_each_channel_ge20",
+          "after": "2026-11-09T08:01:05.135Z"
+        },
+        "required": true,
+        "scope": {
+          "experimentIds": [
+            "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+          ],
+          "theme": null,
+          "opportunityIds": null,
+          "candidateIds": null,
+          "itemCodes": null,
+          "channel": null,
+          "arm": null,
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+          "contentPattern": null,
+          "titlePattern": null,
+          "CTA": null,
+          "category": null,
+          "priceBand": null,
+          "country": null,
+          "language": null,
+          "period": null,
+          "accountScopeId": null,
+          "measurementId": null
+        },
+        "evidenceRefs": [],
+        "reason": "Require evidence supporting at least 20 sessions per channel over 14 days"
+      },
+      {
+        "conditionId": "target-lp-affiliate-click-verified",
+        "type": "MEASUREMENT_VERIFIED",
+        "predicate": "VALID_AT_REVIEW",
+        "expectedValue": {},
+        "required": true,
+        "scope": {
+          "experimentIds": [
+            "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+          ],
+          "theme": null,
+          "opportunityIds": null,
+          "candidateIds": null,
+          "itemCodes": null,
+          "channel": null,
+          "arm": null,
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+          "contentPattern": null,
+          "titlePattern": null,
+          "CTA": null,
+          "category": null,
+          "priceBand": null,
+          "country": null,
+          "language": null,
+          "period": null,
+          "accountScopeId": null,
+          "measurementId": null
+        },
+        "evidenceRefs": [],
+        "reason": "Target LP affiliateClickMeasurementStatus must be VERIFIED"
+      },
+      {
+        "conditionId": "rakuten-snapshot-retrievable",
+        "type": "NEW_EVIDENCE",
+        "predicate": "OBSERVED_AFTER_REVIEW",
+        "expectedValue": {
+          "metric": "rakuten_snapshot_acquisition_available",
+          "after": "2026-11-09T08:01:05.135Z"
+        },
+        "required": true,
+        "scope": {
+          "experimentIds": [
+            "exp-2026-10-13-grain-free-dog-channel-note-vs-x"
+          ],
+          "theme": null,
+          "opportunityIds": null,
+          "candidateIds": null,
+          "itemCodes": null,
+          "channel": null,
+          "arm": null,
+          "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html",
+          "contentPattern": null,
+          "titlePattern": null,
+          "CTA": null,
+          "category": null,
+          "priceBand": null,
+          "country": null,
+          "language": null,
+          "period": null,
+          "accountScopeId": null,
+          "measurementId": null
+        },
+        "evidenceRefs": [],
+        "reason": "Require evidence that official Rakuten performance snapshots can be acquired with period/retrieval metadata"
+      }
+    ]
+  }
+}

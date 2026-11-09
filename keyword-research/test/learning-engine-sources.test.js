@@ -13,16 +13,18 @@ import { base, input, spec, experiment, funnel, temporary, AS_OF, IMPORTED_AT, t
 test("actual repository 6 experiments and 2 decisions import without mutation", async () => {
   const read = async (name) => JSON.parse(await readFile(new URL(`../../strategy/${name}.json`, import.meta.url), "utf8"));
   const exps = await read("experiments"), decisions = await read("decisions"), before = hash([exps, decisions]);
-  const i = input([[spec("experiments", { isSynthetic: false }), exps], [spec("decisions", { isSynthetic: false }), decisions]]);
+  const currentAsOf = new Date().toISOString();
+  const i = input([[spec("experiments", { isSynthetic: false }), exps], [spec("decisions", { isSynthetic: false }), decisions]], { recordedAt: currentAsOf });
   const ledger = append(emptyLedger(), i.additions).ledger;
   assert.equal(hash([exps, decisions]), before); assert.equal(ledger.experimentSnapshots.length, 6);
-  assert.equal(ledger.experimentSnapshots.filter((e) => e.status === "RUNNING").length, 4);
+  assert.equal(ledger.experimentSnapshots.filter((e) => e.status === "RUNNING").length, exps.items.filter(e => e.status === "RUNNING").length);
+  for (const e of exps.items) assert.equal(hash(ledger.experimentSnapshots.find(s => s.experimentId === e.experimentId).raw), hash(e));
   const failed = ledger.experimentSnapshots.find((e) => e.experimentId === "exp-2026-09-10-grain-free-cat-food");
   assert.equal(failed.result, "FAILED"); assert.equal(failed.decision, "IMPROVE"); assert.equal(ledger.learnings.length, 0);
   assert.equal(ledger.decisions.filter((d) => d.type === "LEGACY_OTHER" && d.decision === null).length, 2);
   const note = ledger.experimentSnapshots.find((e) => e.experimentId.includes("note-vs-x"));
-  assert.equal(note.scope.channel, null); assert.equal(note.raw.result, null); assert.equal(note.raw.metrics[1].value.includes("NOT_AVAILABLE"), true);
-  const r = buildReport(ledger, { asOf: AS_OF, generatedAt: AS_OF });
+  assert.equal(note.scope.channel, null); assert.equal(note.raw.result, exps.items.find(e => e.experimentId === note.experimentId).result); assert.equal(note.raw.metrics[1].value.includes("NOT_AVAILABLE"), true);
+  const r = buildReport(ledger, { asOf: currentAsOf, generatedAt: currentAsOf });
   assert(r.experimentReviews.every((e) => e.observedPerformance.metrics.revenue.value === null));
 });
 test("legacy FACT prefix remains source-declared text, values 0/1 remain observations", () => {

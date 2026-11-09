@@ -92,20 +92,23 @@
       "startDate": "2026-10-05",
       "reviewDate": "2026-11-04",
       "baseline": null,
-      "successThreshold": { "impressionsCumulative": 10 },
-      "killThreshold": { "impressionsCumulativeAtReviewDate": 0 },
+      "successThreshold": {"impressionsCumulative": 10},
+      "killThreshold": {"impressionsCumulativeAtReviewDate": 0},
       "metrics": [
-        { "metric": "search_console_impressions", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "search_console_clicks", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "url_inspection_status", "value": "URL is unknown to Google", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-10-05" },
-        { "metric": "ga4_sessions", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_screen_page_views", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" }
+        {"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},
+        {"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "seo_review_20261109","value": {"experimentId": "exp-2026-10-05-grain-free-dog-food","currentStatus": "RUNNING","reviewDate": "2026-11-04","targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/grain-free-dog-food.html","reviewedAt": "2026-11-09T07:57:38.379Z","currentObservation": {"status": "MISSING","reason": "GA_SEARCH_CONSOLE_KEY_FILE_NOT_CONFIGURED_AND_GOOGLE_API_DOMAINS_NOT_APPLIED","apiCalls": 0,"gscImpressions": null,"gscClicks": null,"ga4Sessions": null,"engagedSessions": null,"affiliateClick": null,"affiliateClickMeasurementStatus": "NOT_VERIFIED","googleIndexStatus": null,"liveHTTPStatus": null,"evidencePeriod": null,"retrievedAt": null},"localIndexability": {"htmlHash": "8ee40a3b5c3466f21a946f552962f94435f44629bc02a61ea4122c1c533fd66f","fileExists": true,"noindex": false,"canonicalMatches": true,"sitemapListed": true,"robotsRootAllowed": true,"affiliateClickCodePresent": true},"lastSavedObservations": [{"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},{"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"}],"intendedEvidencePeriod": {"start": "2026-10-05","end": "2026-11-04"},"lastSavedEvidenceIsNotCurrent": true,"finalStatus": "STOPPED","result": "INCONCLUSIVE","decision": "HOLD","reason": "Explicit operational pause because review measurements cannot be retrieved/verified. No index, traffic, market or LP verdict. Not an automatic date-only closure.","retryPolicy": {"mode": "CONDITIONAL","conditions": ["Retrieve scoped GSC and GA4 observations with period and acquisition time","Verify target LP affiliate_click measurement","Review evidence before reopening; no automatic start"]}},"sourceType": "user_verified","source": "Explicit user-authorized review and operational HOLD; local source/config inspection only; no current Google API data","observedAt": null}
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "INCONCLUSIVE",
+      "decision": "HOLD",
+      "learnings": [
+        "UNKNOWN: Current GSC/GA4 measurements unavailable; explicit STOPPED/INCONCLUSIVE/HOLD pending measurement recovery. Not a negative indexing, demand, offer or LP verdict, and not closure based solely on elapsed reviewDate."
+      ],
+      "status": "STOPPED"
     },
     {
       "experimentId": "exp-2026-10-05-senior-cat-food",
@@ -113,26 +116,29 @@
       "hypothesis": "既存の2つのコントロールページと重複しない新規テーマでも、30日以内にSearch Console impressionsが観測できる",
       "falsificationCondition": "reviewDate(2026-11-04)までにSearch Console impressionsが累計0件のままの場合、この仮説は反証される",
       "targetUrls": ["https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html"],
-      "targetKeywords": ["シニア猫 フード", "高齢猫 フード"],
+      "targetKeywords": ["シニア猫 フード","高齢猫 フード"],
       "trafficSource": "organic_search",
       "monetizationSource": "rakuten",
       "startDate": "2026-10-05",
       "reviewDate": "2026-11-04",
       "baseline": null,
-      "successThreshold": { "impressionsCumulative": 10 },
-      "killThreshold": { "impressionsCumulativeAtReviewDate": 0 },
+      "successThreshold": {"impressionsCumulative": 10},
+      "killThreshold": {"impressionsCumulativeAtReviewDate": 0},
       "metrics": [
-        { "metric": "search_console_impressions", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "search_console_clicks", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "url_inspection_status", "value": "URL is unknown to Google", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-10-05" },
-        { "metric": "ga4_sessions", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_screen_page_views", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" }
+        {"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},
+        {"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "seo_review_20261109","value": {"experimentId": "exp-2026-10-05-senior-cat-food","currentStatus": "RUNNING","reviewDate": "2026-11-04","targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html","reviewedAt": "2026-11-09T07:57:38.379Z","currentObservation": {"status": "MISSING","reason": "GA_SEARCH_CONSOLE_KEY_FILE_NOT_CONFIGURED_AND_GOOGLE_API_DOMAINS_NOT_APPLIED","apiCalls": 0,"gscImpressions": null,"gscClicks": null,"ga4Sessions": null,"engagedSessions": null,"affiliateClick": null,"affiliateClickMeasurementStatus": "NOT_VERIFIED","googleIndexStatus": null,"liveHTTPStatus": null,"evidencePeriod": null,"retrievedAt": null},"localIndexability": {"htmlHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368","fileExists": true,"noindex": false,"canonicalMatches": true,"sitemapListed": true,"robotsRootAllowed": true,"affiliateClickCodePresent": true},"lastSavedObservations": [{"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},{"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"}],"intendedEvidencePeriod": {"start": "2026-10-05","end": "2026-11-04"},"lastSavedEvidenceIsNotCurrent": true,"finalStatus": "STOPPED","result": "INCONCLUSIVE","decision": "HOLD","reason": "Explicit operational pause because review measurements cannot be retrieved/verified. No index, traffic, market or LP verdict. Not an automatic date-only closure.","retryPolicy": {"mode": "CONDITIONAL","conditions": ["Retrieve scoped GSC and GA4 observations with period and acquisition time","Verify target LP affiliate_click measurement","Review evidence before reopening; no automatic start"]}},"sourceType": "user_verified","source": "Explicit user-authorized review and operational HOLD; local source/config inspection only; no current Google API data","observedAt": null}
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "INCONCLUSIVE",
+      "decision": "HOLD",
+      "learnings": [
+        "UNKNOWN: Current GSC/GA4 measurements unavailable; explicit STOPPED/INCONCLUSIVE/HOLD pending measurement recovery. Not a negative indexing, demand, offer or LP verdict, and not closure based solely on elapsed reviewDate."
+      ],
+      "status": "STOPPED"
     },
     {
       "experimentId": "exp-2026-10-05-domestic-additive-free-dog-treats",
@@ -146,20 +152,23 @@
       "startDate": "2026-10-05",
       "reviewDate": "2026-11-04",
       "baseline": null,
-      "successThreshold": { "impressionsCumulative": 10 },
-      "killThreshold": { "impressionsCumulativeAtReviewDate": 0 },
+      "successThreshold": {"impressionsCumulative": 10},
+      "killThreshold": {"impressionsCumulativeAtReviewDate": 0},
       "metrics": [
-        { "metric": "search_console_impressions", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "search_console_clicks", "value": 0, "sourceType": "api", "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "url_inspection_status", "value": "URL is unknown to Google", "sourceType": "api", "source": "google_search_console_url_inspection_api", "observedAt": "2026-10-05" },
-        { "metric": "ga4_sessions", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_screen_page_views", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" },
-        { "metric": "ga4_affiliate_click_event_count", "value": 0, "sourceType": "api", "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)", "observedAt": "2026-10-05" }
+        {"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},
+        {"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},
+        {"metric": "seo_review_20261109","value": {"experimentId": "exp-2026-10-05-domestic-additive-free-dog-treats","currentStatus": "RUNNING","reviewDate": "2026-11-04","targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/domestic-additive-free-dog-treats.html","reviewedAt": "2026-11-09T07:57:38.379Z","currentObservation": {"status": "MISSING","reason": "GA_SEARCH_CONSOLE_KEY_FILE_NOT_CONFIGURED_AND_GOOGLE_API_DOMAINS_NOT_APPLIED","apiCalls": 0,"gscImpressions": null,"gscClicks": null,"ga4Sessions": null,"engagedSessions": null,"affiliateClick": null,"affiliateClickMeasurementStatus": "NOT_VERIFIED","googleIndexStatus": null,"liveHTTPStatus": null,"evidencePeriod": null,"retrievedAt": null},"localIndexability": {"htmlHash": "4b02117a821d397308af32c312896e1c32a0984918e9c8c0aa427d9ee6aa59c4","fileExists": true,"noindex": false,"canonicalMatches": true,"sitemapListed": true,"robotsRootAllowed": true,"affiliateClickCodePresent": true},"lastSavedObservations": [{"metric": "search_console_impressions","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "search_console_clicks","value": 0,"sourceType": "api","source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "url_inspection_status","value": "URL is unknown to Google","sourceType": "api","source": "google_search_console_url_inspection_api","observedAt": "2026-10-05"},{"metric": "ga4_sessions","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_screen_page_views","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"},{"metric": "ga4_affiliate_click_event_count","value": 0,"sourceType": "api","source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)","observedAt": "2026-10-05"}],"intendedEvidencePeriod": {"start": "2026-10-05","end": "2026-11-04"},"lastSavedEvidenceIsNotCurrent": true,"finalStatus": "STOPPED","result": "INCONCLUSIVE","decision": "HOLD","reason": "Explicit operational pause because review measurements cannot be retrieved/verified. No index, traffic, market or LP verdict. Not an automatic date-only closure.","retryPolicy": {"mode": "CONDITIONAL","conditions": ["Retrieve scoped GSC and GA4 observations with period and acquisition time","Verify target LP affiliate_click measurement","Review evidence before reopening; no automatic start"]}},"sourceType": "user_verified","source": "Explicit user-authorized review and operational HOLD; local source/config inspection only; no current Google API data","observedAt": null}
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "INCONCLUSIVE",
+      "decision": "HOLD",
+      "learnings": [
+        "UNKNOWN: Current GSC/GA4 measurements unavailable; explicit STOPPED/INCONCLUSIVE/HOLD pending measurement recovery. Not a negative indexing, demand, offer or LP verdict, and not closure based solely on elapsed reviewDate."
+      ],
+      "status": "STOPPED"
     },
     {
       "experimentId": "exp-2026-10-13-grain-free-dog-channel-note-vs-x",
@@ -172,18 +181,28 @@
       "monetizationSource": "rakuten",
       "startDate": "2026-10-13",
       "reviewDate": "2026-10-27",
-      "baseline": { "kind": "last_verified_pre_experiment", "asOf": "2026-10-10", "scope": "grain-free-dog-food LP, GA4 sessionDefaultChannelGroup", "referralSessions": 0, "organicSocialSessions": 0, "caveat": "2026-10-10時点の最終確認値。2026-10-10から投稿直前までの流入は完全には観測しておらず、その間の値はUNKNOWN(0とは扱わない)" },
-      "successThreshold": { "conversionsTotal": 1, "channelSessionsMin": 20, "channelAffiliateClicksMin": 1, "ctrComparisonMinAffiliateClicksPerChannel": 5 },
-      "killThreshold": { "bothChannelsSessionsBelowAtReviewDate": 20 },
+      "baseline": {"kind": "last_verified_pre_experiment","asOf": "2026-10-10","scope": "grain-free-dog-food LP, GA4 sessionDefaultChannelGroup","referralSessions": 0,"organicSocialSessions": 0,"caveat": "2026-10-10時点の最終確認値。2026-10-10から投稿直前までの流入は完全には観測しておらず、その間の値はUNKNOWN(0とは扱わない)"},
+      "successThreshold": {"conversionsTotal": 1,"channelSessionsMin": 20,"channelAffiliateClicksMin": 1,"ctrComparisonMinAffiliateClicksPerChannel": 5},
+      "killThreshold": {"bothChannelsSessionsBelowAtReviewDate": 20},
       "metrics": [
-        { "metric": "posts_published", "value": "note,x(両方とも2026-10-13に公開)", "sourceType": "user_verified", "source": "ユーザー確認(投稿URLは未記録)", "observedAt": "2026-10-13" },
-        { "metric": "ga4_channel_breakdown_day0", "value": "NOT_AVAILABLE(GA4標準レポートに未反映、rows=0。0件とは断定しない)", "sourceType": "api", "source": "ga4_data_api(runReport、LP pagePath、2026-10-10〜2026-10-13)", "observedAt": "2026-10-13" },
-        { "metric": "ga4_realtime_lp_activity_day0", "value": "直近30分内にLP閲覧のアクティブユーザー1名(約20分前、流入元はリアルタイムAPIでは判別不可、投稿経由かQAかも不明)", "sourceType": "api", "source": "ga4_data_api(runRealtimeReport)", "observedAt": "2026-10-13" }
+        {"metric": "posts_published","value": "note,x(両方とも2026-10-13に公開)","sourceType": "user_verified","source": "ユーザー確認(投稿URLは未記録)","observedAt": "2026-10-13"},
+        {"metric": "ga4_channel_breakdown_day0","value": "NOT_AVAILABLE(GA4標準レポートに未反映、rows=0。0件とは断定しない)","sourceType": "api","source": "ga4_data_api(runReport、LP pagePath、2026-10-10〜2026-10-13)","observedAt": "2026-10-13"},
+        {"metric": "ga4_realtime_lp_activity_day0","value": "直近30分内にLP閲覧のアクティブユーザー1名(約20分前、流入元はリアルタイムAPIでは判別不可、投稿経由かQAかも不明)","sourceType": "api","source": "ga4_data_api(runRealtimeReport)","observedAt": "2026-10-13"},
+        {"metric": "primary_ga4_note","value": {"source": "note","medium": "referral","campaign": "grain_free_dog_test_01","sessions": 1,"engagedSessions": 0,"views": 1},"sourceType": "user_verified","source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied","observedAt": null},
+        {"metric": "primary_ga4_x","value": {"source": "x","medium": "social","campaign": "grain_free_dog_test_01","sessions": 1,"engagedSessions": 1,"views": 6},"sourceType": "user_verified","source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied","observedAt": null},
+        {"metric": "primary_affiliate_click","value": {"value": null,"status": "NO_ROWS_RETURNED"},"sourceType": "user_verified","source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied","observedAt": null},
+        {"metric": "primary_traffic_sufficiency","value": {"value": "FAILED","thresholdPerChannel": 20,"noteSessions": 1,"xSessions": 1,"experimentResultIsNotFailed": true},"sourceType": "user_verified","source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied","observedAt": null},
+        {"metric": "rakuten_official_202610_snapshot","value": {"reportLabel": "2026.10","rawSourceHash": "37e791d95ba16f81c299012e375a74d238f88e2c737e8b5cec94158bd32fa9de","availability": "ZERO_RECORD_SNAPSHOT","dataRows": 0,"pendingRows": 0,"approvedRows": 0,"cancelledRows": 0,"conversions": 0,"revenue": 0,"approvedRevenue": 0,"merchandiseSales": 0,"currency": "JPY","commissionField": "rewards","merchandiseSalesField": "amount","measurementIdAttributedRows": 0,"scope": "OFFICIAL_ACCOUNT_SNAPSHOT_NOT_CHANNEL_OR_CANDIDATE_ALLOCATION","snapshotAsOf": null,"retrievedAt": null},"sourceType": "user_verified","source": "User confirmed final evidence 2026-11-09; Primary 2026-10-13..2026-10-27; retrieval time not supplied","observedAt": null}
       ],
-      "result": null,
-      "decision": null,
-      "learnings": [],
-      "status": "RUNNING"
+      "result": "INCONCLUSIVE",
+      "decision": "HOLD",
+      "learnings": [
+        "FACT: Primary 2026-10-13..2026-10-27 note=1 session, X=1 session; both below predefined 20/session threshold. trafficSufficiency=FAILED; overall experiment remains INCONCLUSIVE.",
+        "FACT: Primary bottleneck observed in this experiment is TRAFFIC / EXPOSURE. Channel superiority, product fit, CTA and LP quality are not established.",
+        "UNKNOWN: affiliate_click NO_ROWS_RETURNED is not 0 clicks; X platform link clicks are not affiliate_click. EPC and channel-attributed commission remain unknown.",
+        "FACT: Official 2026.10 Rakuten snapshot has 0 records and 0 JPY commission/approved commission/merchandise sales. This account snapshot is not apportioned to channels or future candidates."
+      ],
+      "status": "INCONCLUSIVE"
     }
   ]
 }

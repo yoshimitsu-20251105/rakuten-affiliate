@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "EXPERIMENT_CLOSURE",
+  "experimentId": "exp-2026-10-05-senior-cat-food",
+  "authorizedBy": "user",
+  "authorizationReference": "Current user Priority 2: explicitly review overdue SEO discovery; do not abandon RUNNING interference; no date-only conclusion",
+  "recordedAt": "2026-11-09T07:57:38.379Z",
+  "priorRecordHash": "eea51e46780c034840d1613106583a337acbbd20a410fef107a63fe94d5ec702",
+  "finalRecordHash": "8bd458fea7a4e2d3399339b840ec0f481acb82688f83a99791bb35c50ec117e3",
+  "fromStatus": "RUNNING",
+  "toStatus": "STOPPED",
+  "result": "INCONCLUSIVE",
+  "decision": "HOLD",
+  "reasonType": "MEASUREMENT_UNAVAILABLE_OPERATIONAL_HOLD",
+  "period": {
+    "start": "2026-10-05",
+    "end": "2026-11-04"
+  },
+  "evidence": {
+    "currentObservation": {
+      "status": "MISSING",
+      "reason": "GA_SEARCH_CONSOLE_KEY_FILE_NOT_CONFIGURED_AND_GOOGLE_API_DOMAINS_NOT_APPLIED",
+      "apiCalls": 0,
+      "gscImpressions": null,
+      "gscClicks": null,
+      "ga4Sessions": null,
+      "engagedSessions": null,
+      "affiliateClick": null,
+      "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+      "googleIndexStatus": null,
+      "liveHTTPStatus": null,
+      "evidencePeriod": null,
+      "retrievedAt": null
+    },
+    "localIndexability": {
+      "htmlHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368",
+      "fileExists": true,
+      "noindex": false,
+      "canonicalMatches": true,
+      "sitemapListed": true,
+      "robotsRootAllowed": true,
+      "affiliateClickCodePresent": true
+    },
+    "reviewDate": "2026-11-04"
+  },
+  "appendedMetrics": [
+    {
+      "metric": "seo_review_20261109",
+      "value": {
+        "experimentId": "exp-2026-10-05-senior-cat-food",
+        "currentStatus": "RUNNING",
+        "reviewDate": "2026-11-04",
+        "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+        "reviewedAt": "2026-11-09T07:57:38.379Z",
+        "currentObservation": {
+          "status": "MISSING",
+          "reason": "GA_SEARCH_CONSOLE_KEY_FILE_NOT_CONFIGURED_AND_GOOGLE_API_DOMAINS_NOT_APPLIED",
+          "apiCalls": 0,
+          "gscImpressions": null,
+          "gscClicks": null,
+          "ga4Sessions": null,
+          "engagedSessions": null,
+          "affiliateClick": null,
+          "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+          "googleIndexStatus": null,
+          "liveHTTPStatus": null,
+          "evidencePeriod": null,
+          "retrievedAt": null
+        },
+        "localIndexability": {
+          "htmlHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368",
+          "fileExists": true,
+          "noindex": false,
+          "canonicalMatches": true,
+          "sitemapListed": true,
+          "robotsRootAllowed": true,
+          "affiliateClickCodePresent": true
+        },
+        "lastSavedObservations": [
+          {
+            "metric": "search_console_impressions",
+            "value": 0,
+            "sourceType": "api",
+            "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)",
+            "observedAt": "2026-10-05"
+          },
+          {
+            "metric": "search_console_clicks",
+            "value": 0,
+            "sourceType": "api",
+            "source": "google_search_console_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)",
+            "observedAt": "2026-10-05"
+          },
+          {
+            "metric": "url_inspection_status",
+            "value": "URL is unknown to Google",
+            "sourceType": "api",
+            "source": "google_search_console_url_inspection_api",
+            "observedAt": "2026-10-05"
+          },
+          {
+            "metric": "ga4_sessions",
+            "value": 0,
+            "sourceType": "api",
+            "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)",
+            "observedAt": "2026-10-05"
+          },
+          {
+            "metric": "ga4_screen_page_views",
+            "value": 0,
+            "sourceType": "api",
+            "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)",
+            "observedAt": "2026-10-05"
+          },
+          {
+            "metric": "ga4_affiliate_click_event_count",
+            "value": 0,
+            "sourceType": "api",
+            "source": "ga4_data_api(keyword-research/cli/search-trial-report.js経由、Day0計測)",
+            "observedAt": "2026-10-05"
+          }
+        ],
+        "intendedEvidencePeriod": {
+          "start": "2026-10-05",
+          "end": "2026-11-04"
+        },
+        "lastSavedEvidenceIsNotCurrent": true,
+        "finalStatus": "STOPPED",
+        "result": "INCONCLUSIVE",
+        "decision": "HOLD",
+        "reason": "Explicit operational pause because review measurements cannot be retrieved/verified. No index, traffic, market or LP verdict. Not an automatic date-only closure.",
+        "retryPolicy": {
+          "mode": "CONDITIONAL",
+          "conditions": [
+            "Retrieve scoped GSC and GA4 observations with period and acquisition time",
+            "Verify target LP affiliate_click measurement",
+            "Review evidence before reopening; no automatic start"
+          ]
+        }
+      },
+      "sourceType": "user_verified",
+      "source": "Explicit user-authorized review and operational HOLD; local source/config inspection only; no current Google API data",
+      "observedAt": null
+    }
+  ],
+  "appendedLearnings": [
+    "UNKNOWN: Current GSC/GA4 measurements unavailable; explicit STOPPED/INCONCLUSIVE/HOLD pending measurement recovery. Not a negative indexing, demand, offer or LP verdict, and not closure based solely on elapsed reviewDate."
+  ],
+  "retryPolicy": {
+    "mode": "CONDITIONAL",
+    "conditions": [
+      "Retrieve scoped GSC and GA4 observations with period and acquisition time",
+      "Verify target LP affiliate_click measurement",
+      "Review evidence before reopening; no automatic start"
+    ]
+  },
+  "actions": {
+    "closeExistingExperiment": true,
+    "startNewExperiment": false,
+    "publish": false,
+    "post": false,
+    "AUTO_PUBLISH": false
+  }
+}
