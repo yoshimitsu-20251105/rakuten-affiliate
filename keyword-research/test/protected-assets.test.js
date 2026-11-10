@@ -7,6 +7,14 @@ import { mkdtemp,mkdir,writeFile,rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
+import * as safetyGuards from './protected-assets-helpers.js';
+import * as closureAwareGuards from './experiment-review-protection-helpers.js';
+
+test('Safety and PR40 use the same closure-aware content and execution guards', () => {
+  for (const name of ['permittedGeneratedUpdate', 'captureProtectedTree', 'assertProtectedTreeUnchanged', 'assertHistoricalProtection']) {
+    assert.equal(safetyGuards[name], closureAwareGuards[name], name);
+  }
+});
 
 test("Expired urgency removal is allowed, while article CTA, affiliate URL and claims remain protected", () => {
   const old = '<h1>Product</h1>\n<p class="urgency">10/31まで</p>\n<a href="https://example.com/offer">CTA</a>';
