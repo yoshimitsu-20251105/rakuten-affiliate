@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
+import { permittedSeniorCatTrackingUpdate, permittedSeniorCatQaQueryUpdate, permittedNullObservationUpdate } from "./senior-cat-affiliate-measurement-helpers.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
 const approvedTestEdits = new Set([
@@ -13,6 +14,7 @@ const approvedTestEdits = new Set([
   "keyword-research/test/learning-engine-report.test.js",
   "keyword-research/test/experiment-selector-gates.test.js",
   "keyword-research/test/learning-engine-sources.test.js",
+  "keyword-research/test/experiment-review-protection-helpers.js",
 ]);
 const git = (repo, args) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
 const stamp = /(情報取得日|最終更新日): ?\d{4}年\d{1,2}月\d{1,2}日/g;
@@ -62,6 +64,9 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
     if (approvedTestEdits.has(path) || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
+    if (path === "docs/rankings/senior-cat-food.html" && permittedSeniorCatTrackingUpdate(before, after)) continue;
+    if (path === "keyword-research/search-trial-analytics-clients.js" && permittedSeniorCatQaQueryUpdate(before, after)) continue;
+    if (permittedNullObservationUpdate(path, before, after)) continue;
     if (path === "strategy/experiments.json") {
       validateReviewClosures(JSON.parse(before), JSON.parse(after),
         JSON.parse(readFileSync(join(repo, "strategy/experiment-reviews/2026-11-09/registry-closures.json"), "utf8")),

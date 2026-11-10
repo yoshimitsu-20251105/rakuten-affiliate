@@ -72,6 +72,54 @@
     main { padding:1rem; }
   }
 </style>
+<script id="senior-cat-affiliate-measurement">(function(){
+  if (window.location.pathname !== "/rakuten-affiliate/rankings/senior-cat-food.html" || window.__seniorCatAffiliateClickV1) return;
+  window.__seniorCatAffiliateClickV1 = true;
+  window.dataLayer = window.dataLayer || [];
+  if (typeof window.gtag !== 'function') {
+    window.gtag = function(){ window.dataLayer.push(arguments); };
+  }
+  var qa = new RegExp("[?&]amv2_qa=1(?:&|$)").test(window.location.search);
+  var qaLabels = null;
+  if (qa) {
+    qaLabels = { traffic_type: 'qa', debug_mode: true, qa_traffic: 1 };
+    var qaRun = new URLSearchParams(window.location.search).get('amv2_qa_run');
+    if (qaRun && /^[A-Za-z0-9_-]{1,64}$/.test(qaRun)) qaLabels.qa_run_id = qaRun;
+    window.gtag('set', qaLabels);
+  }
+  var sent = new WeakSet();
+  document.addEventListener('click', function(ev){
+    var target = ev.target;
+    if (target && target.nodeType === 3) target = target.parentElement;
+    var anchor = target && typeof target.closest === 'function' ? target.closest('a.cta-button[href]') : null;
+    if (!anchor || sent.has(ev)) return;
+    var link;
+    try { link = new URL(anchor.href, window.location.href); } catch (_) { return; }
+    if (link.protocol !== 'https:' || link.hostname !== 'hb.afl.rakuten.co.jp' || link.port || link.username || link.password) return;
+    if (typeof window.gtag !== 'function') return;
+    var params = {
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+      link_url: link.href,
+      link_domain: link.hostname,
+      link_classes: anchor.getAttribute('class') || '',
+      target_lp: "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+      affiliate_network: 'rakuten'
+    };
+    var rank = anchor.getAttribute('data-item-rank');
+    if (rank && /^[1-9][0-9]*$/.test(rank)) params.item_rank = Number(rank);
+    ['animal_type', 'selection_type', 'page_type'].forEach(function(key){
+      var value = anchor.getAttribute('data-' + key.replace(/_/g, '-'));
+      if (value) params[key] = value;
+    });
+    // No inferred item/shop/measurement/experiment IDs. Current CTAs do not
+    // provide verified bindings for those optional fields.
+    if (qaLabels) Object.keys(qaLabels).forEach(function(key){ params[key] = qaLabels[key]; });
+    sent.add(ev);
+    window.gtag('event', 'affiliate_click', params);
+    // Leave default navigation and GA4's independent standard click untouched.
+  }, true);
+})();</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FQMHQ5X6W"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5FQMHQ5X6W');</script>
 </head>
@@ -247,24 +295,6 @@
 <p>本サイトは楽天アフィリエイトプログラムを利用しています。紹介する商品は楽天市場の商品情報・レビュー情報を確認し、掲載条件に合うものを選定しています。</p>
 <p>運営者: 楽天トレンドセレクト運営チーム / 情報取得時点: 2026年10月5日時点</p>
 </footer>
-<script>(function(){
-  var ctas = document.querySelectorAll('.cta-button[data-page-type]');
-  for (var i = 0; i < ctas.length; i++) {
-    var el = ctas[i];
-    if (el.dataset.affiliateClickBound === '1') continue;
-    el.dataset.affiliateClickBound = '1';
-    el.addEventListener('click', function (ev) {
-      var t = ev.currentTarget;
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', 'affiliate_click', {
-          item_rank: Number(t.dataset.itemRank),
-          animal_type: t.dataset.animalType,
-          selection_type: t.dataset.selectionType,
-          page_type: t.dataset.pageType
-        });
-      }
-    });
-  }
-})();</script>
+
 </body>
 </html>

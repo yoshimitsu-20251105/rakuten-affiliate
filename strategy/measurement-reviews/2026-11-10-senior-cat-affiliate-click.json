@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "senior-cat-affiliate-click-20261110",
+  "recordedAt": "2026-11-10T01:21:44.385Z",
+  "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+  "affiliateClickMeasurementStatus": "NOT_VERIFIED",
+  "implementationStatus": "IMPLEMENTED_PENDING_LIVE_QA",
+  "priorPageHash": "81e4fca79787b804be79cdf37de4f734cf0f67b5ce0924b1449b69eb1b890368",
+  "candidatePageHash": "ea2ab4e8a27455128dc1b12779d3ae33a26d2432e8a967f41e791a2d6bf95917",
+  "verifiedPageHash": null,
+  "ga4MeasurementId": "G-5FQMHQ5X6W",
+  "ga4PropertyReference": null,
+  "expectedEventName": "affiliate_click",
+  "baselineEvidence": {
+    "sourceType": "user_verified",
+    "observedAt": null,
+    "standardClick": {
+      "eventName": "click",
+      "endpoint": "google-analytics.com/g/collect",
+      "httpStatus": 204,
+      "linkClasses": "cta-button",
+      "linkDomain": "hb.afl.rakuten.co.jp",
+      "outbound": true
+    },
+    "affiliateClickSend": "NOT_OBSERVED_BEFORE_CHANGE",
+    "ga4ReceiptReference": null
+  },
+  "localEvidence": {
+    "nodeTests": "SYNTHETIC_OFFLINE_ONLY",
+    "chromiumResult": "PASS_OFFLINE_ONLY",
+    "actualGA4Sdk": false,
+    "allNetworkIntercepted": true,
+    "ga4NetworkSendConfirmed": null,
+    "ga4ReceiptConfirmed": null,
+    "businessKpiEligible": false
+  },
+  "evidence": {
+    "sent": null,
+    "received": null,
+    "sendReference": null,
+    "receiveReference": null,
+    "qaEventReference": null,
+    "ga4Timezone": null,
+    "applicablePeriod": null
+  },
+  "qaIsolation": {
+    "queryParameter": "amv2_qa=1",
+    "runParameter": "amv2_qa_run",
+    "debugMode": true,
+    "trafficType": "qa",
+    "businessExclusion": "EXACT_LP_BUILT_IN_DIMENSION_QUERY_FILTER_ALL_FOUR_REQUESTS",
+    "liveExclusionVerification": null,
+    "qaExclusionStatus": "UNKNOWN"
+  },
+  "optionalIdentifiers": {
+    "item_code": null,
+    "shop_code": null,
+    "measurement_id": null,
+    "experiment_id": null,
+    "policy": "OMITTED_NO_VERIFIED_BINDINGS"
+  },
+  "blockingReasons": [
+    "NOT_DEPLOYED_OR_LIVE_HTML_NOT_CONFIRMED",
+    "NO_NETWORK_CAPTURE_OF_NEW_VERSION",
+    "NO_GA4_RECEIPT_EVIDENCE",
+    "LIVE_BUSINESS_QA_EXCLUSION_NOT_CONFIRMED"
+  ],
+  "canStartExperiment": false,
+  "canPublish": false,
+  "canPost": false
+}
