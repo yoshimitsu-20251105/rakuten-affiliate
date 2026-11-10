@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
+import { WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
 const approvedTestEdits = new Set([
@@ -62,6 +63,14 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
     if (approvedTestEdits.has(path) || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
+    if (path === WORKFLOW_PATH) {
+      assert(isApprovedDailyAuditChange(before, after), "Only the explicitly authorized audit-only daily workflow may replace the old publisher");
+      continue;
+    }
+    if (path === GUARD_PATH) {
+      assert(isApprovedDailyGuardChange(before, after), "Only the sealed, file-specific daily audit guard maintenance is authorized");
+      continue;
+    }
     if (path === "strategy/experiments.json") {
       validateReviewClosures(JSON.parse(before), JSON.parse(after),
         JSON.parse(readFileSync(join(repo, "strategy/experiment-reviews/2026-11-09/registry-closures.json"), "utf8")),
