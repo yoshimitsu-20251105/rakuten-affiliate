@@ -22,8 +22,8 @@ export function judgeSearchTrialPage({ searchConsole, ga4, rakuten }) {
 
   const impressions = searchConsole?.status === "OK" ? searchConsole.impressions ?? 0 : undefined;
   const searchClicks = searchConsole?.status === "OK" ? searchConsole.clicks ?? 0 : undefined;
-  const screenPageViews = ga4?.status === "OK" ? ga4.screenPageViews ?? 0 : undefined;
-  const affiliateClicks = ga4?.status === "OK" ? ga4.affiliateClickEventCount ?? 0 : undefined;
+  const screenPageViews = ga4?.status === "OK" && typeof ga4.screenPageViews === "number" ? ga4.screenPageViews : undefined;
+  const affiliateClicks = ga4?.status === "OK" && typeof ga4.affiliateClickEventCount === "number" ? ga4.affiliateClickEventCount : undefined;
 
   if (impressions !== undefined && screenPageViews !== undefined) {
     if (impressions < 100 || screenPageViews < 20) {

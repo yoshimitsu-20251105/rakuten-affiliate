@@ -50,6 +50,7 @@ function pageUrlFor(page) {
 
 function computeRakutenClickRate(ga4) {
   if (ga4.status !== "OK") return "NOT_AVAILABLE";
+  if (typeof ga4.affiliateClickEventCount !== "number" || typeof ga4.screenPageViews !== "number") return "NOT_AVAILABLE";
   if (!ga4.screenPageViews) return "NOT_CALCULABLE";
   return (ga4.affiliateClickEventCount / ga4.screenPageViews) * 100;
 }

@@ -31,6 +31,7 @@
 
 import { google } from "googleapis";
 import { SITE_URL } from "../lib/site-config.js";
+import { SENIOR_CAT_PATH, seniorCatBusinessPageFilter } from "../lib/senior-cat-affiliate-measurement.js";
 
 const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID || "550074703";
 const GSC_SITE_URL = process.env.GSC_SITE_URL || `${SITE_URL}/`;
@@ -171,6 +172,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
   requireClient(client, "GA4 Data API");
   try {
     const pagePath = pagePathFromUrl(pageUrl);
+    const missingValue = pagePath === SENIOR_CAT_PATH ? null : 0;
 
     const pageRes = await client.properties.runReport({
       property: `properties/${GA4_PROPERTY_ID}`,
@@ -184,7 +186,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
           { name: "engagementRate" },
           { name: "averageSessionDuration" },
         ],
-        dimensionFilter: { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+        dimensionFilter: seniorCatBusinessPageFilter(pagePath),
       },
     });
     if (pageRes.data && !Array.isArray(pageRes.data.rows) && pageRes.data.rows !== undefined) {
@@ -193,7 +195,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
     const row = (pageRes.data.rows ?? [])[0];
     const [activeUsers, sessions, screenPageViews, engagementRate, averageSessionDuration] = row
       ? row.metricValues.map((v) => Number(v.value))
-      : [0, 0, 0, 0, 0];
+      : [missingValue, missingValue, missingValue, missingValue, missingValue];
 
     const eventRes = await client.properties.runReport({
       property: `properties/${GA4_PROPERTY_ID}`,
@@ -204,7 +206,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
         dimensionFilter: {
           andGroup: {
             expressions: [
-              { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+              seniorCatBusinessPageFilter(pagePath),
               { filter: { fieldName: "eventName", stringFilter: { matchType: "EXACT", value: "affiliate_click" } } },
             ],
           },
@@ -212,7 +214,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
       },
     });
     const eventRow = (eventRes.data.rows ?? [])[0];
-    const affiliateClickEventCount = eventRow ? Number(eventRow.metricValues[0].value) : 0;
+    const affiliateClickEventCount = eventRow ? Number(eventRow.metricValues[0].value) : missingValue;
 
     // 【2026-10-10対応・P2】流入元別(organic/direct/referral/social/UTM経由等)の
     // sessions/screenPageViews/affiliate_click内訳。既存の集計値(上記)の計算方法は
@@ -225,7 +227,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
         dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: "pagePath" }, { name: "sessionDefaultChannelGroup" }],
         metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
-        dimensionFilter: { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+        dimensionFilter: seniorCatBusinessPageFilter(pagePath),
       },
     });
     const byTrafficSource = (channelRes.data.rows ?? []).map((r) => ({
@@ -243,7 +245,7 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
         dimensionFilter: {
           andGroup: {
             expressions: [
-              { filter: { fieldName: "pagePath", stringFilter: { matchType: "EXACT", value: pagePath } } },
+              seniorCatBusinessPageFilter(pagePath),
               { filter: { fieldName: "eventName", stringFilter: { matchType: "EXACT", value: "affiliate_click" } } },
             ],
           },
@@ -265,6 +267,11 @@ export async function fetchGA4PageMetrics({ client, pageUrl, startDate, endDate 
       affiliateClickEventCount,
       byTrafficSource,
       affiliateClickByTrafficSource,
+      ...(pagePath === SENIOR_CAT_PATH ? {
+        pageRowsStatus: row ? "OBSERVED" : "NO_ROWS_RETURNED",
+        affiliateClickRowsStatus: eventRow ? "OBSERVED" : "NO_ROWS_RETURNED",
+        qaExclusion: { method: "QUERY_FILTER", parameter: "amv2_qa=1", scope: "EXACT_LP" },
+      } : {}),
     };
   } catch (e) {
     if (isPermissionError(e)) {
