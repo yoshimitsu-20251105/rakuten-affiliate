@@ -1,8 +1,10 @@
 # 日次workflowの公開停止・検証専用化（2026-11-10）
 
-起点: `a58d2d0579b7b81b2bd4dc88f15e08272dd5a693`。専用ブランチのみで変更する。
-masterへマージされるまでは、現在のmaster上の日次公開経路は止まらない。
+更新後の起点: `23ebcb3b66ca1765b723791bf5a7b4d6e688a944`（PR #42・サイトマップ更新後）。隔離worktreeで統合する。
+workflow ID 337696919はGitHub上でdisabled_manually。今回は無効状態を維持し、PRマージ・再有効化・dispatchは行わない。
 この変更はGitHub Secrets / Variables / Pages設定を変更しない。
+PR #42のsenior-cat計測コード・LP・資料を完全に保持する。計測状態はNOT_VERIFIED /
+IMPLEMENTED_PENDING_LIVE_QA、QA除外確認はUNKNOWN、実験開始・公開・投稿の許可はfalseのままとする。
 
 ## 変更前の実行経路
 
@@ -57,7 +59,8 @@ NOTE_NATIVE_MONETIZATION、実験台帳、Learning、既存の監査資料、408
 
 ## 確認と停止・復旧
 
-cleanなコミット済みチェックアウトで次を実行する（統合テストがcleanを必須とする）。
+次を実行する。CLIの正常終了はcleanなチェックアウトで確認する。
+merge commit作成前の試験では、未commit変更があるとCLIが非0終了して公開を見送ることも検証する。
 
 ```sh
 npm run strategy:validate

@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 
-export const BASE_COMMIT = "a58d2d0579b7b81b2bd4dc88f15e08272dd5a693";
+export const BASE_COMMIT = "23ebcb3b66ca1765b723791bf5a7b4d6e688a944";
 export const WORKFLOW_PATH = ".github/workflows/daily-pipeline.yml";
 export const GUARD_PATH = "keyword-research/test/experiment-review-protection-helpers.js";
 export const OLD_WORKFLOW_SHA256 = "53ae16cb3603570e3e1ee33d6dab3b43c184a3e07f76adfe191d7c4a911a2042";
 // A single authorized test-guard edit, never an exemption for its other rules.
-export const APPROVED_GUARD_SHA256 = "e0c7356c874f3f070154e61eaef9cc7e99720899691ae89221f83dc2b72a0f56";
-export const OLD_GUARD_SHA256 = "b22f4bd62461a8ca7504095a87477d9397423838ced17af7eade7126519567d3";
+export const APPROVED_GUARD_SHA256 = "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b";
+export const OLD_GUARD_SHA256 = "9b788a870c2280f03ad465d651be1e5cde7276fd735e60d3232e5fe60f0bda7d";
 export const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 
 // These tests use only read-only repository access and private temporary data.

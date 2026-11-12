@@ -101,7 +101,7 @@ test("Safety and daily audit retain the shared closure-aware guard functions", (
   assert(!shared.permittedGeneratedUpdate("docs/rankings/item.html", old, old.replace("affiliate", "different")));
 });
 
-test("Only the exact authorized workflow and sealed guard differ from base; all other 753 original files retain their Git blob hashes", async () => {
+test("Only the exact authorized workflow and sealed guard differ from the new master; all other baseline files retain their Git blob hashes", async () => {
   const entries = execFileSync("git", ["ls-tree", "-rz", BASE_COMMIT], { cwd: repo }).toString().split("\0").filter(Boolean);
   const baselinePaths = [];
   for (const entry of entries) {
@@ -138,12 +138,13 @@ test("Actions Summary is written only outside the repository; protected files an
   assert.deepEqual(await readFile(join(repo, "strategy/experiments.json")), before);
 });
 
-test("Scheduled CLI succeeds on the clean committed tree, reports a hold and leaves every repository byte and Git status unchanged", () => {
-  const status = git("status", "--porcelain=v1", "--untracked-files=all"); assert.equal(status, "", "Commit only the authorized hotfix before this integration check");
+test("Scheduled CLI reports a hold only on a clean tree, fails closed on pending changes, and preserves every byte and Git status", () => {
+  const status = git("status", "--porcelain=v1", "--untracked-files=all"), clean = status === "";
   const before = shared.captureProtectedTree(repo);
   const child = spawnSync(process.execPath, ["daily-audit/cli.js", "--checks-status", "success"], { cwd: repo, encoding: "utf8", env: { PATH: process.env.PATH, GITHUB_EVENT_NAME: "schedule", AUTO_PUBLISH: "true" } });
-  assert.equal(child.status, 0, child.stderr); assert(child.stdout.includes("安全に公開を見送り")); assert(child.stdout.includes("AUTO_PUBLISH: false"));
-  assert.equal(git("status", "--porcelain=v1", "--untracked-files=all"), ""); shared.assertProtectedTreeUnchanged(before, shared.captureProtectedTree(repo));
+  assert.equal(child.status, clean ? 0 : 1, child.stderr);
+  assert(child.stdout.includes(clean ? "安全に公開を見送り" : "検証未完了")); assert(child.stdout.includes("AUTO_PUBLISH: false"));
+  assert.equal(git("status", "--porcelain=v1", "--untracked-files=all"), status); shared.assertProtectedTreeUnchanged(before, shared.captureProtectedTree(repo));
 });
 
 test("CLI rejects publication/bypass options and failed validation exits nonzero without granting any action", () => {

@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
 import { WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
+import { permittedSeniorCatTrackingUpdate, permittedSeniorCatQaQueryUpdate, permittedNullObservationUpdate } from "./senior-cat-affiliate-measurement-helpers.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
 const approvedTestEdits = new Set([
@@ -14,6 +15,7 @@ const approvedTestEdits = new Set([
   "keyword-research/test/learning-engine-report.test.js",
   "keyword-research/test/experiment-selector-gates.test.js",
   "keyword-research/test/learning-engine-sources.test.js",
+  "keyword-research/test/experiment-review-protection-helpers.js",
 ]);
 const git = (repo, args) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
 const stamp = /(情報取得日|最終更新日): ?\d{4}年\d{1,2}月\d{1,2}日/g;
@@ -60,7 +62,7 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
   const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", base]).trim().split("\n"));
   const changed = git(repo, ["diff", "--name-only", base, "--", ...historical]).trim().split("\n").filter(Boolean);
   for (const path of changed) {
-    if (approvedTestEdits.has(path) || path === "package.json") continue;
+    if (approvedTestEdits.has(path) && path !== GUARD_PATH || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
     if (path === WORKFLOW_PATH) {
@@ -71,6 +73,9 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
       assert(isApprovedDailyGuardChange(before, after), "Only the sealed, file-specific daily audit guard maintenance is authorized");
       continue;
     }
+    if (path === "docs/rankings/senior-cat-food.html" && permittedSeniorCatTrackingUpdate(before, after)) continue;
+    if (path === "keyword-research/search-trial-analytics-clients.js" && permittedSeniorCatQaQueryUpdate(before, after)) continue;
+    if (permittedNullObservationUpdate(path, before, after)) continue;
     if (path === "strategy/experiments.json") {
       validateReviewClosures(JSON.parse(before), JSON.parse(after),
         JSON.parse(readFileSync(join(repo, "strategy/experiment-reviews/2026-11-09/registry-closures.json"), "utf8")),

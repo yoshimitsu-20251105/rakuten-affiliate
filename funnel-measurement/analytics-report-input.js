@@ -23,6 +23,7 @@ export function readAnalyticsObservation(report, metadata, { targetLP, measureme
     if (!page || page.ga4?.status !== "OK") return observation(null, "NOT_AVAILABLE", "GA4_PAGE_NOT_AVAILABLE", context);
     if (requireVerification && measurement.status !== "VERIFIED") return observation(null, measurement.status, measurement.reason, context);
     const value = page.ga4[field];
+    if (value === null) return observation(null, "NO_ROWS_RETURNED", "NO_ROWS_IS_NOT_ZERO", context);
     assert(Number.isSafeInteger(value) && value >= 0, `analytics ${field}が不正です`);
     if (!metadata.dataCompleteThrough || metadata.dataCompleteThrough < period.end) return observation(null, "DELAYED", "DATA_COMPLETENESS_NOT_CONFIRMED", context);
     if (requireVerification && metadata.qaExclusionStatus !== "CONFIRMED_CLEAN") return observation(null, "NOT_AVAILABLE", "QA_CONTAMINATION_NOT_RESOLVED", context);
