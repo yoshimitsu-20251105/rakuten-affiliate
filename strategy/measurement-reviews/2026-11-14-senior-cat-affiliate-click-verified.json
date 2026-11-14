@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "senior-cat-affiliate-click-verified-20261114",
+  "recordedAt": "2026-11-14T14:02:01+09:00",
+  "evidenceId": "senior-cat-affiliate-click-verified-20261114",
+  "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+  "affiliateClickMeasurementStatus": "VERIFIED",
+  "verifiedAt": "2026-11-14T14:02:01+09:00",
+  "verifiedBy": "repository-owner-with-claude-code-audit",
+  "verifiedPageHash": "ea2ab4e8a27455128dc1b12779d3ae33a26d2432e8a967f41e791a2d6bf95917",
+  "ga4MeasurementId": "G-5FQMHQ5X6W",
+  "ga4PropertyReference": "properties/550074703",
+  "expectedEventName": "affiliate_click",
+  "evidence": {
+    "sent": true,
+    "received": true,
+    "sentAt": "2026-11-10T17:35:40+09:00",
+    "receivedAt": "2026-11-12T18:13:00+09:00",
+    "sendReference": "E1",
+    "receiveReference": "E2",
+    "qaEventReference": "E2",
+    "applicablePeriod": {
+      "start": "2026-11-14",
+      "end": "2026-12-12"
+    }
+  },
+  "qaIsolation": {
+    "queryParameter": "amv2_qa=1",
+    "runParameter": "amv2_qa_run",
+    "qaRunId": "senior-cat-20261110-live-01",
+    "qaExclusionStatus": "VERIFIED_FOR_REPOSITORY_BUSINESS_QUERIES",
+    "scopeNote": "The audited exclusion query was reconstructed from the same seniorCatBusinessPageFilter conditions. This does not claim QA exclusion from GA4 standard UI, arbitrary Data API queries, or unfiltered exports."
+  },
+  "businessKpiPolicy": {
+    "approvalDayEligible": false,
+    "completeDayStart": "2026-11-15",
+    "completeDayEnd": "2026-12-12",
+    "excludedDates": [
+      "2026-11-10"
+    ],
+    "manualExclusionRequired": true,
+    "manualQaWindows": [
+      "2026-11-10T09:46:00+09:00/2026-11-10T09:55:59+09:00",
+      "2026-11-10T17:21:00+09:00"
+    ],
+    "simpleSubtractionAllowed": false
+  },
+  "knownUnknowns": [
+    "GA4_DATA_FILTER_SETTINGS_AFTER_2026-11-12"
+  ],
+  "evidenceSummary": {
+    "E1": "Production Chrome Network evidence: one affiliate_click at 2026-11-10 17:35:40 JST and one standard click at 17:35:46 JST, both POST/204, measurement ID G-5FQMHQ5X6W, Rakuten affiliate host.",
+    "E2": "Read-only standard GA4 Data API audit completed after 2026-11-12 18:12 JST: target LP plus exact QA marker/run showed affiliate_click=1 and click=1; reconstructed business exclusion conditions removed the same QA row.",
+    "E3": "Property binding confirmed through stream ID 15448656688: property 550074703 to stream 15448656688 to measurement ID G-5FQMHQ5X6W.",
+    "E4": "Final revalidation on 2026-11-14: production and master page hash matched ea2ab4e8a27455128dc1b12779d3ae33a26d2432e8a967f41e791a2d6bf95917 and relevant measurement code was unchanged.",
+    "E5": "2026-11-10 senior-cat LP data is business-KPI-ineligible because markerless manual observations occurred around 09:46-09:55 JST and 17:21 JST; MANUAL_EXCLUSION_REQUIRED, no simple subtraction."
+  },
+  "historyPolicy": {
+    "preservePriorReview": true,
+    "priorReviewId": "senior-cat-affiliate-click-20261110",
+    "retroactiveVerification": false
+  },
+  "canStartExperiment": false,
+  "canPublish": false,
+  "canPost": false
+}
