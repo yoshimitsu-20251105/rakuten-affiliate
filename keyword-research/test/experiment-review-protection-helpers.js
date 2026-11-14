@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
+import { WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
 import { permittedSeniorCatTrackingUpdate, permittedSeniorCatQaQueryUpdate, permittedNullObservationUpdate } from "./senior-cat-affiliate-measurement-helpers.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
@@ -61,9 +62,17 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
   const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", base]).trim().split("\n"));
   const changed = git(repo, ["diff", "--name-only", base, "--", ...historical]).trim().split("\n").filter(Boolean);
   for (const path of changed) {
-    if (approvedTestEdits.has(path) || path === "package.json") continue;
+    if (approvedTestEdits.has(path) && path !== GUARD_PATH || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
+    if (path === WORKFLOW_PATH) {
+      assert(isApprovedDailyAuditChange(before, after), "Only the explicitly authorized audit-only daily workflow may replace the old publisher");
+      continue;
+    }
+    if (path === GUARD_PATH) {
+      assert(isApprovedDailyGuardChange(before, after), "Only the sealed, file-specific daily audit guard maintenance is authorized");
+      continue;
+    }
     if (path === "docs/rankings/senior-cat-food.html" && permittedSeniorCatTrackingUpdate(before, after)) continue;
     if (path === "keyword-research/search-trial-analytics-clients.js" && permittedSeniorCatQaQueryUpdate(before, after)) continue;
     if (permittedNullObservationUpdate(path, before, after)) continue;
