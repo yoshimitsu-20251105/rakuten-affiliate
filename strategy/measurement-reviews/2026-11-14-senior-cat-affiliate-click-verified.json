@@ -19,10 +19,9 @@
     "sendReference": "E1",
     "receiveReference": "E2",
     "qaEventReference": "E2",
-    "applicablePeriod": {
-      "start": "2026-11-14",
-      "end": "2026-12-12"
-    }
+    "targetLP": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+    "eventName": "affiliate_click",
+    "ga4PropertyReference": "properties/550074703"
   },
   "qaIsolation": {
     "queryParameter": "amv2_qa=1",
@@ -62,5 +61,9 @@
   },
   "canStartExperiment": false,
   "canPublish": false,
-  "canPost": false
+  "canPost": false,
+  "applicablePeriod": {
+    "start": "2026-11-14",
+    "end": "2026-12-12"
+  }
 }
