@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile, rename, rm } from "node:fs/promises";
-import { join, resolve, relative, isAbsolute } from "node:path";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
+import { readFile } from "node:fs/promises";
+import { resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -98,17 +99,10 @@ export function validateOutputRoot(root) {
 
 export async function writeRun(root, report) {
   root = validateOutputRoot(root);
-  await ensurePrivateDirectory(root);
+  assertReportRoot(root); await ensurePrivateDirectory(root);
   assert(identifier(report.runId), "invalid runId");
-  const staging = join(root, `.pending-${randomUUID()}`), destination = join(root, report.runId);
-  await mkdir(staging, { mode: 0o700 });
-  try {
-    const metadata = { schemaVersion: SCHEMA_VERSION, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
-      status: report.status, scannerRunId: report.scannerRunId, scannerFileHash: report.scannerFileHash, contextHash: report.contextHash,
-      policy: report.policy, policyHash: report.policyHash, assessmentCount: report.assessments.length, assessmentCountIsNotBusinessKpi: true };
-    for (const [name, contents] of Object.entries({ "assessments.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify(metadata, null, 2) + "\n" })) await writeFile(join(staging, name), contents, { flag: "wx", mode: 0o600 });
-    await mkdir(destination, { mode: 0o700 });
-    try { await rename(staging, destination); }
-    catch (error) { await rm(destination, { recursive: true, force: true }); throw error; }
-  } finally { await rm(staging, { recursive: true, force: true }); }
+  const metadata = { schemaVersion: SCHEMA_VERSION, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
+    status: report.status, scannerRunId: report.scannerRunId, scannerFileHash: report.scannerFileHash, contextHash: report.contextHash,
+    policy: report.policy, policyHash: report.policyHash, assessmentCount: report.assessments.length, assessmentCountIsNotBusinessKpi: true };
+  await writeAtomicReport(root, report.runId, { "assessments.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify(metadata, null, 2) + "\n" });
 }

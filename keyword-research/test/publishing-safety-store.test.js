@@ -1,3 +1,4 @@
+import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile,writeFile,mkdir,lstat,symlink,access } from 'node:fs/promises';
@@ -13,7 +14,7 @@ test('Durable PENDING/RUNNING/COMPLETED history stores required fields, not draf
   for(const k of ['runId','experimentId','candidateId','channel','targetLP','plannedAt','startedAt','finishedAt','contentHash','idempotencyKey','utmCampaign','utmContent','affiliateMeasurementId','browserProfile','humanIntervention','retryCount','errorReason','publishedUrl','finalStatus'])assert(Object.hasOwn(out.run,k),k);
   for(const k of Object.keys(ACTIONS))assert.equal(out.run[k],false);
   const bytes=await readFile(join(temp.root,'ledger.json'),'utf8');assert(!bytes.includes(request.content));assert.equal(out.run.publishedUrl,null);
-  assert.equal((await lstat(temp.root)).mode&0o777,0o700);assert.equal((await lstat(join(temp.root,'ledger.json'))).mode&0o777,0o600);
+  assertPrivateFileType(await lstat(temp.root), 0o700);assertPrivateFileType(await lstat(join(temp.root,'ledger.json')), 0o600);
 });
 test('Persisted duplicate is a no-op; changed content with same key is durably BLOCKED',async(t)=>{
   const temp=await temporary(t),{request,context}=await fixture();await runSafety(temp.root,request,context,options);

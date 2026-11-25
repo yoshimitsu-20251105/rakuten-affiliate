@@ -1,8 +1,7 @@
-import { mkdir, writeFile, rename, rm } from "node:fs/promises";
-import { resolve, join, relative, isAbsolute } from "node:path";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
+import { resolve, relative, isAbsolute } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
 import { ensurePrivateDirectory } from "../funnel-measurement/store.js";
 import { validateBundle } from "./sources.js";
 import { channelProfile } from "./channels.js";
@@ -85,14 +84,8 @@ export function validateOutputRoot(root) {
   assert(path === resolve(DEFAULT_ROOT) || rel && !rel.startsWith("..") && !isAbsolute(rel), "Output must be private Planner root or dedicated OS temp directory"); return path;
 }
 export async function writeRun(root, report) {
-  root = validateOutputRoot(root); await ensurePrivateDirectory(root); assert(identifier(report.runId), "Invalid run ID");
-  const staging = join(root, `.pending-${randomUUID()}`), dest = join(root, report.runId); await mkdir(staging, { mode: 0o700 });
-  try {
-    const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
-      inputHashes: report.inputHashes, policyHash: report.policyHash, planStatus: report.planStatus, planIds: report.plans.map((p) => p.planId), ...OPERATIONS };
-    for (const [name, value] of Object.entries({ "plan.json": report, "report.md": renderMarkdown(report), "run-metadata.json": metadata }))
-      await writeFile(join(staging, name), typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 0o600 });
-    await mkdir(dest, { mode: 0o700 });
-    try { await rename(staging, dest); } catch (error) { await rm(dest, { recursive: true, force: true }); throw error; }
-  } finally { await rm(staging, { recursive: true, force: true }); }
+  root = validateOutputRoot(root); assertReportRoot(root); await ensurePrivateDirectory(root); assert(identifier(report.runId), "Invalid run ID");
+  const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
+    inputHashes: report.inputHashes, policyHash: report.policyHash, planStatus: report.planStatus, planIds: report.plans.map((p) => p.planId), ...OPERATIONS };
+  await writeAtomicReport(root, report.runId, { "plan.json": report, "report.md": renderMarkdown(report), "run-metadata.json": metadata });
 }

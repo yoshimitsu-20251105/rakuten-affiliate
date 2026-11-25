@@ -1,9 +1,10 @@
+import { assertPrivateFileType, fixtureRepository } from "./revenue-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, stat, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync, execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { buildReport, compareRuns, readInputs, writeRun, renderMarkdown, validateOutputRoot } from "../../opportunity-scorer/report.js";
 import { hash } from "../../opportunity-scorer/model.js";
 import { data, run, temporary, AS_OF, hasKey } from "./opportunity-scorer-helpers.js";
@@ -51,8 +52,8 @@ test("private output has all three files, permissions and exclusive run IDs; no 
   assert.deepEqual(await readFile(join(out,report.runId,"assessments.json")),before);
   assert.equal((await readdir(out)).filter(p=>p.startsWith(".pending-")).length,0);
   if(process.platform!=="win32"){
-    assert.equal((await stat(join(out,report.runId))).mode&0o777,0o700);
-    assert.equal((await stat(join(out,report.runId,"assessments.json"))).mode&0o777,0o600);
+    assertPrivateFileType(await stat(join(out,report.runId)), 0o700);
+    assertPrivateFileType(await stat(join(out,report.runId,"assessments.json")), 0o600);
   }
   assert.throws(()=>validateOutputRoot(join(REPO,"docs")));
   const alias=join(root,"alias");await symlink(out,alias);await assert.rejects(writeRun(alias,{...report,runId:"symlink-attempt"}));
@@ -62,18 +63,22 @@ test("private output has all three files, permissions and exclusive run IDs; no 
 
 test("CLI stays offline, preserves inputs/protected files and handles previous-run with no side effects", async(t)=>{
   const {root,write}=await temporary(t),d=await data();
+  const fixture=join(root,"repository");
+  const runGit=await fixtureRepository(REPO,fixture,["docs","strategy","funnel-measurement","market-scanner",
+    ".github/workflows","articles-data.json","selected-products.json","posted-history.json","sitemap-lastmod.json",
+    "select-products.js","generate-site.js","package-lock.json","package.json","opportunity-scorer","lib","keyword-research"]);
   const scannerPath=await write("scanner.json",d.scanner),contextPath=await write("context.json",d.context);
   const inputHashes=[hash(await readFile(scannerPath)),hash(await readFile(contextPath))];
   const guard=await write("network-guard.mjs",'import http from "node:http";import https from "node:https";const fail=()=>{throw Error("UNEXPECTED_NETWORK")};globalThis.fetch=fail;http.get=fail;http.request=fail;https.get=fail;https.request=fail;\n');
   const privateDir=join(root,"runs");
-  const execute=(...args)=>spawnSync(process.execPath,["--import",guard,CLI,"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
+  const execute=(...args)=>spawnSync(process.execPath,["--import",guard,join(fixture,"opportunity-scorer/cli.js"),"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
   let result=execute("--run-id","first");assert.equal(result.status,0,result.stderr);
   result=execute("--run-id","second","--previous-run","first");assert.equal(result.status,0,result.stderr);
   const second=JSON.parse(await readFile(join(privateDir,"second/assessments.json"),"utf8"));
   assert(second.diff.changes.every(c=>c.state==="UNCHANGED"));
   assert.notEqual(execute("--run-id","first").status,0);
   assert.deepEqual([hash(await readFile(scannerPath)),hash(await readFile(contextPath))],inputHashes);
-  execFileSync("git",["diff","--exit-code","HEAD","--","docs","strategy","funnel-measurement","market-scanner",".github/workflows","articles-data.json","selected-products.json","posted-history.json","sitemap-lastmod.json","select-products.js","generate-site.js","package-lock.json"],{cwd:REPO});
+  assert.equal(runGit("status","--porcelain=v1","--untracked-files=all"),"");
 });
 
 test("malformed JSON, missing files, bad hashes and invalid CLI leave no successful report or private names in logs", async(t)=>{
