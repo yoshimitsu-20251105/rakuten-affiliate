@@ -16,6 +16,7 @@ export const approvedTests = new Set([
   "keyword-research/test/learning-engine-store.test.js",
   "keyword-research/test/publishing-safety-store.test.js",
   "keyword-research/test/gkp-path-resolve.test.js",
+  "keyword-research/test/funnel-cli.test.js",
   "keyword-research/test/experiment-review-protection-helpers.js",
   "keyword-research/test/daily-workflow-fail-closed.test.js",
   "keyword-research/test/market-scanner-report.test.js",

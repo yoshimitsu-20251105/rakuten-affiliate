@@ -9,7 +9,7 @@ import { zeroBytes, meta, verified, html, targetLP } from "./funnel-helpers.js";
 
 const cli = fileURLToPath(new URL("../../funnel-measurement/cli.js", import.meta.url));
 const repo = fileURLToPath(new URL("../../", import.meta.url));
-const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { PATH: process.env.PATH } });
+const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { PATH: process.env.PATH, TEMP: tmpdir(), TMP: tmpdir(), TMPDIR: tmpdir() } });
 
 test("CLI zero import/re-import/private reports and measurement gate; docs and protected paths unchanged", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "funnel-cli-"));

@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { assertPrivateFileType, fixtureRepository } from "./revenue-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -71,7 +72,7 @@ test("CLI stays offline, preserves inputs/protected files and handles previous-r
   const inputHashes=[hash(await readFile(scannerPath)),hash(await readFile(contextPath))];
   const guard=await write("network-guard.mjs",'import http from "node:http";import https from "node:https";const fail=()=>{throw Error("UNEXPECTED_NETWORK")};globalThis.fetch=fail;http.get=fail;http.request=fail;https.get=fail;https.request=fail;\n');
   const privateDir=join(root,"runs");
-  const execute=(...args)=>spawnSync(process.execPath,["--import",pathToFileURL(guard).href,join(fixture,"opportunity-scorer/cli.js"),"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
+  const execute=(...args)=>spawnSync(process.execPath,["--import",pathToFileURL(guard).href,join(fixture,"opportunity-scorer/cli.js"),"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,TEMP:tmpdir(),TMP:tmpdir(),TMPDIR:tmpdir(),RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
   let result=execute("--run-id","first");assert.equal(result.status,0,result.stderr);
   result=execute("--run-id","second","--previous-run","first");assert.equal(result.status,0,result.stderr);
   const second=JSON.parse(await readFile(join(privateDir,"second/assessments.json"),"utf8"));
