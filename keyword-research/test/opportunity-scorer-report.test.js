@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, stat, symlink } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { buildReport, compareRuns, readInputs, writeRun, renderMarkdown, validateOutputRoot } from "../../opportunity-scorer/report.js";
 import { hash } from "../../opportunity-scorer/model.js";
@@ -71,7 +71,7 @@ test("CLI stays offline, preserves inputs/protected files and handles previous-r
   const inputHashes=[hash(await readFile(scannerPath)),hash(await readFile(contextPath))];
   const guard=await write("network-guard.mjs",'import http from "node:http";import https from "node:https";const fail=()=>{throw Error("UNEXPECTED_NETWORK")};globalThis.fetch=fail;http.get=fail;http.request=fail;https.get=fail;https.request=fail;\n');
   const privateDir=join(root,"runs");
-  const execute=(...args)=>spawnSync(process.execPath,["--import",guard,join(fixture,"opportunity-scorer/cli.js"),"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
+  const execute=(...args)=>spawnSync(process.execPath,["--import",pathToFileURL(guard).href,join(fixture,"opportunity-scorer/cli.js"),"--scanner-report",scannerPath,"--context",contextPath,"--as-of",AS_OF,"--private-dir",privateDir,...args],{encoding:"utf8",env:{PATH:process.env.PATH,RAKUTEN_APP_ID:"synthetic-do-not-use",GA_SEARCH_CONSOLE_KEY_FILE:"synthetic-do-not-use"}});
   let result=execute("--run-id","first");assert.equal(result.status,0,result.stderr);
   result=execute("--run-id","second","--previous-run","first");assert.equal(result.status,0,result.stderr);
   const second=JSON.parse(await readFile(join(privateDir,"second/assessments.json"),"utf8"));

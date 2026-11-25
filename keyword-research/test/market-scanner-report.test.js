@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { scanManifest, writeRun, renderMarkdown } from "../../market-scanner/report.js";
 import { setup, source, AS_OF } from "./market-scanner-helpers.js";
@@ -61,7 +61,7 @@ test("CLI executes offline, preserves protected assets and supports previous-run
   const manifestPath = await write("manifest.json", manifest);
   const guard = await write("network-guard.mjs", 'import http from "node:http"; import https from "node:https"; const fail=()=>{throw new Error("UNEXPECTED_NETWORK")}; globalThis.fetch=fail; http.request=fail; http.get=fail; https.request=fail; https.get=fail;\n');
   const privateDir = join(root, "private");
-  const run = (...args) => spawnSync(process.execPath, ["--import", guard, join(fixture, "market-scanner/cli.js"), "--manifest", manifestPath, "--as-of", AS_OF, "--private-dir", privateDir, ...args], { encoding: "utf8", env: { PATH: process.env.PATH, RAKUTEN_APP_ID: "synthetic-do-not-use", GA_SEARCH_CONSOLE_KEY_FILE: "synthetic-do-not-use" } });
+  const run = (...args) => spawnSync(process.execPath, ["--import", pathToFileURL(guard).href, join(fixture, "market-scanner/cli.js"), "--manifest", manifestPath, "--as-of", AS_OF, "--private-dir", privateDir, ...args], { encoding: "utf8", env: { PATH: process.env.PATH, RAKUTEN_APP_ID: "synthetic-do-not-use", GA_SEARCH_CONSOLE_KEY_FILE: "synthetic-do-not-use" } });
   const denied = spawnSync(process.execPath, [join(fixture, "market-scanner/cli.js"), "--manifest", manifestPath,
     "--as-of", AS_OF, "--private-dir", join(fixture, "docs"), "--run-id", "denied"], { encoding: "utf8" });
   assert.equal(denied.status, 1, denied.stderr);

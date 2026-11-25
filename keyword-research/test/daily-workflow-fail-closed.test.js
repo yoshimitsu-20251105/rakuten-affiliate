@@ -123,7 +123,7 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
 
 test("Approved regression workflow grants read-only PR checks and leaves publication disabled", async () => {
   const regression = await readFile(join(repo, ".github/workflows/full-regression.yml"), "utf8");
-  assert.equal(sha256(regression), "23271378c6a17a264eefd3bd3f462d5cb8ff2fda03c22f48a7f28767cb66ee03");
+  assert.equal(sha256(regression), "c6dcb29acf67e90528676765700febba05186f3f619a306f2bcf20ece4b3986e");
   assert.match(regression, /on:\n  pull_request:\n\npermissions:\n  contents: read\n/);
   assert.deepEqual([...regression.matchAll(/^\s+(?:- )?run: (.*)$/gm)].map((match) => match[1]),
     ["npm ci", "npm run strategy:validate", "node --test keyword-research/test/atomic-report.test.js", "npm test"]);

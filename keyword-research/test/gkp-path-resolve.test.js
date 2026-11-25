@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, realpath, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, stat, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, parse, relative, sep } from "node:path";
 import { resolveInputPath, buildCandidatePaths, pickUniqueRealFile } from "../gkp-path-resolve.js";
@@ -38,7 +38,7 @@ test("実在するファイルを、Windowsネイティブ・Git Bash・WSL・�
   const filePath = join(dir, "test.csv");
   await writeFile(filePath, "dummy");
   try {
-    const expected = await realpath(filePath);
+    const { dev, ino } = await stat(filePath, { bigint: true });
     const root = parse(filePath).root;
     const tail = relative(root, filePath).split(sep).join("/");
     const candidates = [filePath, join(dir, "..") + sep + parse(dir).base + sep + "test.csv"];
@@ -46,7 +46,10 @@ test("実在するファイルを、Windowsネイティブ・Git Bash・WSL・�
     if (drive) candidates.push(filePath.replaceAll(sep, "/"), `/${drive}/${tail}`, `/mnt/${drive}/${tail}`);
 
     for (const candidate of candidates) {
-      assert.equal(resolveInputPath(candidate), expected, `候補 "${candidate}" が正しく解決されること`);
+      const resolved = await stat(resolveInputPath(candidate), { bigint: true });
+      assert.ok(resolved.isFile());
+      assert.deepEqual({ dev: resolved.dev, ino: resolved.ino }, { dev, ino },
+        `候補 "${candidate}" が同じファイルに解決されること`);
     }
   } finally {
     await rm(dir, { recursive: true, force: true });

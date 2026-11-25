@@ -37,3 +37,7 @@ jobs:
         if: runner.os == 'Windows'
         run: node --test keyword-research/test/atomic-report.test.js
       - run: npm test
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+          TMPDIR: ${{ runner.temp }}
