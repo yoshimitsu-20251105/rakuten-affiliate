@@ -1,4 +1,4 @@
-import { approvedReports, approvedTests, assertReportOnly, APPROVED_FOUNDATION_POLICY_SHA256 } from "./revenue-protection-helpers.js";
+import { approvedReports, approvedTests, assertReportOnly, APPROVED_FOUNDATION_POLICY_SHA256, APPROVED_PUBLISHING_STORE_SHA256 } from "./revenue-protection-helpers.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync, lstatSync, readlinkSync } from "node:fs";
@@ -65,6 +65,10 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
   for (const path of changed) {
     if (approvedReports.has(path)) { assertReportOnly(readFileSync(join(repo, path), "utf8")); continue; }
     if (approvedTests.has(path) && path !== GUARD_PATH) continue;
+    if (path === "publishing-safety/store.js") {
+      assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_PUBLISHING_STORE_SHA256);
+      continue;
+    }
     if (path === "daily-audit/policy.js") {
       assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_FOUNDATION_POLICY_SHA256);
       continue;

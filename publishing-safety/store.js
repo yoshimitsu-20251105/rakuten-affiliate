@@ -65,12 +65,26 @@ export async function readLedger(root) {
   try { return validateLedger(JSON.parse(await readFile(path,'utf8'))); }
   catch(e) {if(e.code==='ENOENT')return {schemaVersion:1,AUTO_PUBLISH:false,events:[]};throw new Error('LEDGER_UNREADABLE_OR_CORRUPT');}
 }
+// Windows cannot sync an open directory. Flush the installed file through a
+// writable handle instead. POSIX keeps the directory-entry durability barrier.
+export async function syncLedgerReplacement(root, path, { platform = process.platform, openHandle = open } = {}) {
+  const windows = platform === 'win32';
+  if (windows) await noSymlink(path);
+  const handle = await openHandle(windows ? path : root, windows ? 'r+' : 'r');
+  try {
+    if (windows) assert((await handle.stat()).isFile(), 'LEDGER_NOT_REGULAR_FILE');
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
 async function persist(root,ledger) {
   validateLedger(ledger);const path=join(root,'ledger.json'),temp=join(root,`.pending-${randomUUID()}`);let file;
   try {
     file=await open(temp,'wx',0o600);await file.writeFile(JSON.stringify(ledger,null,2)+'\n');await file.sync();await file.close();file=null;
     await noSymlink(path);await rename(temp,path);
-    const dir=await open(root,'r');try{await dir.sync();}finally{await dir.close();}
+    await syncLedgerReplacement(root,path);
   } finally {if(file)await file.close();await rm(temp,{force:true});}
 }
 export async function withLedgerLock(root,callback) {
@@ -78,12 +92,20 @@ export async function withLedgerLock(root,callback) {
   try{await mkdir(lock,{mode:0o700});}catch{throw new Error('RUN_LOCK_UNAVAILABLE_MANUAL_RECOVERY_REQUIRED');}
   try {
     const ledger=await readLedger(root);
+    let persistFailure;
     const append=async(run,at)=>{
+      // A failed post-rename sync can leave the new event visible. Freeze this
+      // writer so a recovery append cannot replace it from an older snapshot.
+      if(persistFailure)throw persistFailure;
       const normalized=structuredClone({...run,updatedAt:timestamp(at)});
       for(const k of ['plannedAt','startedAt','finishedAt','validatedAt'])if(normalized[k]!==null)normalized[k]=timestamp(normalized[k]);
       const payload={seq:ledger.events.length+1,previousHash:ledger.events.at(-1)?.eventHash??null,at:timestamp(at),run:normalized};
-      const next={...ledger,events:[...ledger.events,{...payload,eventHash:hash(payload)}]};await persist(root,next);ledger.events=next.events;return structuredClone(payload.run);
+      const next={...ledger,events:[...ledger.events,{...payload,eventHash:hash(payload)}]};
+      try { await persist(root,next); } catch(error) { persistFailure=error;throw error; }
+      ledger.events=next.events;return structuredClone(payload.run);
     };
-    return await callback(ledger,append);
+    const result=await callback(ledger,append);
+    if(persistFailure)throw persistFailure;
+    return result;
   } finally {await rm(lock,{recursive:true,force:true});}
 }

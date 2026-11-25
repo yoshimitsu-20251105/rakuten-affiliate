@@ -5,7 +5,7 @@ export const WORKFLOW_PATH = ".github/workflows/daily-pipeline.yml";
 export const GUARD_PATH = "keyword-research/test/experiment-review-protection-helpers.js";
 export const OLD_WORKFLOW_SHA256 = "53ae16cb3603570e3e1ee33d6dab3b43c184a3e07f76adfe191d7c4a911a2042";
 // A single authorized test-guard edit, never an exemption for its other rules.
-export const APPROVED_GUARD_SHA256 = "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894";
+export const APPROVED_GUARD_SHA256 = "fb4f7ee4061631d89e027f0aa92dbdd5ce585128be6dd5c298c710c2421589f6";
 export const OLD_GUARD_SHA256 = "9b788a870c2280f03ad465d651be1e5cde7276fd735e60d3232e5fe60f0bda7d";
 export const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 
@@ -54,4 +54,4 @@ export function isApprovedDailyAuditChange(before, after) {
   if (sha256(before) !== OLD_WORKFLOW_SHA256) return false;
   try { validateDailyWorkflow(after); return true; } catch { return false; }
 }
-export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;
+export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b", "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;

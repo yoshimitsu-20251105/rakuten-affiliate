@@ -1,10 +1,10 @@
 import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile,writeFile,mkdir,lstat,symlink,access } from 'node:fs/promises';
+import { readFile,writeFile,mkdir,lstat,symlink,access,open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runSafety } from '../../publishing-safety/runner.js';
-import { readLedger,latestRuns,withLedgerLock,validateRoot,REPO } from '../../publishing-safety/store.js';
+import { readLedger,latestRuns,withLedgerLock,validateRoot,syncLedgerReplacement,REPO } from '../../publishing-safety/store.js';
 import { prepare,hash,ACTIONS } from '../../publishing-safety/model.js';
 import { fixture,temporary,AS_OF } from './publishing-safety-helpers.js';
 const options={clock:()=>AS_OF,autoPublishEnvironment:'false'};
@@ -70,4 +70,55 @@ test('Output protection includes repositories under OS temp and symlinked storag
   const repo=join(temp.root,'repo');await mkdir(repo);await writeFile(join(repo,'.git'),'synthetic worktree marker');await assert.rejects(validateRoot(join(repo,'docs')),/REPOSITORY_OUTPUT/);
   await symlink(other.root,join(temp.root,'alias'));await assert.rejects(readLedger(join(temp.root,'alias')));
   await symlink(join(other.root,'ledger.json'),join(temp.root,'ledger.json'));await assert.rejects(readLedger(temp.root));
+});
+
+test('Windows flushes the installed regular file and POSIX flushes the directory', async (t) => {
+  const { root } = await temporary(t);
+  const path = join(root, 'ledger.json');
+  await writeFile(path, '{}');
+  for (const [platform, target, flags] of [['win32', path, 'r+'], ['linux', root, 'r']]) {
+    const calls = [];
+    await syncLedgerReplacement(root, path, { platform, openHandle: async (...args) => {
+      calls.push(args);
+      return {
+        stat: async () => ({ isFile: () => true }),
+        sync: async () => { calls.push('sync'); },
+        close: async () => { calls.push('close'); },
+      };
+    } });
+    assert.deepEqual(calls, [[target, flags], 'sync', 'close']);
+  }
+  const failed = new Error('TEST_WINDOWS_FINAL_SYNC_FAILURE');
+  let closed = false;
+  await assert.rejects(syncLedgerReplacement(root, path, { platform: 'win32', openHandle: async () => ({
+    stat: async () => ({ isFile: () => true }),
+    sync: async () => { throw failed; },
+    close: async () => { closed = true; },
+  }) }), (error) => error === failed);
+  assert.equal(closed, true);
+});
+
+test('A failed post-replacement sync rejects the run and prevents a fallback append', async (t) => {
+  const { root } = await temporary(t);
+  const { request, context } = await fixture();
+  const probe = await open(join(root, 'probe'), 'wx');
+  const prototype = Object.getPrototypeOf(probe);
+  const sync = prototype.sync;
+  await probe.close();
+
+  const failed = new Error('TEST_POST_RENAME_SYNC_FAILURE');
+  let syncCalls = 0;
+  const mock = t.mock.method(prototype, 'sync', function () {
+    if (++syncCalls === 6) return Promise.reject(failed);
+    return sync.call(this);
+  });
+  try {
+    await assert.rejects(runSafety(root, request, context, options), (error) => error === failed);
+    assert.equal(syncCalls, 6);
+  } finally {
+    mock.mock.restore();
+  }
+  const ledger = await readLedger(root);
+  assert.deepEqual(ledger.events.map((event) => event.run.finalStatus), ['PENDING', 'RUNNING', 'COMPLETED']);
+  await assert.rejects(access(join(root, '.run-lock')), { code: 'ENOENT' });
 });

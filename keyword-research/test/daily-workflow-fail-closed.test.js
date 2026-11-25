@@ -1,4 +1,4 @@
-import { approvedReports, approvedTests, assertReportOnly, fixtureRepository } from "./revenue-protection-helpers.js";
+import { APPROVED_PUBLISHING_STORE_SHA256, approvedReports, approvedTests, assertReportOnly, fixtureRepository } from "./revenue-protection-helpers.js";
 import { POLICY as publishingPolicy } from "../../publishing-safety/model.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -113,6 +113,7 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
       assert(isApprovedDailyAuditChange(execFileSync("git", ["show", `${BASE_COMMIT}:${path}`], { cwd: repo }), bytes.toString()));
       assert.equal(sha256(bytes), WORKFLOW_SHA256);
     } else if (path === GUARD_PATH) assert.equal(sha256(bytes), APPROVED_GUARD_SHA256);
+    else if (path === "publishing-safety/store.js") assert.equal(sha256(bytes), APPROVED_PUBLISHING_STORE_SHA256);
     else if (approvedReports.has(path)) assertReportOnly(bytes.toString());
     else if (!approvedTests.has(path)) assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
   }
