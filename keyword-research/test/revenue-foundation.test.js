@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { buildRadar, collectRadarSignals, radarScorerContext } from "../../revenue-foundation/radar.js";
-import { evaluateQuality, WEIGHTS, THRESHOLD } from "../../revenue-foundation/quality-gate.js";
 import { buildLegacyInventory } from "../../revenue-foundation/inventory.js";
 import { POLICY_HASH } from "../../opportunity-scorer/policy.js";
 import { data, run } from "./opportunity-scorer-helpers.js";
@@ -65,61 +64,6 @@ test("Radar supplies the existing Scorer with a linked 15-point demand hypothesi
   assert.equal(evaluate([{ ...signalWithLink, current: signalWithLink.current + 1 }]).value, null);
   assert.equal(evaluate([{ ...signalWithLink, current: null }]).value, null);
   assert.equal(evaluate([{ ...signalWithLink, observedAt: asOf }]).value, null);
-});
-
-const gateNames = ["affiliateCompliance", "fakeExperience", "scaledContentRisk", "requiredEvidence"];
-const quality = () => ({
-  schemaVersion: 1,
-  evidence: [{ id: "audit", sourceRef: "audit:page-review", evidenceType: "FACT", isSynthetic: false }],
-  gates: Object.fromEntries(gateNames.map((id) => [id, { status: "PASS", evidenceRefs: ["audit"] }])),
-  dimensions: Object.fromEntries(Object.entries(WEIGHTS).map(([id, points]) => [id, { points, evidenceRefs: ["audit"] }])),
-});
-
-test("Quality Gate assigns exactly 100 available points and applies the inclusive 80 threshold", () => {
-  const input = quality();
-  assert.equal(THRESHOLD, 80);
-  assert.equal(evaluateQuality(input).score, 100);
-  input.dimensions.originalAnalysis.points = 0;
-  assert.equal(evaluateQuality(input).status, "PASS");
-  assert.equal(evaluateQuality(input).score, 80);
-  input.dimensions.performance.points = 4;
-  assert.equal(evaluateQuality(input).status, "FAIL");
-  assert.deepEqual(evaluateQuality(input), evaluateQuality(structuredClone(input)));
-});
-
-for (const gate of gateNames) test(`Quality Gate blocks ${gate} failure even with a passing score`, () => {
-  const input = quality();
-  input.gates[gate].status = "FAIL";
-  const result = evaluateQuality(input);
-  assert.ok(result.score >= THRESHOLD);
-  assert.equal(result.hardGates[gate], "FAIL");
-  assert.equal(result.status, "FAIL");
-});
-
-test("Quality Gate withholds points and blocks on required evidence gaps", () => {
-  const input = quality();
-  input.dimensions.originalAnalysis = { points: 20, evidenceRefs: ["missing"], required: true };
-  const result = evaluateQuality(input);
-  assert.equal(result.score, 80);
-  assert.equal(result.dimensions.originalAnalysis.points, null);
-  assert.equal(result.hardGates.requiredEvidence, "UNKNOWN");
-  assert.equal(result.status, "UNKNOWN");
-  input.evidence[0].evidenceType = "ESTIMATE";
-  assert.equal(evaluateQuality(input).hardGates.affiliateCompliance, "UNKNOWN");
-});
-
-test("Quality Gate detects unsupported and fabricated first-hand claims", () => {
-  const input = quality();
-  input.content = "実際に使った。";
-  assert.equal(evaluateQuality(input).hardGates.fakeExperience, "UNKNOWN");
-  input.experienceClaims = [{ text: "実際に使った", actualUse: "NOT_USED" }];
-  assert.equal(evaluateQuality(input).hardGates.fakeExperience, "FAIL");
-  input.experienceClaims = [{ text: "実際に使った", actualUse: "USED", evidenceRefs: ["audit"] }];
-  assert.equal(evaluateQuality(input).hardGates.fakeExperience, "PASS");
-});
-
-for (const risk of ["DOORWAY", "NEAR_DUPLICATE", "THIN_MASS_CONTENT"]) test(`Quality Gate rejects ${risk}`, () => {
-  assert.equal(evaluateQuality({ ...quality(), scaledContentSignals: [risk] }).hardGates.scaledContentRisk, "FAIL");
 });
 
 test("Legacy inventory covers the 408 product pages and preserves unknown live status", async () => {

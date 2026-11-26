@@ -10,7 +10,10 @@ async function main() {
   const [command, input, scannerPath, extra] = process.argv.slice(2);
   if (extra) throw Error("Too many arguments");
   if (command === "inventory" && !input) return buildLegacyInventory(fileURLToPath(new URL("../docs/", import.meta.url)));
-  if (command === "quality" && input && !scannerPath) return evaluateQuality(await json(input));
+  if (command === "quality" && input) {
+    const verifiedEvidence = scannerPath ? await json(scannerPath) : [];
+    return evaluateQuality(await json(input), { verifiedEvidence });
+  }
   if (command === "radar" && input && !scannerPath) return buildRadar(await json(input));
   if (command === "scorer-context" && input && scannerPath) {
     const scanner = await json(scannerPath);
@@ -18,7 +21,7 @@ async function main() {
     validateInputs(scanner, context);
     return context;
   }
-  throw Error("Expected inventory, quality <input>, radar <input>, or scorer-context <radar-input> <scanner-report>");
+  throw Error("Expected inventory, quality <input> [verified-register], radar <input>, or scorer-context <radar-input> <scanner-report>");
 }
 
 main().then((result) => console.log(JSON.stringify(result, null, 2))).catch(() => {

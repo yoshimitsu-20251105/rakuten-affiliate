@@ -3,7 +3,7 @@
 ```sh
 node revenue-foundation/cli.js radar /private/radar-input.json
 node revenue-foundation/cli.js scorer-context /private/radar-input.json /private/scanner-report.json
-node revenue-foundation/cli.js quality /private/quality-review.json
+node revenue-foundation/cli.js quality /private/quality-artifact.json /private/verified-observations.json
 node revenue-foundation/cli.js inventory
 ```
 
@@ -21,9 +21,25 @@ Scorer との連携には `scannerCandidateId` と各比較の `scannerEvidenceR
 
 ## Quality Gate
 
-入力は `schemaVersion: 1`、`evidence[]`（`id`、`sourceRef`、`evidenceType`、`isSynthetic`）、`gates`（各ゲートの `status` と `evidenceRefs`）、`dimensions`（各項目の `points`、`evidenceRefs`、任意の `required`）。SERP、検索意図、比較根拠、クロール、内部リンク、構造化データ、端末・性能の監査結果は該当項目の evidence として渡せる。合成根拠は加点に使用しない。
+評価対象 JSON は `schemaVersion: 1`、`targetUrl`（または `pagePath`）、`html`（または `content`）、UTF-8 HTML の SHA-256 を表す `targetHash`、タイムゾーン付きの `asOf` を指定する。Gate は HTML からハッシュを再計算して出力し、申告ハッシュが異なる場合は FAIL。caller の点数、判定、evidenceRefs は採点に使用しない。
 
-任意の `content` は日本語・英語の代表的な実使用表現を検出する。`experienceClaims` には `text`、`actualUse`（USED / NOT_USED / UNKNOWN）、`evidenceRefs`、任意の `firstHand` を渡す。`scaledContentSignals` は監査で確認した DOORWAY / NEAR_DUPLICATE / THIN_MASS_CONTENT を渡す。自由文の意味判定や、外部サイトへの照会は行わない。
+第2ファイルは、評価対象の提出元と独立して管理する検証済み観測の JSON 配列。プログラムからは `evaluateQuality(input, { verifiedEvidence })` で渡す。レビュー担当者または測定処理が観測を検証し、CLI の実行者が信頼できるレジスターを選ぶ。Gate 自体は外部ソースの認証や取得を行わない。レジスターを省略した場合、外部観測が必要な採点項目と gate は確認できない。
+
+各レコードには `id`、`sourceRef`、`evidenceType: "FACT"`、`isSynthetic: false`、単一の `appliesTo`、`targetHash`、タイムゾーン付き `observedAt`、`observation` が必要。適用先、対象ハッシュ、取得日時、観測の型を照合し、未来・期限切れ・合成・不足した根拠は採用しない。新鮮さを要する SERP、鮮度、性能、類似性調査は30日、その他は90日以内。根拠が衝突した場合は低い点数を採用する。
+
+| appliesTo | observation |
+|---|---|
+| searchIntentFit | `query`, `reviewedResults`, `intent`（TRANSACTIONAL / COMMERCIAL / INFORMATIONAL / NAVIGATIONAL）, `pageQuote` |
+| originalAnalysis | `pageQuote`, `method`（UNIT_COST / MEASURED_TEST / COMPARATIVE_ANALYSIS / NONE）, `independentInputs`, `reproducible` |
+| comparisonSpecificity | `pageQuote`, `comparedProducts`, `comparisonCriteria` |
+| freshness | `checkedAt`, `materialFactsCurrent` |
+| evidence | `pageQuote`, `checkedClaims`, `supportedClaims` |
+| performance | `device: "MOBILE"`, `lcpMs`, `inpMs`, `cls` |
+| ctaFit | `linkLabel`, `destinationMatches` |
+| scaledContentRisk | `comparedPages`, `maxSimilarity`（0〜1）, `doorwayPages`, `thinPages` |
+| fakeExperience | `claim`（HTML から抽出した文）, `actualUse`（USED / NOT_USED） |
+
+静的 HTML から title/H1、内部リンク、viewport、広告明示、Rakuten または sponsored のリンク属性、実使用表現を検査する。静的検査の範囲は HTML で確認できる要素・属性に限る。検索意図、独自分析、根拠の検証は必須。80点以上、かつ4つの Hard Gate がすべて PASS の場合に総合 PASS とする。
 
 ## Legacy inventory
 
