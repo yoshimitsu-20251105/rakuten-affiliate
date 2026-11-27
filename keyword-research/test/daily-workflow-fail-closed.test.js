@@ -12,6 +12,7 @@ import { BASE_COMMIT, WORKFLOW_PATH, GUARD_PATH, WORKFLOW_SHA256, APPROVED_GUARD
   validateDailyWorkflow, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
 import { evaluateSavedState, readSavedState, renderSummary, appendActionsSummary, NO_ACTIONS } from "../../daily-audit/report.js";
 import * as shared from "./experiment-review-protection-helpers.js";
+const { PETFOOD_LINK_PATH, isApprovedPetfoodLink } = shared;
 import * as safety from "./protected-assets-helpers.js";
 
 const repo = fileURLToPath(new URL("../../", import.meta.url));
@@ -114,12 +115,23 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
       assert.equal(sha256(bytes), WORKFLOW_SHA256);
     } else if (path === GUARD_PATH) assert.equal(sha256(bytes), APPROVED_GUARD_SHA256);
     else if (path === "publishing-safety/store.js") assert.equal(sha256(bytes), APPROVED_PUBLISHING_STORE_SHA256);
+    else if (path === PETFOOD_LINK_PATH) assert(isApprovedPetfoodLink(path, git("show", `${BASE_COMMIT}:${path}`), bytes), path);
     else if (approvedReports.has(path)) assertReportOnly(bytes.toString());
     else if (!approvedTests.has(path)) assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
   }
   const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
   for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...(prefix === ".github/" ? [".github/workflows/full-regression.yml"] : [])].sort());
   assert.equal(baselinePaths.filter(p => p.startsWith("docs/articles/") && p.endsWith(".html")).length, 408);
+});
+
+test("Pet food link authorization rejects extra edits and any other HTML target", async () => {
+  const original = git("show", `113c94d9219856a1f111ae8a20d6430f13ccac27:${PETFOOD_LINK_PATH}`);
+  const approved = await readFile(join(repo, PETFOOD_LINK_PATH), "utf8");
+  assert(isApprovedPetfoodLink(PETFOOD_LINK_PATH, original, approved));
+  assert(!isApprovedPetfoodLink(PETFOOD_LINK_PATH, original, approved.replace('href="senior-cat-food.html"', 'href="all.html"')));
+  assert(!isApprovedPetfoodLink(PETFOOD_LINK_PATH, original, approved.replace("<h1>", "<h1>改変")));
+  assert(!isApprovedPetfoodLink(PETFOOD_LINK_PATH, original + "\n", approved));
+  assert(!isApprovedPetfoodLink("docs/rankings/senior-cat-food.html", original, approved));
 });
 
 test("Approved regression workflow grants read-only PR checks and leaves publication disabled", async () => {
