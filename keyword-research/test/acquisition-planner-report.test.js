@@ -1,3 +1,4 @@
+import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./experiment-review-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +15,7 @@ test("Private run persists immutable complete plan and metadata with private mod
   const temp = await temporary(t), r = run(await setup()); await writeRun(temp.root, r);
   assert.deepEqual((await readdir(join(temp.root, r.runId))).sort(), ["plan.json", "report.md", "run-metadata.json"]);
   assert.deepEqual(JSON.parse(await readFile(join(temp.root, r.runId, "plan.json"))), r);
-  assert.equal((await stat(join(temp.root, r.runId))).mode & 0o777, 0o700); assert.equal((await stat(join(temp.root, r.runId, "plan.json"))).mode & 0o777, 0o600);
+  assertPrivateFileType(await stat(join(temp.root, r.runId)), 0o700); assertPrivateFileType(await stat(join(temp.root, r.runId, "plan.json")), 0o600);
   await assert.rejects(writeRun(temp.root, r)); assert.deepEqual(JSON.parse(await readFile(join(temp.root, r.runId, "plan.json"))), r);
 });
 test("Root restrictions, symlinks and duplicate run ID cannot overwrite protected files", async (t) => {

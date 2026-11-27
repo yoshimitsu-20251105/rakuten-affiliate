@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
 import { fileURLToPath } from "node:url";
 import { join, resolve, relative, isAbsolute } from "node:path";
 import { tmpdir } from "node:os";
@@ -32,6 +33,7 @@ async function privateRoot(args) {
   const root = resolve(args["private-dir"]);
   const rel = relative(resolve(tmpdir()), root);
   assert(rel && !rel.startsWith("..") && !isAbsolute(rel), "--private-dirは一時領域の専用サブディレクトリのみ対応します");
+  assertReportRoot(root, new Set());
   return ensurePrivateDirectory(root);
 }
 
@@ -61,19 +63,8 @@ async function main() {
     const runId = args["run-id"] ?? randomUUID();
     assert(/^[a-zA-Z0-9_-]+$/.test(runId), "run-idが不正です");
     const output = await ensurePrivateDirectory(join(root, "report-runs"));
-    const staging = join(output, `.pending-${randomUUID()}`);
-    await mkdir(staging, { mode: 0o700 });
-    const { rename, rm } = await import("node:fs/promises");
-    try {
-      await writeFile(join(staging, "report.json"), JSON.stringify(report, null, 2) + "\n", { flag: "wx", mode: 0o600 });
-      await writeFile(join(staging, "report.md"), renderFunnelMarkdown(report), { flag: "wx", mode: 0o600 });
-      // mkdir is an exclusive reservation; concurrent/same run IDs cannot overwrite results.
-      const destination = join(output, runId);
-      await mkdir(destination, { mode: 0o700 });
-      try { await rename(staging, destination); }
-      catch (error) { await rm(destination, { recursive: true, force: true }); throw error; }
-      console.log(JSON.stringify({ status: "REPORTED", runId, importId: snapshot?.batch.importId ?? null }));
-    } finally { await rm(staging, { recursive: true, force: true }); }
+    await writeAtomicReport(output, runId, { "report.json": report, "report.md": renderFunnelMarkdown(report) });
+    console.log(JSON.stringify({ status: "REPORTED", runId, importId: snapshot?.batch.importId ?? null }));
   } else if (command === "validate-measurement") {
     const record = validateMeasurementRecord(await json(required(args, "measurement-record")));
     const root = await ensurePrivateDirectory(join(await privateRoot(args), "measurement-records"));

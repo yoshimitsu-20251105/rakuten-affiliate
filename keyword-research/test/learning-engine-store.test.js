@@ -1,3 +1,4 @@
+import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir, symlink, lstat } from "node:fs/promises";
@@ -75,7 +76,7 @@ test("atomic transaction and lock failure leave existing ledger unchanged", asyn
   assert.equal(await readFile(join(temp.root, "ledger.json"), "utf8"), before);
   await mkdir(join(temp.root, ".import-lock")); await assert.rejects(transact(temp.root, "AFFILIATE_MONETIZATION", () => b.additions));
   assert.equal(await readFile(join(temp.root, "ledger.json"), "utf8"), before);
-  assert.equal((await lstat(join(temp.root, "ledger.json"))).mode & 0o777, 0o600);
+  assertPrivateFileType(await lstat(join(temp.root, "ledger.json")), 0o600);
 });
 test("corrupt or unknown-version ledger is never replaced by empty data", async (t) => {
   const temp = await temporary(t), b = base();

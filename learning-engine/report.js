@@ -1,4 +1,4 @@
-import { mkdir, writeFile, rename, rm } from "node:fs/promises";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { ensurePrivateDirectory } from "../funnel-measurement/store.js";
@@ -97,17 +97,10 @@ export function renderMarkdown(r) {
   return lines.join("\n") + "\n";
 }
 export async function writeRun(root, report) {
-  root = validateRoot(root); assert(identifier(report.runId), "Invalid run ID"); await ensurePrivateDirectory(root);
+  root = validateRoot(root); assert(identifier(report.runId), "Invalid run ID"); assertReportRoot(root, new Set(["reports/learning-engine"])); await ensurePrivateDirectory(root);
   const runs = join(root, "runs"); await ensurePrivateDirectory(runs);
-  const staging = join(runs, `.pending-${randomUUID()}`), destination = join(runs, report.runId);
-  await mkdir(staging, { mode: 0o700 }); let reserved = false;
-  try {
-    const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
-      ledgerHash: report.ledgerHash, inputHashes: report.inputHashes, proposalHash: report.proposalHash, policyVersion: report.policyVersion,
-      policyHash: report.policyHash, isSynthetic: report.isSynthetic, status: report.status, outputType: report.outputType, countsAreNotBusinessKpis: true };
-    for (const [name, contents] of Object.entries({ "review.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify(metadata, null, 2) + "\n" }))
-      await writeFile(join(staging, name), contents, { mode: 0o600, flag: "wx" });
-    await mkdir(destination, { mode: 0o700 }); reserved = true;
-    await rename(staging, destination); reserved = false;
-  } finally { await rm(staging, { recursive: true, force: true }); if (reserved) await rm(destination, { recursive: true, force: true }); }
+  const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
+    ledgerHash: report.ledgerHash, inputHashes: report.inputHashes, proposalHash: report.proposalHash, policyVersion: report.policyVersion,
+    policyHash: report.policyHash, isSynthetic: report.isSynthetic, status: report.status, outputType: report.outputType, countsAreNotBusinessKpis: true };
+  await writeAtomicReport(runs, report.runId, { "review.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify(metadata, null, 2) + "\n" });
 }

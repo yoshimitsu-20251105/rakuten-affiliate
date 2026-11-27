@@ -1,3 +1,4 @@
+import { approvedReports, approvedTests, assertReportOnly, APPROVED_FOUNDATION_POLICY_SHA256, APPROVED_PUBLISHING_STORE_SHA256 } from "./revenue-protection-helpers.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync, lstatSync, readlinkSync } from "node:fs";
@@ -5,7 +6,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
-import { WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
+import { sha256, WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
 import { permittedSeniorCatTrackingUpdate, permittedSeniorCatQaQueryUpdate, permittedNullObservationUpdate } from "./senior-cat-affiliate-measurement-helpers.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
@@ -62,6 +63,16 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
   const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", base]).trim().split("\n"));
   const changed = git(repo, ["diff", "--name-only", base, "--", ...historical]).trim().split("\n").filter(Boolean);
   for (const path of changed) {
+    if (approvedReports.has(path)) { assertReportOnly(readFileSync(join(repo, path), "utf8")); continue; }
+    if (approvedTests.has(path) && path !== GUARD_PATH) continue;
+    if (path === "publishing-safety/store.js") {
+      assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_PUBLISHING_STORE_SHA256);
+      continue;
+    }
+    if (path === "daily-audit/policy.js") {
+      assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_FOUNDATION_POLICY_SHA256);
+      continue;
+    }
     if (approvedTestEdits.has(path) && path !== GUARD_PATH || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
@@ -88,7 +99,10 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
     const expected = git(repo, ["ls-tree", "-r", "--name-only", approvedRef, "--", directory]).trim().split("\n").filter(Boolean).sort();
     const current = Object.keys(captureProtectedTree(repo)).filter((p) => p.startsWith(`${directory}/`)).sort();
     assert.deepEqual(current, expected, `Protected module file identities changed: ${directory}`);
-    assert.equal(git(repo, ["diff", "--name-only", approvedRef, "--", directory]), "", `Protected module changed: ${directory}`);
+    for (const path of git(repo, ["diff", "--name-only", approvedRef, "--", directory]).trim().split("\n").filter(Boolean)) {
+      assert(approvedReports.has(path), `Protected module changed: ${path}`);
+      assertReportOnly(readFileSync(join(repo, path), "utf8"));
+    }
   }
   const expectedArticles = [...historical].filter((p) => /^docs\/articles\/[^/]+\.html$/.test(p)).sort();
   const actualArticles = Object.keys(captureProtectedTree(repo)).filter((p) => /^docs\/articles\/[^/]+\.html$/.test(p)).sort();

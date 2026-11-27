@@ -1,3 +1,5 @@
+import { APPROVED_PUBLISHING_STORE_SHA256, approvedReports, approvedTests, assertReportOnly, fixtureRepository } from "./revenue-protection-helpers.js";
+import { POLICY as publishingPolicy } from "../../publishing-safety/model.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
@@ -101,7 +103,7 @@ test("Safety and daily audit retain the shared closure-aware guard functions", (
   assert(!shared.permittedGeneratedUpdate("docs/rankings/item.html", old, old.replace("affiliate", "different")));
 });
 
-test("Only the exact authorized workflow and sealed guard differ from the new master; all other baseline files retain their Git blob hashes", async () => {
+test("Baseline assets retain their Git blobs outside the approved audit, report and test changes", async () => {
   const entries = execFileSync("git", ["ls-tree", "-rz", BASE_COMMIT], { cwd: repo }).toString().split("\0").filter(Boolean);
   const baselinePaths = [];
   for (const entry of entries) {
@@ -111,11 +113,35 @@ test("Only the exact authorized workflow and sealed guard differ from the new ma
       assert(isApprovedDailyAuditChange(execFileSync("git", ["show", `${BASE_COMMIT}:${path}`], { cwd: repo }), bytes.toString()));
       assert.equal(sha256(bytes), WORKFLOW_SHA256);
     } else if (path === GUARD_PATH) assert.equal(sha256(bytes), APPROVED_GUARD_SHA256);
-    else assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
+    else if (path === "publishing-safety/store.js") assert.equal(sha256(bytes), APPROVED_PUBLISHING_STORE_SHA256);
+    else if (approvedReports.has(path)) assertReportOnly(bytes.toString());
+    else if (!approvedTests.has(path)) assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
   }
   const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
-  for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), baselinePaths.filter(p => p.startsWith(prefix)).sort());
+  for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...(prefix === ".github/" ? [".github/workflows/full-regression.yml"] : [])].sort());
   assert.equal(baselinePaths.filter(p => p.startsWith("docs/articles/") && p.endsWith(".html")).length, 408);
+});
+
+test("Approved regression workflow grants read-only PR checks and leaves publication disabled", async () => {
+  const regression = await readFile(join(repo, ".github/workflows/full-regression.yml"), "utf8");
+  assert.equal(sha256(regression), "c6dcb29acf67e90528676765700febba05186f3f619a306f2bcf20ece4b3986e");
+  assert.match(regression, /on:\n  pull_request:\n\npermissions:\n  contents: read\n/);
+  assert.deepEqual([...regression.matchAll(/^\s+(?:- )?run: (.*)$/gm)].map((match) => match[1]),
+    ["npm ci", "npm run strategy:validate", "node --test keyword-research/test/atomic-report.test.js", "npm test"]);
+  assert.deepEqual([...regression.matchAll(/^\s+- uses: (.*)$/gm)].map((match) => match[1]),
+    ["actions/checkout@v4", "actions/setup-node@v4"]);
+  assert.doesNotMatch(regression, /workflow_dispatch|schedule|secrets\.|write-all|:\s*write\b|run-pipeline|deploy-pages/);
+  const proofPath = "strategy/measurement-reviews/2026-11-14-senior-cat-affiliate-click-verified.json";
+  const proof = await readFile(join(repo, proofPath));
+  assert.equal(git("rev-parse", `fab568c1:${proofPath}`).trim(), "9dddf7ebad1f0640fae1f545d72fdc4d14ad0427");
+  assert.deepEqual(proof, execFileSync("git", ["show", `fab568c1:${proofPath}`], { cwd: repo }));
+  assert.equal(JSON.parse(proof).affiliateClickMeasurementStatus, "VERIFIED");
+  assert.equal(publishingPolicy.AUTO_PUBLISH, false);
+  assert.equal(publishingPolicy.executionMode, "DRY_RUN_ONLY");
+  assert.equal(publishingPolicy.browserExecutorConnected, false);
+  const saved = evaluateSavedState(registryBytes, summaryBytes);
+  assert.equal(saved.monetizationLimit, 1);
+  noActions(saved);
 });
 
 test("The two file-specific authorizations reject tampered old/new workflow or guard bytes", async () => {
@@ -138,13 +164,30 @@ test("Actions Summary is written only outside the repository; protected files an
   assert.deepEqual(await readFile(join(repo, "strategy/experiments.json")), before);
 });
 
-test("Scheduled CLI reports a hold only on a clean tree, fails closed on pending changes, and preserves every byte and Git status", () => {
-  const status = git("status", "--porcelain=v1", "--untracked-files=all"), clean = status === "";
-  const before = shared.captureProtectedTree(repo);
-  const child = spawnSync(process.execPath, ["daily-audit/cli.js", "--checks-status", "success"], { cwd: repo, encoding: "utf8", env: { PATH: process.env.PATH, GITHUB_EVENT_NAME: "schedule", AUTO_PUBLISH: "true" } });
-  assert.equal(child.status, clean ? 0 : 1, child.stderr);
-  assert(child.stdout.includes(clean ? "安全に公開を見送り" : "検証未完了")); assert(child.stdout.includes("AUTO_PUBLISH: false"));
-  assert.equal(git("status", "--porcelain=v1", "--untracked-files=all"), status); shared.assertProtectedTreeUnchanged(before, shared.captureProtectedTree(repo));
+test("Scheduled CLI accepts a clean fixture and fails closed on tracked and untracked changes", async (t) => {
+  const temp = await mkdtemp(join(tmpdir(), "daily-audit-repo-"));
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const fixture = join(temp, "repo");
+  const runGit = await fixtureRepository(repo, fixture, ["package.json", "daily-audit", "strategy"]);
+  const registry = join(fixture, "strategy/experiments.json");
+  const exercise = (expected) => {
+    const before = shared.captureProtectedTree(fixture);
+    const status = runGit("status", "--porcelain=v1", "--untracked-files=all");
+    const child = spawnSync(process.execPath, ["daily-audit/cli.js", "--checks-status", "success"], {
+      cwd: fixture, encoding: "utf8", env: { ...process.env, GITHUB_STEP_SUMMARY: "", GITHUB_EVENT_NAME: "schedule", AUTO_PUBLISH: "true" },
+    });
+    assert.equal(child.status, expected, child.stderr);
+    assert(child.stdout.includes(expected === 0 ? "安全に公開を見送り" : "検証未完了"));
+    assert(child.stdout.includes("AUTO_PUBLISH: false"));
+    assert.equal(runGit("status", "--porcelain=v1", "--untracked-files=all"), status);
+    shared.assertProtectedTreeUnchanged(before, shared.captureProtectedTree(fixture));
+  };
+  exercise(0);
+  await writeFile(join(fixture, "pending.txt"), "untracked");
+  exercise(1);
+  await rm(join(fixture, "pending.txt"));
+  await writeFile(registry, Buffer.concat([registryBytes, Buffer.from("\n")]));
+  exercise(1);
 });
 
 test("CLI rejects publication/bypass options and failed validation exits nonzero without granting any action", () => {

@@ -2,9 +2,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, stat, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, parse, relative, sep } from "node:path";
 import { resolveInputPath, buildCandidatePaths, pickUniqueRealFile } from "../gkp-path-resolve.js";
 
 test("存在しないファイルはエラーになる", () => {
@@ -38,17 +38,18 @@ test("実在するファイルを、Windowsネイティブ・Git Bash・WSL・�
   const filePath = join(dir, "test.csv");
   await writeFile(filePath, "dummy");
   try {
-    const drive = filePath[0].toLowerCase();
-    const rest = filePath.slice(3).replace(/\\/g, "/"); // "C:\foo\bar" -> "foo/bar"
+    const { dev, ino } = await stat(filePath, { bigint: true });
+    const root = parse(filePath).root;
+    const tail = relative(root, filePath).split(sep).join("/");
+    const candidates = [filePath, join(dir, "..") + sep + parse(dir).base + sep + "test.csv"];
+    const drive = /^([a-z]):/i.exec(root)?.[1].toLowerCase();
+    if (drive) candidates.push(filePath.replaceAll(sep, "/"), `/${drive}/${tail}`, `/mnt/${drive}/${tail}`);
 
-    const winNative = filePath; // "C:\foo\bar\test.csv"
-    const winForward = filePath.replace(/\\/g, "/"); // "C:/foo/bar/test.csv"
-    const gitBash = `/${drive}/${rest}`; // "/c/foo/bar/test.csv"
-    const wsl = `/mnt/${drive}/${rest}`; // "/mnt/c/foo/bar/test.csv"
-
-    for (const candidate of [winNative, winForward, gitBash, wsl]) {
-      const resolved = resolveInputPath(candidate);
-      assert.equal(resolved.toLowerCase(), filePath.toLowerCase(), `候補 "${candidate}" が正しく解決されること`);
+    for (const candidate of candidates) {
+      const resolved = await stat(resolveInputPath(candidate), { bigint: true });
+      assert.ok(resolved.isFile());
+      assert.deepEqual({ dev: resolved.dev, ino: resolved.ino }, { dev, ino },
+        `候補 "${candidate}" が同じファイルに解決されること`);
     }
   } finally {
     await rm(dir, { recursive: true, force: true });

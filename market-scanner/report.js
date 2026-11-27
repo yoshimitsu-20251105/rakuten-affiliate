@@ -1,5 +1,4 @@
-import { mkdir, writeFile, rename, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
 import { randomUUID } from "node:crypto";
 import { ensurePrivateDirectory } from "../funnel-measurement/store.js";
 import { loadSources } from "./sources.js";
@@ -72,14 +71,7 @@ export function renderMarkdown(report) {
 }
 
 export async function writeRun(root, report) {
-  await ensurePrivateDirectory(root);
+  assertReportRoot(root); await ensurePrivateDirectory(root);
   assert(/^[a-zA-Z0-9_-]+$/.test(report.runId), "runIdが不正です");
-  const staging = join(root, `.pending-${randomUUID()}`), destination = join(root, report.runId);
-  await mkdir(staging, { mode: 0o700 });
-  try {
-    for (const [name, value] of Object.entries({ "candidates.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify({ schemaVersion: SCHEMA_VERSION, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit, status: report.status, manifestHash: report.manifestHash, policy: report.policy, inputs: report.inputs, candidateCount: report.candidates.length, candidateCountIsNotBusinessKpi: true }, null, 2) + "\n" })) await writeFile(join(staging, name), value, { flag: "wx", mode: 0o600 });
-    await mkdir(destination, { mode: 0o700 });
-    try { await rename(staging, destination); }
-    catch (error) { await rm(destination, { recursive: true, force: true }); throw error; }
-  } finally { await rm(staging, { recursive: true, force: true }); }
+  await writeAtomicReport(root, report.runId, { "candidates.json": JSON.stringify(report, null, 2) + "\n", "report.md": renderMarkdown(report), "run-metadata.json": JSON.stringify({ schemaVersion: SCHEMA_VERSION, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit, status: report.status, manifestHash: report.manifestHash, policy: report.policy, inputs: report.inputs, candidateCount: report.candidates.length, candidateCountIsNotBusinessKpi: true }, null, 2) + "\n" });
 }

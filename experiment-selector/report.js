@@ -1,5 +1,5 @@
-import { mkdir, writeFile, rename, rm } from "node:fs/promises";
-import { join, resolve, relative, isAbsolute } from "node:path";
+import { assertReportRoot, writeAtomicReport } from "../lib/atomic-report.js";
+import { resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -54,15 +54,8 @@ export function validateOutputRoot(root) {
   assert(path === resolve(DEFAULT_ROOT) || rel && !rel.startsWith("..") && !isAbsolute(rel), "Output must be private Selector root or dedicated OS temporary directory"); return path;
 }
 export async function writeRun(root, report) {
-  root = validateOutputRoot(root); await ensurePrivateDirectory(root); assert(identifier(report.runId), "Invalid run ID");
-  const staging = join(root, `.pending-${randomUUID()}`), destination = join(root, report.runId);
-  await mkdir(staging, { mode: 0o700 });
-  try {
-    const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
-      inputHashes: report.inputHashes, policyHash: report.policyHash, status: report.status, recommendationCount: report.recommendationCount, canStartExperiment: false };
-    for (const [name, value] of Object.entries({ "selection.json": report, "run-metadata.json": metadata, "report.md": renderMarkdown(report) }))
-      await writeFile(join(staging, name), typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n", { mode: 0o600, flag: "wx" });
-    await mkdir(destination, { mode: 0o700 });
-    try { await rename(staging, destination); } catch (error) { await rm(destination, { recursive: true, force: true }); throw error; }
-  } finally { await rm(staging, { recursive: true, force: true }); }
+  root = validateOutputRoot(root); assertReportRoot(root); await ensurePrivateDirectory(root); assert(identifier(report.runId), "Invalid run ID");
+  const metadata = { schemaVersion: 1, runId: report.runId, asOf: report.asOf, generatedAt: report.generatedAt, codeCommit: report.codeCommit,
+    inputHashes: report.inputHashes, policyHash: report.policyHash, status: report.status, recommendationCount: report.recommendationCount, canStartExperiment: false };
+  await writeAtomicReport(root, report.runId, { "selection.json": report, "run-metadata.json": metadata, "report.md": renderMarkdown(report) });
 }

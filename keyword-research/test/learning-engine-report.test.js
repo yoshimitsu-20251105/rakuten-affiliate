@@ -1,3 +1,4 @@
+import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./experiment-review-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -26,7 +27,7 @@ test("run output is private, immutable and excludes source paths", async (t) => 
   const temp = await temporary(t), b = base(), r = buildReport(b.ledger, { asOf: AS_OF, generatedAt: AS_OF, runId: "private", isSynthetic: true });
   await writeRun(temp.root, r); const dir = join(temp.root, "runs/private");
   assert.deepEqual((await readdir(dir)).sort(), ["report.md", "review.json", "run-metadata.json"]);
-  assert.equal((await lstat(join(dir, "review.json"))).mode & 0o777, 0o600); assert.equal((await lstat(dir)).mode & 0o777, 0o700);
+  assertPrivateFileType(await lstat(join(dir, "review.json")), 0o600); assertPrivateFileType(await lstat(dir), 0o700);
   const before = await readFile(join(dir, "review.json"), "utf8"); await assert.rejects(writeRun(temp.root, r));
   assert.equal(await readFile(join(dir, "review.json"), "utf8"), before); assert.equal(before.includes(temp.root), false);
 });

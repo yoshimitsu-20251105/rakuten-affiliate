@@ -1,9 +1,11 @@
+import { tmpdir } from "node:os";
+import { fixtureRepository } from "./revenue-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { spawnSync, execFileSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
 import { scanManifest, writeRun, renderMarkdown } from "../../market-scanner/report.js";
 import { setup, source, AS_OF } from "./market-scanner-helpers.js";
 
@@ -51,12 +53,20 @@ test("private JSON/Markdown/metadata are complete, exclusive and cannot overwrit
 
 test("CLI executes offline, preserves protected assets and supports previous-run; bad input leaves no report", async (t) => {
   const { root, write } = await setup(t);
+  const protectedPaths = ["docs", "funnel-measurement", ".github/workflows", "strategy", "select-products.js", "generate-site.js", "articles-data.json", "selected-products.json", "posted-history.json", "sitemap-lastmod.json", "package-lock.json"];
+  const fixture = join(root, "repository");
+  const runGit = await fixtureRepository(REPO, fixture, [...protectedPaths, "package.json", "market-scanner", "lib", "keyword-research", "opportunity-scorer"]);
+
   await write("q.csv", "keyword,impressions\n猫 フード,0\n");
   const manifest = { schemaVersion: 1, sources: [source("q", "manual_csv", "q.csv")] };
   const manifestPath = await write("manifest.json", manifest);
   const guard = await write("network-guard.mjs", 'import http from "node:http"; import https from "node:https"; const fail=()=>{throw new Error("UNEXPECTED_NETWORK")}; globalThis.fetch=fail; http.request=fail; http.get=fail; https.request=fail; https.get=fail;\n');
   const privateDir = join(root, "private");
-  const run = (...args) => spawnSync(process.execPath, ["--import", guard, CLI, "--manifest", manifestPath, "--as-of", AS_OF, "--private-dir", privateDir, ...args], { encoding: "utf8", env: { PATH: process.env.PATH, RAKUTEN_APP_ID: "synthetic-do-not-use", GA_SEARCH_CONSOLE_KEY_FILE: "synthetic-do-not-use" } });
+  const run = (...args) => spawnSync(process.execPath, ["--import", pathToFileURL(guard).href, join(fixture, "market-scanner/cli.js"), "--manifest", manifestPath, "--as-of", AS_OF, "--private-dir", privateDir, ...args], { encoding: "utf8", env: { PATH: process.env.PATH, TEMP: tmpdir(), TMP: tmpdir(), TMPDIR: tmpdir(), RAKUTEN_APP_ID: "synthetic-do-not-use", GA_SEARCH_CONSOLE_KEY_FILE: "synthetic-do-not-use" } });
+  const denied = spawnSync(process.execPath, [join(fixture, "market-scanner/cli.js"), "--manifest", manifestPath,
+    "--as-of", AS_OF, "--private-dir", join(fixture, "docs"), "--run-id", "denied"], { encoding: "utf8" });
+  assert.equal(denied.status, 1, denied.stderr);
+  await assert.rejects(readFile(join(fixture, "docs/denied/candidates.json")), /ENOENT/);
   let result = run("--run-id", "first"); assert.equal(result.status, 0, result.stderr);
   const first = JSON.parse(await readFile(join(privateDir, "first/candidates.json"), "utf8"));
   assert.equal(first.candidates.length, 1);
@@ -68,8 +78,7 @@ test("CLI executes offline, preserves protected assets and supports previous-run
   result = run("--run-id", "bad"); assert.notEqual(result.status, 0);
   assert(!result.stderr.includes("missing-private-name.csv"));
   await assert.rejects(readFile(join(privateDir, "bad/candidates.json")), /ENOENT/);
-  const protectedPaths = ["docs", "funnel-measurement", ".github/workflows", "strategy", "select-products.js", "generate-site.js", "articles-data.json", "selected-products.json", "posted-history.json", "sitemap-lastmod.json", "package-lock.json"];
-  execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...protectedPaths], { cwd: REPO });
+  assert.equal(runGit("status", "--porcelain=v1", "--untracked-files=all"), "");
 });
 
 test("explicit invalid source and traversal/unknown CLI flags never produce public output", async (t) => {

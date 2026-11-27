@@ -1,3 +1,4 @@
+import { assertPrivateFileType } from "./revenue-protection-helpers.js";
 import { assertHistoricalProtection, captureProtectedTree, assertProtectedTreeUnchanged } from "./experiment-review-protection-helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -13,8 +14,8 @@ test("Private report stores immutable run, hashes, definitions, reasons and inde
   const temp = await temporary(t), b = await setup(), r = run(b); await writeRun(temp.root, r);
   assert.deepEqual((await readdir(join(temp.root, r.runId))).sort(), ["report.md", "run-metadata.json", "selection.json"]);
   const saved = JSON.parse(await readFile(join(temp.root, r.runId, "selection.json"), "utf8")); assert.deepEqual(saved, r);
-  assert.equal((await stat(join(temp.root, r.runId))).mode & 0o777, 0o700);
-  assert.equal((await stat(join(temp.root, r.runId, "selection.json"))).mode & 0o777, 0o600);
+  assertPrivateFileType(await stat(join(temp.root, r.runId)), 0o700);
+  assertPrivateFileType(await stat(join(temp.root, r.runId, "selection.json")), 0o600);
   await assert.rejects(writeRun(temp.root, r)); assert.deepEqual(JSON.parse(await readFile(join(temp.root, r.runId, "selection.json"))), r);
 });
 test("Private output cannot be redirected to docs, source or symlinked storage", async (t) => {
