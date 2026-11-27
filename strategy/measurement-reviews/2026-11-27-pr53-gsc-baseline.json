@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "recordType": "GSC_PRE_CHANGE_BASELINE",
+  "recordId": "gsc-baseline-pr53-20261127",
+  "recordedAt": "2026-11-27T20:03:44+09:00",
+  "intervention": {
+    "pullRequest": 53,
+    "mergeCommit": "7e6b35bdcb639be812dcd258e229916bcea1b0d0",
+    "deployedAt": "2026-11-27T10:12:41Z",
+    "change": "ADD_ONE_INTERNAL_LINK",
+    "sourcePage": "rankings/petfood-sougou.html",
+    "sourcePageSha256": "cc45ae4242c317e1895f6edc923161332115cb2de4daba48bf80e3111e7a7acf",
+    "targetPage": "rankings/senior-cat-food.html",
+    "targetPageSha256": "ea2ab4e8a27455128dc1b12779d3ae33a26d2432e8a967f41e791a2d6bf95917"
+  },
+  "conditions": {
+    "period": { "start": "2026-10-30", "end": "2026-11-26", "days": 28 },
+    "searchType": "web",
+    "kpiExcludedDates": ["2026-11-27"],
+    "kpiExclusionReason": "QA access. Exclude the whole day by date; do not rely only on the amv2_qa=1 query filter."
+  },
+  "source": {
+    "provider": "google_search_console",
+    "designatedAsOfficialBy": "repository owner (data acquired and analyzed on the ChatGPT side)",
+    "corroboration": "A Search Console UI export for the same period and search type (zip sha256 prefix a73844b39c1ca254) matches the site and page values below.",
+    "apiNote": "On 2026-11-27 around 19:58 JST, finalized Search Analytics API data totaled 18 impressions. Daily data including fresh rows totaled 19; 2026-11-26 was not yet final."
+  },
+  "site": { "impressions": 19, "clicks": 0, "ctr": 0, "averagePosition": 9.7, "averagePositionPrecision": "APPROXIMATE" },
+  "pages": [
+    { "page": "rankings/senior-cat-food.html", "impressions": 8, "clicks": 0, "averagePosition": 7.88 },
+    { "page": "", "label": "top page", "impressions": 5, "clicks": 0, "averagePosition": 1.0 },
+    { "page": "rankings/furusato-sougou.html", "impressions": 3, "clicks": 0, "averagePosition": 10.0 },
+    { "page": "rankings/senior-dog-pork.html", "impressions": 3, "clicks": 0, "averagePosition": 28.67 }
+  ],
+  "interpretationLimits": [
+    "A special search-operator query containing site:github.io accounts for 5 impressions.",
+    "Do not read all impressions as general consumer search demand.",
+    "The 8 senior-cat-food impressions are the pre-change baseline and must never be added to post-change results.",
+    "A page absent from this list has no recorded value here; it is not recorded as zero."
+  ],
+  "ga4": { "status": "UNKNOWN", "value": null, "reason": "No GA4 value is adopted into this record." },
+  "rakuten": { "status": "UNKNOWN", "value": null, "reason": "No Rakuten result is adopted into this record." },
+  "day0": {
+    "status": "NOT_CONFIRMED",
+    "date": null,
+    "conditions": [
+      { "id": "deploy_success", "status": "MET", "evidence": "GitHub Pages deployment 8107149876 for the merge commit succeeded." },
+      { "id": "live_html_matches_merge_commit", "status": "MET", "evidence": "Rechecked 2026-11-27T11:02:50Z: source page, target page and sitemap bytes match the merge commit." },
+      { "id": "internal_link_live", "status": "MET", "evidence": "The source page HTML contains the link; the link target returns HTTP 200. Rendered visibility was not checked." },
+      { "id": "pre_change_gsc_baseline_recorded", "status": "MET_WHEN_THIS_RECORD_IS_MERGED" },
+      { "id": "target_indexed_and_unchanged", "status": "MET", "evidence": "URL Inspection on 2026-11-27: Submitted and indexed. Target page hash unchanged." },
+      { "id": "google_recrawled_source_page_after_deploy", "status": "NOT_MET", "criterionStatus": "PROPOSED", "evidence": "URL Inspection on 2026-11-27: the source page was last crawled 2026-11-09T08:26:04Z, before the deployment." },
+      { "id": "owner_approval_of_day0_and_experiment", "status": "NOT_MET", "evidence": "No experiment registry entry or Day 0 approval exists for this change." }
+    ]
+  },
+  "affiliateClickVerification": {
+    "applicablePeriodEnd": "2026-12-12",
+    "extendedByThisRecord": false,
+    "note": "Re-verification is required before measurements after this date are treated as VERIFIED."
+  },
+  "scope": {
+    "experimentRegistryModified": false,
+    "canStartExperiment": false,
+    "canPublish": false,
+    "canPost": false
+  }
+}
