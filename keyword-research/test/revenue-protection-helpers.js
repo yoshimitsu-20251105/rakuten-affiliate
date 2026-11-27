@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
 export const APPROVED_PUBLISHING_STORE_SHA256 = "eddfc19af047933f16ab01aba7a17abce24fbe7dd720496e7e5866929fa34944";
-export const APPROVED_FOUNDATION_POLICY_SHA256 = "98676c314031349ecd6758e6fd0462c38c53a89f20ba30a190b7b8fc7c54c22f";
+export const APPROVED_FOUNDATION_POLICY_SHA256 = "2208092d79724b9586430a3d6f5ef744ccd756f5367cbf18ec81d54486360431";
 
 export const approvedReports = new Set([
   "learning-engine/report.js", "experiment-selector/report.js", "acquisition-planner/report.js",

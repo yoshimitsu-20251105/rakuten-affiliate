@@ -22,6 +22,15 @@ const git = (repo, args) => execFileSync("git", args, { cwd: repo, encoding: "ut
 const stamp = /(情報取得日|最終更新日): ?\d{4}年\d{1,2}月\d{1,2}日/g;
 const urgency = /<p class="urgency">[^<]*<\/p>/g;
 
+export const PETFOOD_LINK_PATH = "docs/rankings/petfood-sougou.html";
+
+// PR #53 authorizes exactly the one-line contextual link on this baseline.
+export function isApprovedPetfoodLink(path, before, after) {
+  return path === PETFOOD_LINK_PATH &&
+    sha256(before) === "a6c3159fab4cb0087137a58f1b4485edc9a4afd154e11ca3eec85233ceca29a2" &&
+    sha256(after) === "cc45ae4242c317e1895f6edc923161332115cb2de4daba48bf80e3111e7a7acf";
+}
+
 export function permittedGeneratedUpdate(path, before, after, readCurrent) {
   if (/^docs\/articles\/[^/]+\.html$/.test(path)) {
     // Existing urgency text may expire; adding/replacing claims, CTA, links or
@@ -69,6 +78,15 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
       assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_PUBLISHING_STORE_SHA256);
       continue;
     }
+    if (path === "keyword-research/test/revenue-protection-helpers.js") {
+      const original = git(repo, ["show", `${base}:${path}`]);
+      const approved = original.replace(
+        'APPROVED_FOUNDATION_POLICY_SHA256 = "98676c314031349ecd6758e6fd0462c38c53a89f20ba30a190b7b8fc7c54c22f"',
+        `APPROVED_FOUNDATION_POLICY_SHA256 = "${sha256(readFileSync(join(repo, "daily-audit/policy.js")))}"`,
+      );
+      assert.equal(readFileSync(join(repo, path), "utf8"), approved, path);
+      continue;
+    }
     if (path === "daily-audit/policy.js") {
       assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_FOUNDATION_POLICY_SHA256);
       continue;
@@ -86,6 +104,7 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
     }
     if (path === "docs/rankings/senior-cat-food.html" && permittedSeniorCatTrackingUpdate(before, after)) continue;
     if (path === "keyword-research/search-trial-analytics-clients.js" && permittedSeniorCatQaQueryUpdate(before, after)) continue;
+    if (isApprovedPetfoodLink(path, before, after)) continue;
     if (permittedNullObservationUpdate(path, before, after)) continue;
     if (path === "strategy/experiments.json") {
       validateReviewClosures(JSON.parse(before), JSON.parse(after),
