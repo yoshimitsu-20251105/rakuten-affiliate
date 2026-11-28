@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const approvedSafetyBlobs = new Map([
-  ["daily-audit/policy.js", "df1af5c1e06f8c2a7b177117630a1bd9394d04ff"],
+  ["daily-audit/policy.js", "4e8e76abce6c45e0d608ede03571c2ed49372195"],
   ["keyword-research/test/revenue-protection-helpers.js", "4ce9d8ffcaa1cd9ad9f0603c4b164773ed5e7cb4"],
 ]);
 

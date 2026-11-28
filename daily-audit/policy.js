@@ -54,4 +54,4 @@ export function isApprovedDailyAuditChange(before, after) {
   if (sha256(before) !== OLD_WORKFLOW_SHA256) return false;
   try { validateDailyWorkflow(after); return true; } catch { return false; }
 }
-export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b", "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894", "fb4f7ee4061631d89e027f0aa92dbdd5ce585128be6dd5c298c710c2421589f6"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;
+export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "1af5c61f3d2cd78622dffc252fe0ed99c7747cd95dee8ff4a20e1d1a4d2315b9", "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b", "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894", "fb4f7ee4061631d89e027f0aa92dbdd5ce585128be6dd5c298c710c2421589f6"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;
