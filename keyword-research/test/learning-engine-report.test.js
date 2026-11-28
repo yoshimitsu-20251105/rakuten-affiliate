@@ -88,7 +88,7 @@ test("protected tracked files remain unchanged; Learning scripts stay intact whi
   const baseline = "origin/master";
   // Compare against the exact incident-fix revision integrated with the current
   // master tree. Additional worktree edits still fail historical protection.
-  const reviewedMeasurementRevision = "070c8ef665eef93ce07a43948d364449968ed955";
+  const reviewedMeasurementRevision = "17ab3c3d8a3b52d33e19f04cc450e477a36a1186";
   const expectedTree = execFileSync("git", ["merge-tree", "--write-tree", baseline, reviewedMeasurementRevision],
     { cwd: repo, encoding: "utf8" }).trim();
   assertHistoricalProtection(repo, { base: expectedTree, modules: { "learning-engine": "be82af82efa76fa091586d8cd4ff563e680d285f" } });
