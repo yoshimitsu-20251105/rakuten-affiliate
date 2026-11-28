@@ -75,6 +75,12 @@ export async function runDailyMeasurement({ config, now, storage, collect }) {
     .sort((a, b) => a.date.localeCompare(b.date));
   const gaCutoff = shift(asOf, -GA4_LAG_DAYS - 1);
   const finalThrough = { organicEngagedSessions: gaCutoff, affiliateClicks: gaCutoff };
+  const firstIncomplete = observed.gscFirstIncompleteDate ?? null;
+  if (firstIncomplete !== null) {
+    time(firstIncomplete);
+    if (firstIncomplete < startDate || firstIncomplete > endDate) throw new Error("INVALID_GSC_FRESHNESS_DATE");
+    for (const key of ["impressions", "clicks", "averagePosition"]) finalThrough[key] = shift(firstIncomplete, -1);
+  }
   const full = reportFor(day0, endDate, rows, finalThrough);
   const window = (first, last) => first < day0 || last > endDate ? null :
     reportFor(first, last, rows.filter((row) => row.date >= first && row.date <= last), finalThrough).requested;
@@ -102,6 +108,7 @@ export async function runDailyMeasurement({ config, now, storage, collect }) {
   return storage.create(key, {
     experimentId, targetUrl, day0, asOf, rows, sources: observed.status,
     dateBasis: { gsc: "America/Los_Angeles", ga4: config.ga4Timezone, rakuten: "Asia/Tokyo" },
+    gscFirstIncompleteDate: firstIncomplete,
     ga4Freshness: { cutoff: gaCutoff, meaning: "OPERATIONAL_LAG_POLICY_NOT_PROVIDER_FINALITY" },
     report: full, rolling, checkpoints, rakuten,
   });

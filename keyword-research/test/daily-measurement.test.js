@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { closedDateBoundary, rakutenSnapshot, runDailyMeasurement } from "../../experiment-measurement/daily.js";
+import { collectDailyGoogleRows } from "../../experiment-measurement/daily-google.js";
 import { createPrivateObjectStore } from "../../experiment-measurement/private-storage.js";
 import { JAPANESE_FIELDS, ORDER_FIELDS } from "../../funnel-measurement/rakuten-order.js";
 
@@ -146,4 +147,24 @@ test("schedule is a review template with explicit enable gate and no public arti
   assert.match(source, /DAILY_MEASUREMENT_ENABLED == 'true'/);
   assert.match(source, /if: failure\(\)/);
   assert.doesNotMatch(source, /upload-artifact|pages: write|contents: write/);
+});
+
+test("GSC provisional metadata distinguishes pending days without ingesting provisional rows", async () => {
+  const { storage, data } = fixture();
+  const calls = [];
+  const clients = {
+    searchconsole: { searchanalytics: { query: async ({ requestBody }) => {
+      calls.push(requestBody.dataState);
+      return { data: requestBody.dataState === "final"
+        ? { rows: [{ keys: ["2026-11-26"], impressions: 1, clicks: 0, position: 5 }] }
+        : { metadata: { firstIncompleteDate: "2026-12-23" },
+          rows: [{ keys: ["2026-12-24"], impressions: 99, clicks: 9, position: 5 }] } };
+    } } },
+    analyticsdata: { properties: { runReport: async () => ({ data: {} }) } },
+  };
+  await runDailyMeasurement({ config, now, storage, collect: (scope) => collectDailyGoogleRows({ ...scope, clients }) });
+  assert.deepEqual(calls, ["final", "all"]);
+  const saved = data.get("daily/test-experiment/2026-12-25.json");
+  assert.deepEqual(saved.report.requested.awaitingFinalDataByMetric.impressions, ["2026-12-23", "2026-12-24"]);
+  assert.deepEqual(saved.rows.map((row) => row.impressions), [1]);
 });

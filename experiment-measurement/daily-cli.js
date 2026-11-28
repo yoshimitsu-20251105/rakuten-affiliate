@@ -1,4 +1,5 @@
-import { collectGoogleRows, createWifClients } from "./google-live.js";
+import { createWifClients } from "./google-live.js";
+import { collectDailyGoogleRows } from "./daily-google.js";
 import { runDailyMeasurement } from "./daily.js";
 import { createPrivateObjectStore } from "./private-storage.js";
 
@@ -11,7 +12,7 @@ try {
   });
   const config = await storage.read("config/active-experiment.json");
   const status = await runDailyMeasurement({
-    config, storage, now: new Date(), collect: (scope) => collectGoogleRows({ ...scope, clients }),
+    config, storage, now: new Date(), collect: (scope) => collectDailyGoogleRows({ ...scope, clients }),
   });
   process.stdout.write(`Daily measurement: ${status}\n`);
 } catch {
