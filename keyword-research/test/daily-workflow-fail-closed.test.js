@@ -120,7 +120,17 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
     else if (!approvedTests.has(path)) assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
   }
   const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
-  for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...(prefix === ".github/" ? [".github/workflows/full-regression.yml"] : [])].sort());
+  const verifyPath = ".github/workflows/verify-public-pages.yml";
+  const extraWorkflows = [".github/workflows/full-regression.yml"];
+  if (currentPaths.includes(verifyPath)) {
+    const verifyBytes = await readFile(join(repo, verifyPath));
+    assert.equal(sha256(verifyBytes), "9604ed24ba6e2efd857c4476f3b94d60d9dfcc4d5ff559d77e83264fd9082b5c", verifyPath);
+    extraWorkflows.push(verifyPath);
+  }
+  for (const prefix of ["docs/", ".github/"]) {
+    const extras = prefix === ".github/" ? extraWorkflows : [];
+    assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...extras].sort());
+  }
   assert.equal(baselinePaths.filter(p => p.startsWith("docs/articles/") && p.endsWith(".html")).length, 408);
 });
 

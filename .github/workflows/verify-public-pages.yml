@@ -1,0 +1,59 @@
+name: Verify public Pages
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify published HTML without running page scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          export VERIFY_DIR
+          VERIFY_DIR=$(mktemp -d)
+          trap 'rm -rf "$VERIFY_DIR"' EXIT
+          export PAGE_ROOT=https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/
+          {
+            date -u '+Checked at %Y-%m-%dT%H:%M:%SZ'
+            echo 'QA: raw HTTP only. This check does not run analytics or visit affiliate links.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for page in petfood-sougou senior-cat-food; do
+            status=$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+              --proto '=https' --output "$VERIFY_DIR/$page.html" --write-out '%{http_code}' \
+              "$PAGE_ROOT$page.html") || status=FETCH_FAILED
+            echo "$page.html: $status" >> "$GITHUB_STEP_SUMMARY"
+            test "$status" = 200
+          done
+          cd "$VERIFY_DIR"
+          sha256sum --check <<'HASHES'
+          cc45ae4242c317e1895f6edc923161332115cb2de4daba48bf80e3111e7a7acf  petfood-sougou.html
+          ea2ab4e8a27455128dc1b12779d3ae33a26d2432e8a967f41e791a2d6bf95917  senior-cat-food.html
+          HASHES
+          python3 - <<'PY'
+          import os
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urljoin
+
+          root = os.environ["PAGE_ROOT"]
+          source = root + "petfood-sougou.html"
+          target = root + "senior-cat-food.html"
+
+          class Links(HTMLParser):
+              matches = 0
+
+              def handle_starttag(self, tag, attrs):
+                  href = dict(attrs).get("href")
+                  if tag == "a" and href and urljoin(source, href) == target:
+                      self.matches += 1
+
+          parser = Links()
+          parser.feed(Path("petfood-sougou.html").read_text(encoding="utf-8"))
+          parser.close()
+          if parser.matches != 1:
+              raise SystemExit(f"Expected one link to {target}, found {parser.matches}")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(f"Both approved SHA-256 hashes match. One link resolves to {target}.\n")
+          PY
