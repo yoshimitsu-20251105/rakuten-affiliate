@@ -3,6 +3,17 @@ name: Verify Google measurement with WIF
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Smoke test or approved private GA4 diagnostics
+        type: choice
+        options:
+          - smoke
+          - ga4-diagnostics
+        default: smoke
+      confirmed_through:
+        description: Last confirmed GA4 property date (diagnostics only)
+        required: false
+        type: string
       from:
         description: First measurement day (YYYY-MM-DD)
         required: true
@@ -42,6 +53,7 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - name: Verify live collection without logging metrics
+        if: inputs.mode != 'ga4-diagnostics'
         shell: bash
         env:
           EXPERIMENT_GOOGLE_LIVE: 'true'
@@ -67,3 +79,34 @@ jobs:
           JS
           node experiment-measurement/google-live-cli.js "$d/input.json" > "$d/report.json"
           echo 'Google source statuses are in the step log. Metrics were processed on the runner only.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Require private diagnostics approval and destination
+        if: inputs.mode == 'ga4-diagnostics'
+        env:
+          ENABLED: ${{ vars.GA4_DIAGNOSTICS_ENABLED }}
+          BUCKET: ${{ vars.DAILY_MEASUREMENT_BUCKET }}
+          PROPERTY_TIMEZONE: ${{ vars.GA4_PROPERTY_TIMEZONE }}
+        run: test "$ENABLED" = true && test -n "$BUCKET" && test -n "$PROPERTY_TIMEZONE"
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        if: inputs.mode == 'ga4-diagnostics'
+        id: diagnostic_storage
+        with:
+          workload_identity_provider: projects/461541819464/locations/global/workloadIdentityPools/github-affiliate-pool/providers/github-actions
+          service_account: website-measurement-store@plenary-justice-369508.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 300s
+          access_token_scopes: https://www.googleapis.com/auth/devstorage.read_write
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Save approved GA4 diagnostics privately
+        if: inputs.mode == 'ga4-diagnostics'
+        env:
+          GA4_DIAGNOSTICS_LIVE: 'true'
+          EXPERIMENT_GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+          DAILY_STORAGE_ACCESS_TOKEN: ${{ steps.diagnostic_storage.outputs.access_token }}
+          DAILY_MEASUREMENT_BUCKET: ${{ vars.DAILY_MEASUREMENT_BUCKET }}
+          GA4_PROPERTY_TIMEZONE: ${{ vars.GA4_PROPERTY_TIMEZONE }}
+          GA4_CONFIRMED_THROUGH: ${{ inputs.confirmed_through }}
+        run: |
+          set -euo pipefail
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          node experiment-measurement/ga4-diagnostics-cli.js

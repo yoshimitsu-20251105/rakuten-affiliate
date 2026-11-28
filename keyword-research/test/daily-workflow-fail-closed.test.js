@@ -121,11 +121,13 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
   }
   const wifPath = ".github/workflows/verify-google-measurement-wif.yml";
   const wifBytes = await readFile(join(repo, wifPath));
-  assert.equal(sha256(wifBytes), "9d93c9083f609263bed995e8ab0f90a9a3c11c92f82e75ec0af2b3035b7b1cbf", wifPath);
+  assert.equal(sha256(wifBytes), "7be313229d22831b7b131bd57b8a2c98a54e068237d7805cb7904bbe8852fedf", wifPath);
   baselinePaths.push(wifPath);
   const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
   const verifyPath = ".github/workflows/verify-public-pages.yml";
-  const extraWorkflows = [".github/workflows/full-regression.yml"];
+  const dailyMeasurementPath = ".github/workflows/collect-google-measurement-daily.yml";
+  assert.equal(sha256(await readFile(join(repo, dailyMeasurementPath))), "fdd5b164432fe043f9a936ab0b9ae622d742c03ff41f4e547ab9a2b5a92ac52a", dailyMeasurementPath);
+  const extraWorkflows = [".github/workflows/full-regression.yml", dailyMeasurementPath];
   if (currentPaths.includes(verifyPath)) {
     const verifyBytes = await readFile(join(repo, verifyPath));
     assert.equal(sha256(verifyBytes), "9604ed24ba6e2efd857c4476f3b94d60d9dfcc4d5ff559d77e83264fd9082b5c", verifyPath);
