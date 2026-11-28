@@ -1,4 +1,5 @@
-import { approvedReports, approvedTests, assertReportOnly, APPROVED_FOUNDATION_POLICY_SHA256, APPROVED_PUBLISHING_STORE_SHA256 } from "./revenue-protection-helpers.js";
+import { approvedSafetyBlobs, assertApprovedSafetyBlobs } from "./approved-safety-blobs.js";
+import { approvedReports, approvedTests, assertReportOnly, APPROVED_PUBLISHING_STORE_SHA256 } from "./revenue-protection-helpers.js";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync, lstatSync, readlinkSync } from "node:fs";
@@ -6,7 +7,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { validateReviewClosures } from "./experiment-review-helpers.js";
 import { contentHash } from "../../lib/sitemap-lastmod.js";
-import { sha256, WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
+import { WORKFLOW_PATH, GUARD_PATH, isApprovedDailyAuditChange, isApprovedDailyGuardChange } from "../../daily-audit/policy.js";
 import { permittedSeniorCatTrackingUpdate, permittedSeniorCatQaQueryUpdate, permittedNullObservationUpdate } from "./senior-cat-affiliate-measurement-helpers.js";
 
 // Explicitly approved test maintenance, not an exemption for product code.
@@ -19,6 +20,7 @@ const approvedTestEdits = new Set([
   "keyword-research/test/experiment-review-protection-helpers.js",
 ]);
 const git = (repo, args) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const stamp = /(情報取得日|最終更新日): ?\d{4}年\d{1,2}月\d{1,2}日/g;
 const urgency = /<p class="urgency">[^<]*<\/p>/g;
 
@@ -70,6 +72,7 @@ export function assertProtectedTreeUnchanged(before, after) { assert.deepEqual(a
 
 export function assertHistoricalProtection(repo, { base, modules = {} }) {
   const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", base]).trim().split("\n"));
+  if ([...approvedSafetyBlobs.keys()].some((path) => historical.has(path))) assertApprovedSafetyBlobs(repo);
   const changed = git(repo, ["diff", "--name-only", base, "--", ...historical]).trim().split("\n").filter(Boolean);
   for (const path of changed) {
     if (approvedReports.has(path)) { assertReportOnly(readFileSync(join(repo, path), "utf8")); continue; }
@@ -78,19 +81,7 @@ export function assertHistoricalProtection(repo, { base, modules = {} }) {
       assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_PUBLISHING_STORE_SHA256);
       continue;
     }
-    if (path === "keyword-research/test/revenue-protection-helpers.js") {
-      const original = git(repo, ["show", `${base}:${path}`]);
-      const approved = original.replace(
-        'APPROVED_FOUNDATION_POLICY_SHA256 = "98676c314031349ecd6758e6fd0462c38c53a89f20ba30a190b7b8fc7c54c22f"',
-        `APPROVED_FOUNDATION_POLICY_SHA256 = "${sha256(readFileSync(join(repo, "daily-audit/policy.js")))}"`,
-      );
-      assert.equal(readFileSync(join(repo, path), "utf8"), approved, path);
-      continue;
-    }
-    if (path === "daily-audit/policy.js") {
-      assert.equal(sha256(readFileSync(join(repo, path))), APPROVED_FOUNDATION_POLICY_SHA256);
-      continue;
-    }
+    if (approvedSafetyBlobs.has(path)) continue;
     if (approvedTestEdits.has(path) && path !== GUARD_PATH || path === "package.json") continue;
     const before = git(repo, ["show", `${base}:${path}`]);
     let after; try { after = readFileSync(join(repo, path), "utf8"); } catch { assert.fail(`Protected asset deleted: ${path}`); }
