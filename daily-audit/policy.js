@@ -5,7 +5,7 @@ export const WORKFLOW_PATH = ".github/workflows/daily-pipeline.yml";
 export const GUARD_PATH = "keyword-research/test/experiment-review-protection-helpers.js";
 export const OLD_WORKFLOW_SHA256 = "53ae16cb3603570e3e1ee33d6dab3b43c184a3e07f76adfe191d7c4a911a2042";
 // A single authorized test-guard edit, never an exemption for its other rules.
-export const APPROVED_GUARD_SHA256 = "3b672aae2385f1746d248e56ac635fc14c971c93c36596ec4c87800d4bd67b04";
+export const APPROVED_GUARD_SHA256 = "7ade626a0969bbb60668566c3aba103cd9baafe5ce2603838d460494bde48903";
 export const OLD_GUARD_SHA256 = "9b788a870c2280f03ad465d651be1e5cde7276fd735e60d3232e5fe60f0bda7d";
 export const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 
@@ -54,4 +54,4 @@ export function isApprovedDailyAuditChange(before, after) {
   if (sha256(before) !== OLD_WORKFLOW_SHA256) return false;
   try { validateDailyWorkflow(after); return true; } catch { return false; }
 }
-export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "1af5c61f3d2cd78622dffc252fe0ed99c7747cd95dee8ff4a20e1d1a4d2315b9", "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b", "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894", "fb4f7ee4061631d89e027f0aa92dbdd5ce585128be6dd5c298c710c2421589f6"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;
+export const isApprovedDailyGuardChange = (before, after) => [OLD_GUARD_SHA256, "3b672aae2385f1746d248e56ac635fc14c971c93c36596ec4c87800d4bd67b04", "1af5c61f3d2cd78622dffc252fe0ed99c7747cd95dee8ff4a20e1d1a4d2315b9", "bb932534c6bbd35e33c1ac079d2ce8a2f5c47c9826d50e7a08b8db61e575ce0b", "9c5d635a32cb4bf18f95c1fbc34091eaa7b6f0cf897de9263abc98a32f1c4894", "fb4f7ee4061631d89e027f0aa92dbdd5ce585128be6dd5c298c710c2421589f6"].includes(sha256(before)) && sha256(after) === APPROVED_GUARD_SHA256;

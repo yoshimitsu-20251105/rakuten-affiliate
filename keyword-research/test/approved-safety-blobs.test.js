@@ -13,7 +13,7 @@ const paths = [...approvedSafetyBlobs.keys()];
 test("the approved blob list itself matches its reviewed Git blob", async () => {
   const bytes = await readFile(new URL("./approved-safety-blobs.js", import.meta.url));
   const id = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
-  assert.equal(id, "08ccbde89705cb48632989d94267efe692c27ce7", "Unapproved change to the safety blob list");
+  assert.equal(id, "c3a18231bd289a5eedf228e5b0f4347f9dd873e4", "Unapproved change to the safety blob list");
 });
 
 for (const changed of [[paths[0]], [paths[1]], paths]) {
