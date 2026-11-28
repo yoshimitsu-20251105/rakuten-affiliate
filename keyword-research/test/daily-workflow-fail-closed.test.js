@@ -121,7 +121,7 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
   }
   const wifPath = ".github/workflows/verify-google-measurement-wif.yml";
   const wifBytes = await readFile(join(repo, wifPath));
-  assert.equal(sha256(wifBytes), "41324daeb0607bbae4681d93cd9aa7b9dd7fed4ad9efe7c3783a2155301aabe4", wifPath);
+  assert.equal(sha256(wifBytes), "9d93c9083f609263bed995e8ab0f90a9a3c11c92f82e75ec0af2b3035b7b1cbf", wifPath);
   baselinePaths.push(wifPath);
   const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
   for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...(prefix === ".github/" ? [".github/workflows/full-regression.yml"] : [])].sort());

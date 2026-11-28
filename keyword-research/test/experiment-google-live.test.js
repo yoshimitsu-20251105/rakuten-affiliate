@@ -95,3 +95,24 @@ test("CLI without bearer token stops before reading input or contacting Google",
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /Google live collection stopped/);
 });
+
+test("late GA4 dates stay pending while finalized zero and missing GSC remain distinct", async () => {
+  const result = await collectGoogleRows({
+    ...input, clients: clients({
+      gsc: async () => ({ data: { rows: [gscRow] } }),
+      ga: async () => ({ data: { rows: [gaRow("20261126", "0"), gaRow("20261128", "9")] } }),
+    }),
+  });
+  assert.equal(result.ok, true);
+  const report = buildExperimentReport({
+    ...input, rows: result.rows,
+    finalThrough: { organicEngagedSessions: "2026-11-26", affiliateClicks: "2026-11-26" },
+  });
+  assert.equal(report.requested.totals.organicEngagedSessions, null);
+  assert.equal(report.requested.totals.affiliateClicks, null);
+  assert.deepEqual(report.requested.awaitingFinalDataByMetric.affiliateClicks, ["2026-11-28"]);
+  assert.deepEqual(report.requested.missingByMetric.impressions, ["2026-11-28"]);
+  assert.equal(buildExperimentReport({
+    ...input, endDate: "2026-11-26", rows: result.rows.filter((row) => row.date === "2026-11-26"),
+  }).requested.totals.affiliateClicks, 0);
+});

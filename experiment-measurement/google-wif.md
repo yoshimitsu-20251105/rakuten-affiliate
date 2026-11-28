@@ -2,16 +2,18 @@
 
 ## Google Cloud Console
 
-1. プロジェクト `plenary-justice-369508`（番号 `461541819464`）を選択する。「API とサービス → ライブラリ」で IAM Service Account Credentials API `iamcredentials.googleapis.com` と Security Token Service API `sts.googleapis.com` を有効にする。既に設定済みの Search Console API と Analytics Data API はそのまま使用する。
-2. 「IAM と管理 → Workload Identity Federation → プールを作成」でプール ID を `rakuten-gh` とする。専用プールとして運用し、別の発行元のプロバイダを追加しない。
-3. プロバイダの種類は OpenID Connect、プロバイダ ID は `github-master`、発行元は `https://token.actions.githubusercontent.com`。対象ユーザー（Audience）は既定値を使う。属性マッピングに以下を入力する。
+1. プロジェクト `plenary-justice-369508`（番号 `461541819464`）を選択する。「API とサービス → ライブラリ」の「有効な API とサービス」で IAM Service Account Credentials API `iamcredentials.googleapis.com` と Security Token Service API `sts.googleapis.com` が有効か確認する。表示されなければ「ライブラリ」で該当 API を開き「有効にする」を押す。既に設定済みの Search Console API と Analytics Data API はそのまま使用する。
+2. 「IAM と管理 → Workload Identity Federation → 対象プールを開く」で、報告済みのプール ID `github-affiliate-pool` を確認する。専用プールとして運用し、別の発行元のプロバイダを追加しない。
+3. プロバイダの種類は OpenID Connect、プロバイダ ID は `github-actions`、発行元は `https://token.actions.githubusercontent.com`。対象ユーザー（Audience）は既定値を使う。属性マッピングが以下の4項目になっていることを確認する。
 
    | Google 側属性 | OIDC の値 |
    | --- | --- |
    | `google.subject` | `assertion.sub` |
    | `attribute.repository_id` | `assertion.repository_id` |
+   | `attribute.repository` | `assertion.repository` |
+   | `attribute.repository_owner_id` | `assertion.repository_owner_id` |
 
-   属性条件欄に次を設定する。
+   報告済みの属性条件は以下の先頭4行に相当する。Google Cloud 側でも今回の専用 Workflow だけに絞る場合は、属性条件全体を以下に更新する。更新後、同じプールを使う既存の連携があれば影響を確認する。
 
    ```cel
    assertion.repository_owner_id == '317599030' &&
@@ -25,7 +27,7 @@
 
 4. 「IAM と管理 → サービス アカウント → website-analytics-reader → 権限 → アクセス権を付与」。新しいプリンシパルとロールを次の値で登録する。プロジェクト全体の IAM バインディングは不要。
 
-   - プリンシパル `principalSet://iam.googleapis.com/projects/461541819464/locations/global/workloadIdentityPools/rakuten-gh/attribute.repository_id/1336245988`
+   - プリンシパル `principalSet://iam.googleapis.com/projects/461541819464/locations/global/workloadIdentityPools/github-affiliate-pool/attribute.repository_id/1336245988`
    - ロール `roles/iam.workloadIdentityUser`（Workload Identity ユーザー）
 
    既存の GSC 制限付きユーザーと GA4 プロパティ `550074703` の閲覧者権限を使う。サービスアカウント鍵、GitHub Secrets、プロジェクトの編集者、Service Account Token Creator の個別付与は不要。

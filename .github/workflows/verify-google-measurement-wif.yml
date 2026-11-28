@@ -34,7 +34,7 @@ jobs:
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         id: google
         with:
-          workload_identity_provider: projects/461541819464/locations/global/workloadIdentityPools/rakuten-gh/providers/github-master
+          workload_identity_provider: projects/461541819464/locations/global/workloadIdentityPools/github-affiliate-pool/providers/github-actions
           service_account: website-analytics-reader@plenary-justice-369508.iam.gserviceaccount.com
           token_format: access_token
           access_token_lifetime: 300s
