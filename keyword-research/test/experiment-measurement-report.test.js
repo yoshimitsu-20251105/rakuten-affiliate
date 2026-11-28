@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildExperimentReport } from "./report.js";
+import { buildExperimentReport } from "../../experiment-measurement/report.js";
 
 const input = {
   experimentId: "senior-cat",
