@@ -62,7 +62,7 @@ export async function collectGoogleRows({ clients, targetUrl, startDate, endDate
       property: PROPERTY,
       requestBody: {
         dateRanges: [range], dimensions: [{ name: "date" }], metrics: [{ name: metric }],
-        dimensionFilter: { andGroup: { expressions: [page, filter] } }, limit: "1000",
+        dimensionFilter: { andGroup: { expressions: [exact("hostName", url.hostname), page, filter] } }, limit: "1000",
       },
     });
     if (!data || (data.rows !== undefined && !Array.isArray(data.rows)) ||
