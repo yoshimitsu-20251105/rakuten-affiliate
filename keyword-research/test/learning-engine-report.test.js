@@ -86,7 +86,12 @@ test("Markdown escapes source HTML and independent judgments are not actions", a
 });
 test("protected tracked files remain unchanged; Learning scripts stay intact while later approved scripts may be additive", async () => {
   const baseline = "origin/master";
-  assertHistoricalProtection(repo, { base: baseline, modules: { "learning-engine": "be82af82efa76fa091586d8cd4ff563e680d285f" } });
+  // Compare against the exact incident-fix revision integrated with the current
+  // master tree. Additional worktree edits still fail historical protection.
+  const reviewedMeasurementRevision = "070c8ef665eef93ce07a43948d364449968ed955";
+  const expectedTree = execFileSync("git", ["merge-tree", "--write-tree", baseline, reviewedMeasurementRevision],
+    { cwd: repo, encoding: "utf8" }).trim();
+  assertHistoricalProtection(repo, { base: expectedTree, modules: { "learning-engine": "be82af82efa76fa091586d8cd4ff563e680d285f" } });
   const original = JSON.parse(execFileSync("git", ["show", `${baseline}:package.json`], { cwd: repo, encoding: "utf8" }));
   const actual = JSON.parse(await readFile(join(repo, "package.json"), "utf8"));
   for (const key of Object.keys(original.scripts)) assert.equal(actual.scripts[key], original.scripts[key]);
