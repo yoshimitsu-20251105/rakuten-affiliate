@@ -71,9 +71,11 @@ export function captureProtectedTree(repo) {
 export function assertProtectedTreeUnchanged(before, after) { assert.deepEqual(after, before, "CLI changed a protected file or file identity"); }
 
 export function assertHistoricalProtection(repo, { base, modules = {} }) {
-  const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", base]).trim().split("\n"));
+  const historical = new Set(git(repo, ["ls-tree", "-r", "--name-only", "-z", base]).split("\0").filter(Boolean));
   if ([...approvedSafetyBlobs.keys()].some((path) => historical.has(path))) assertApprovedSafetyBlobs(repo);
-  const changed = git(repo, ["diff", "--name-only", base, "--", ...historical]).trim().split("\n").filter(Boolean);
+  // Filtering here avoids passing every protected path on the Windows command line.
+  const changed = git(repo, ["diff", "--no-renames", "--name-only", "-z", base, "--"])
+    .split("\0").filter((path) => historical.has(path));
   for (const path of changed) {
     if (approvedReports.has(path)) { assertReportOnly(readFileSync(join(repo, path), "utf8")); continue; }
     if (approvedTests.has(path) && path !== GUARD_PATH) continue;

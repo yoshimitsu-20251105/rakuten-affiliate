@@ -18,15 +18,24 @@ function exact(fieldName, value) {
   return { filter: { fieldName, stringFilter: { matchType: "EXACT", value, caseSensitive: true } } };
 }
 
+export class ResponseValidationError extends Error {}
+
+function checkedGscPosition(position, impressions) {
+  // GSC position is defined only when there is an impression.
+  if (position == null || (position === 0 && impressions === 0)) return null;
+  if (!Number.isFinite(position) || position < 1) throw new ResponseValidationError("INVALID_GSC_AVERAGE_POSITION");
+  return position;
+}
+
 function checkedCount(value) {
-  if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value))) throw new Error("INVALID_COUNT");
+  if ((typeof value !== "number" && typeof value !== "string") || !/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value))) throw new ResponseValidationError("INVALID_COUNT");
   return Number(value);
 }
 
 function mergeRows(index, rows, metrics, from, to) {
   const seen = new Set();
   for (const [date, values] of rows) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < from || date > to || seen.has(date)) throw new Error("INVALID_DAILY_ROW");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < from || date > to || seen.has(date)) throw new ResponseValidationError("INVALID_DAILY_ROW");
     seen.add(date);
     const row = index.get(date) ?? { date };
     for (const [i, key] of metrics.entries()) row[key] = key === "averagePosition" ? values[i] : checkedCount(values[i]);
@@ -35,6 +44,7 @@ function mergeRows(index, rows, metrics, from, to) {
 }
 
 function state(error) {
+  if (error instanceof ResponseValidationError) return "INVALID_RESPONSE";
   const code = Number(error?.response?.status ?? error?.code);
   if (code === 401) return "UNAUTHENTICATED";
   if (code === 403) return "PERMISSION_DENIED";
@@ -43,7 +53,7 @@ function state(error) {
 
 export async function collectGoogleRows({ clients, targetUrl, startDate, endDate }) {
   const url = new URL(targetUrl);
-  if (!targetUrl.startsWith(SITE) || url.search || url.hash) throw new Error("INVALID_TARGET");
+  if (!targetUrl.startsWith(SITE) || url.search || url.hash) throw new ResponseValidationError("INVALID_TARGET");
   const page = seniorCatBusinessPageFilter(url.pathname);
   const range = { startDate, endDate };
   const gsc = async () => {
@@ -54,8 +64,14 @@ export async function collectGoogleRows({ clients, targetUrl, startDate, endDate
         dimensionFilterGroups: [{ filters: [{ dimension: "page", operator: "equals", expression: targetUrl }] }],
       },
     });
-    if (!data || (data.rows !== undefined && !Array.isArray(data.rows))) throw new Error("INVALID_GSC_RESPONSE");
-    return (data.rows ?? []).map((row) => [row.keys[0], [row.impressions, row.clicks, row.position]]);
+    if (!data || (data.rows !== undefined && !Array.isArray(data.rows))) throw new ResponseValidationError("INVALID_GSC_RESPONSE");
+    return (data.rows ?? []).map((row) => {
+      if (!Array.isArray(row?.keys) || row.keys.length !== 1 || typeof row.keys[0] !== "string") {
+        throw new ResponseValidationError("INVALID_GSC_DATE_KEY");
+      }
+      const impressions = checkedCount(row.impressions);
+      return [row.keys[0], [impressions, row.clicks, checkedGscPosition(row.position, impressions)]];
+    });
   };
   const ga = async (metric, filter) => {
     const { data } = await clients.analyticsdata.properties.runReport({
@@ -68,11 +84,11 @@ export async function collectGoogleRows({ clients, targetUrl, startDate, endDate
     if (!data || (data.rows !== undefined && !Array.isArray(data.rows)) ||
         data.metadata?.subjectToThresholding || data.metadata?.dataLossFromOtherRow ||
         data.metadata?.samplingMetadatas?.length ||
-        Number(data.rowCount ?? 0) > (data.rows?.length ?? 0)) throw new Error("INCOMPLETE_GA4_RESPONSE");
+        Number(data.rowCount ?? 0) > (data.rows?.length ?? 0)) throw new ResponseValidationError("INCOMPLETE_GA4_RESPONSE");
     return (data.rows ?? []).map((row) => {
-      const date = row.dimensionValues[0].value;
-      if (!/^\d{8}$/.test(date)) throw new Error("INVALID_GA4_DATE");
-      return [date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3"), [row.metricValues[0].value]];
+      const date = row?.dimensionValues?.[0]?.value;
+      if (!/^\d{8}$/.test(date)) throw new ResponseValidationError("INVALID_GA4_DATE");
+      return [date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3"), [row.metricValues?.[0]?.value]];
     });
   };
 
@@ -81,11 +97,22 @@ export async function collectGoogleRows({ clients, targetUrl, startDate, endDate
     ga("engagedSessions", exact("sessionDefaultChannelGroup", "Organic Search")),
     ga("eventCount", exact("eventName", "affiliate_click")),
   ]);
+  const sourceNames = ["gsc", "ga4Organic", "ga4Affiliate"];
   const status = Object.fromEntries(sources.map((result, i) => [
-    ["gsc", "ga4Organic", "ga4Affiliate"][i],
+    sourceNames[i],
     result.status === "rejected" ? state(result.reason) : result.value.length ? "OBSERVED" : "NO_ROWS_RETURNED",
   ]));
-  if (sources.some((result) => result.status === "rejected")) return { ok: false, status };
+  if (sources.some((result) => result.status === "rejected")) {
+    const invalidResponseReasons = Object.fromEntries(sources.flatMap((result, i) =>
+      result.status === "rejected" && result.reason instanceof ResponseValidationError
+        ? [[sourceNames[i], result.reason.message]]
+        : [],
+    ));
+    return {
+      ok: false, status,
+      ...(Object.keys(invalidResponseReasons).length ? { invalidResponseReasons } : {}),
+    };
+  }
   const index = new Map();
   const metrics = [["impressions", "clicks", "averagePosition"], ["organicEngagedSessions"], ["affiliateClicks"]];
   for (const [i, result] of sources.entries()) mergeRows(index, result.value, metrics[i], startDate, endDate);

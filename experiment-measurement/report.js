@@ -4,10 +4,17 @@ const QA_DATES = ["2026-11-27"];
 const METRICS = [...COUNTS, "averagePosition"];
 const TARGET_ROOT = "https://yoshimitsu-20251105.github.io/rakuten-affiliate/";
 
+export class ReportValidationError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+
 function day(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("Expected ISO date");
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new ReportValidationError("INVALID_DATE", "Expected ISO date");
   const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp) || iso(timestamp) !== value) throw new Error("Invalid calendar date");
+  if (!Number.isFinite(timestamp) || iso(timestamp) !== value) throw new ReportValidationError("INVALID_DATE", "Invalid calendar date");
   return timestamp;
 }
 const iso = (timestamp) => new Date(timestamp).toISOString().slice(0, 10);
@@ -46,27 +53,31 @@ function summarize(rows, start, end, finalThrough) {
 
 export function buildExperimentReport(input) {
   const { experimentId, targetUrl, startDate, endDate, day0, asOf, baseline, rows, finalThrough = {} } = input;
-  if (typeof experimentId !== "string" || !/^[a-z0-9-]{1,120}$/.test(experimentId)) throw new Error("Invalid experiment ID");
+  if (typeof experimentId !== "string" || !/^[a-z0-9-]{1,120}$/.test(experimentId)) throw new ReportValidationError("INVALID_EXPERIMENT_ID", "Invalid experiment ID");
   if (typeof targetUrl !== "string" || !targetUrl.startsWith(TARGET_ROOT) ||
-      !/^[a-zA-Z0-9_/-]+\.html$/.test(targetUrl.slice(TARGET_ROOT.length))) throw new Error("Invalid target URL");
+      !/^[a-zA-Z0-9_/-]+\.html$/.test(targetUrl.slice(TARGET_ROOT.length))) throw new ReportValidationError("INVALID_TARGET_URL", "Invalid target URL");
   const start = day(startDate), end = day(endDate), today = day(asOf);
   const kickoff = day0 === null ? null : day(day0);
   if (start > end || end >= today || end - start > 365 * DAY_MS || (kickoff !== null && (kickoff > start || end - kickoff > 365 * DAY_MS))) {
-    throw new Error("Invalid measurement window");
+    throw new ReportValidationError("INVALID_MEASUREMENT_WINDOW", "Invalid measurement window");
+  }
+  if (!finalThrough || typeof finalThrough !== "object" || Array.isArray(finalThrough)) {
+    throw new ReportValidationError("INVALID_FINAL_DATA_CUTOFF", "Invalid final data cutoff");
   }
   for (const [key, cutoff] of Object.entries(finalThrough)) {
-    if (!METRICS.includes(key) || day(cutoff) >= today) throw new Error("Invalid final data cutoff");
+    if (!METRICS.includes(key) || day(cutoff) >= today) throw new ReportValidationError("INVALID_FINAL_DATA_CUTOFF", "Invalid final data cutoff");
   }
-  if (!Array.isArray(rows)) throw new Error("Expected daily rows");
+  if (!Array.isArray(rows)) throw new ReportValidationError("INVALID_ROWS", "Expected daily rows");
   const indexed = new Map();
   for (const row of rows) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) throw new ReportValidationError("INVALID_DAILY_ROW", "Invalid daily row");
     const date = day(row.date);
-    if (date < start || date > end || indexed.has(row.date)) throw new Error("Out-of-window or duplicate daily row");
+    if (date < start || date > end || indexed.has(row.date)) throw new ReportValidationError("INVALID_DAILY_ROW", "Out-of-window or duplicate daily row");
     for (const key of COUNTS) {
-      if (row[key] != null && (!Number.isSafeInteger(row[key]) || row[key] < 0)) throw new Error(`Invalid ${key}`);
+      if (row[key] != null && (!Number.isSafeInteger(row[key]) || row[key] < 0)) throw new ReportValidationError("INVALID_COUNT", `Invalid ${key}`);
     }
-    if (row.averagePosition != null && (!Number.isFinite(row.averagePosition) || row.averagePosition < 1)) throw new Error("Invalid average position");
-    if (row.clicks > row.impressions && row.impressions != null) throw new Error("Clicks exceed impressions");
+    if (row.averagePosition != null && (!Number.isFinite(row.averagePosition) || row.averagePosition < 1)) throw new ReportValidationError("INVALID_AVERAGE_POSITION", "Invalid average position");
+    if (row.clicks > row.impressions && row.impressions != null) throw new ReportValidationError("CLICKS_EXCEED_IMPRESSIONS", "Clicks exceed impressions");
     indexed.set(row.date, row);
   }
   let baselineComparison = null;
@@ -76,7 +87,7 @@ export function buildExperimentReport(input) {
     if (baselineStart > baselineEnd || baselineEnd >= start ||
         !Number.isSafeInteger(baseline.impressions) || baseline.impressions < 0 ||
         !Number.isSafeInteger(baseline.clicks) || baseline.clicks < 0 || baseline.clicks > baseline.impressions) {
-      throw new Error("Invalid baseline");
+      throw new ReportValidationError("INVALID_BASELINE", "Invalid baseline");
     }
     const baselineDays = (baselineEnd - baselineStart) / DAY_MS + 1;
     const deltas = Object.fromEntries(["impressions", "clicks"].map((key) => [
