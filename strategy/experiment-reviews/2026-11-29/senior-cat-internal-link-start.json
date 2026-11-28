@@ -1,0 +1,23 @@
+{
+  "experimentId": "exp-2026-11-29-senior-cat-internal-link",
+  "title": "シニア猫フード内部リンクのGSC流入実験",
+  "authorization": "ユーザーによる2026-11-28のSEO実験開始承認",
+  "recordedAt": "2026-11-28",
+  "status": "START_AUTHORIZED",
+  "day0": "2026-11-29",
+  "timezone": "America/Los_Angeles",
+  "day0StartsAtJst": "2026-11-29T17:00:00+09:00",
+  "targetUrl": "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+  "primaryMetric": "GSC_WEB_IMPRESSIONS",
+  "secondaryMetrics": ["GSC_WEB_CLICKS", "GSC_WEB_CTR"],
+  "reviewDate": "2026-12-29",
+  "thresholdSource": "strategy/experiments.json#exp-2026-10-05-senior-cat-food",
+  "reviewReferences": {
+    "baseline": "strategy/experiment-reviews/2026-11-27/senior-cat-internal-link-baseline.md",
+    "publicVerificationRun": 46133660799,
+    "wifVerificationRun": 46135415274
+  },
+  "excludeFromKpi": ["2026-11-27 QA", "pre-change baseline", "connection smoke tests"],
+  "revenueEvaluation": "HOLD",
+  "measurementReverificationDeadline": "2026-12-12"
+}

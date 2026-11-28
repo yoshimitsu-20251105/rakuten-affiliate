@@ -1,6 +1,7 @@
 import { parseRakutenOrder } from "../funnel-measurement/rakuten-order.js";
 import { aggregateRevenue } from "../funnel-measurement/metrics.js";
 import { buildExperimentReport } from "./report.js";
+import { gscCoverage, reviewSuggestion } from "./daily-evaluation.js";
 
 const DAY = 86_400_000;
 const REFRESH_DAYS = 7;
@@ -42,7 +43,7 @@ export function rakutenSnapshot(input, config, now) {
   };
 }
 
-export async function runDailyMeasurement({ config, now, storage, collect }) {
+export async function runDailyMeasurement({ config, now, storage, collect, approvedReview = null }) {
   const { experimentId, targetUrl, day0, baseline } = config;
   if (!/^[a-z0-9-]{1,120}$/.test(experimentId ?? "") || config.approved !== true) {
     throw new Error("APPROVED_EXPERIMENT_REQUIRED");
@@ -97,19 +98,33 @@ export async function runDailyMeasurement({ config, now, storage, collect }) {
     const observed = window(day0, evaluableThrough);
     return [size, { through: evaluableThrough, observed, decision: "HOLD" }];
   }));
-  let orderInput = null;
-  if (config.rakuten?.reportMonth !== undefined) {
-    const month = config.rakuten.reportMonth;
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error("INVALID_RAKUTEN_MONTH");
-    orderInput = await storage.read(`rakuten/${month}.json`);
-    if (orderInput && orderInput.metadata?.reportLabel !== month.replace("-", ".")) throw new Error("RAKUTEN_PERIOD_MISMATCH");
+  const coverage = gscCoverage(full.requested, rows, day0, asOf);
+  const reviewWindow = approvedReview && window(day0, approvedReview.date);
+  const reviewCoverage = reviewWindow && gscCoverage(reviewWindow, rows, day0, asOf);
+  const evaluation = {
+    decision: "HOLD",
+    through: approvedReview?.date ?? null,
+    coverage: reviewCoverage,
+    suggestion: reviewSuggestion(approvedReview, reviewCoverage, Boolean(reviewWindow), asOf),
+  };
+  let rakuten;
+  try {
+    let orderInput = null;
+    if (config.rakuten?.reportMonth !== undefined) {
+      const month = config.rakuten.reportMonth;
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new Error("INVALID_RAKUTEN_MONTH");
+      orderInput = await storage.read(`rakuten/${month}.json`);
+      if (orderInput && orderInput.metadata?.reportLabel !== month.replace("-", ".")) throw new Error("RAKUTEN_PERIOD_MISMATCH");
+    }
+    rakuten = rakutenSnapshot(orderInput, config, now);
+  } catch {
+    rakuten = { status: "IMPORT_FAILED", metrics: null };
   }
-  const rakuten = rakutenSnapshot(orderInput, config, now);
   return storage.create(key, {
     experimentId, targetUrl, day0, asOf, rows, sources: observed.status,
     dateBasis: { gsc: "America/Los_Angeles", ga4: config.ga4Timezone, rakuten: "Asia/Tokyo" },
     gscFirstIncompleteDate: firstIncomplete,
     ga4Freshness: { cutoff: gaCutoff, meaning: "OPERATIONAL_LAG_POLICY_NOT_PROVIDER_FINALITY" },
-    report: full, rolling, checkpoints, rakuten,
+    report: full, coverage, rolling, checkpoints, rakuten, evaluation,
   });
 }

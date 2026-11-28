@@ -139,8 +139,8 @@ test("private uploads require create-only generation and do not overwrite duplic
   assert.equal(await object.create("daily/example/2026-11-28.json", {}), "ALREADY_EXISTS");
 });
 
-test("schedule is a review template with explicit enable gate and no public artifact upload", async () => {
-  const source = await readFile(new URL("../../experiment-measurement/collect-google-measurement-daily.yml.example", import.meta.url), "utf8");
+test("schedule is proposed with a disabled-by-default with explicit enable gate and no public artifact upload", async () => {
+  const source = await readFile(new URL("../../.github/workflows/collect-google-measurement-daily.yml", import.meta.url), "utf8");
   assert.match(source, /cron: '0 0 \* \* \*'/);
   assert.match(source, /github\.ref == 'refs\/heads\/master'/);
   assert.match(source, /github\.event_name == 'schedule'/);
@@ -167,4 +167,61 @@ test("GSC provisional metadata distinguishes pending days without ingesting prov
   const saved = data.get("daily/test-experiment/2026-12-25.json");
   assert.deepEqual(saved.report.requested.awaitingFinalDataByMetric.impressions, ["2026-12-23", "2026-12-24"]);
   assert.deepEqual(saved.rows.map((row) => row.impressions), [1]);
+});
+
+test("expired OAuth or storage credentials do not create a snapshot; next run catches up", async () => {
+  const { storage, data } = fixture();
+  const expired = { searchconsole: { searchanalytics: { query: async () => {
+    throw { response: { status: 401 } };
+  } } }, analyticsdata: { properties: { runReport: async () => ({ data: {} }) } } };
+  await assert.rejects(runDailyMeasurement({ config, now, storage,
+    collect: (scope) => collectDailyGoogleRows({ ...scope, clients: expired }),
+  }), /COLLECTION_FAILED/);
+  assert.equal(data.size, 0);
+  const storageExpired = createPrivateObjectStore({ bucket: "private-measurement", accessToken: "expired",
+    fetchImpl: async () => new Response(null, { status: 401 }),
+  });
+  await assert.rejects(storageExpired.create("daily/test.json", {}), /PRIVATE_STORAGE_WRITE_FAILED/);
+  const recovered = await runDailyMeasurement({
+    config, now: new Date("2027-04-30T00:00:00Z"), storage,
+    collect: async ({ startDate, endDate }) => {
+      assert.equal(startDate, config.day0);
+      assert.equal(endDate, "2027-04-28");
+      return { ok: true, rows: [] };
+    },
+  });
+  assert.equal(recovered, "CREATED");
+});
+
+test("GSC coverage preserves partial observations and failed Rakuten CSV does not block Google", async () => {
+  const csvKey = "rakuten/2026-12.json";
+  const { storage, data } = fixture([[csvKey, { csv: "invalid", metadata: { reportLabel: "2026.12", isSynthetic: false } }]]);
+  await runDailyMeasurement({ config: { ...config, rakuten: { reportMonth: "2026-12" } }, now, storage,
+    approvedReview: { date: "2026-12-03", success: 10, falsification: 0 },
+    collect: async () => ({ ok: true, rows: observations }),
+  });
+  const saved = data.get("daily/test-experiment/2026-12-25.json");
+  assert.equal(saved.rakuten.status, "IMPORT_FAILED");
+  assert.equal(saved.report.cumulative.totals.impressions, null);
+  assert.deepEqual(saved.coverage.impressions, {
+    observedTotal: 3, observedDays: 2, missingDays: 26, pendingDays: 0, complete: false,
+  });
+  assert.equal(saved.evaluation.suggestion, "HOLD_INCOMPLETE");
+  assert.equal(saved.evaluation.decision, "HOLD");
+  assert.equal(saved.checkpoints[7].through, "2026-12-03");
+  assert.equal(saved.checkpoints[7].observed.eligibleDays, 7); // D0 through D7 inclusive, minus QA
+});
+
+test("existing review threshold yields a human review suggestion only with complete evidence", async () => {
+  const { storage, data } = fixture();
+  const approvedReview = { date: "2026-11-28", success: 10, falsification: 0 };
+  await runDailyMeasurement({ config, now, storage, approvedReview, collect: async () => ({
+    ok: true, rows: [
+      { date: "2026-11-26", impressions: 6, clicks: 0, averagePosition: 5 },
+      { date: "2026-11-28", impressions: 4, clicks: 1, averagePosition: 7 },
+    ],
+  }) });
+  const saved = data.get("daily/test-experiment/2026-12-25.json");
+  assert.equal(saved.evaluation.suggestion, "SUCCESS_CANDIDATE");
+  assert.equal(saved.evaluation.decision, "HOLD");
 });
