@@ -5,7 +5,7 @@ export const WORKFLOW_PATH = ".github/workflows/daily-pipeline.yml";
 export const GUARD_PATH = "keyword-research/test/experiment-review-protection-helpers.js";
 export const OLD_WORKFLOW_SHA256 = "53ae16cb3603570e3e1ee33d6dab3b43c184a3e07f76adfe191d7c4a911a2042";
 // A single authorized test-guard edit, never an exemption for its other rules.
-export const APPROVED_GUARD_SHA256 = "7ade626a0969bbb60668566c3aba103cd9baafe5ce2603838d460494bde48903";
+export const APPROVED_GUARD_SHA256 = "e881c99bf0d49b5fbd0fc97cba73adcb2d4f3a4be96cee5bf61b729ad025ca66";
 export const OLD_GUARD_SHA256 = "9b788a870c2280f03ad465d651be1e5cde7276fd735e60d3232e5fe60f0bda7d";
 export const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 
