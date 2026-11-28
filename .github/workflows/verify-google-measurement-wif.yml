@@ -1,0 +1,69 @@
+name: Verify Google measurement with WIF
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: First measurement day (YYYY-MM-DD)
+        required: true
+        default: '2026-11-26'
+      to:
+        description: Last measurement day (YYYY-MM-DD)
+        required: true
+        default: '2026-11-26'
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    if: github.repository_id == '1336245988' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        id: google
+        with:
+          workload_identity_provider: projects/461541819464/locations/global/workloadIdentityPools/rakuten-gh/providers/github-master
+          service_account: website-analytics-reader@plenary-justice-369508.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 300s
+          access_token_scopes: https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/analytics.readonly
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Verify live collection without logging metrics
+        shell: bash
+        env:
+          EXPERIMENT_GOOGLE_LIVE: 'true'
+          EXPERIMENT_GOOGLE_ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+          MEASUREMENT_FROM: ${{ inputs.from }}
+          MEASUREMENT_TO: ${{ inputs.to }}
+        run: |
+          set -euo pipefail
+          unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL
+          d=$(mktemp -d)
+          trap 'rm -rf "$d"' EXIT
+          node --input-type=module - "$d/input.json" <<'JS'
+          import { writeFileSync } from "node:fs";
+          const asOf = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Tokyo"}).format(new Date());
+          writeFileSync(process.argv[2], JSON.stringify({
+            experimentId: "senior-cat-wif-smoke",
+            targetUrl: "https://yoshimitsu-20251105.github.io/rakuten-affiliate/rankings/senior-cat-food.html",
+            startDate: process.env.MEASUREMENT_FROM,
+            endDate: process.env.MEASUREMENT_TO,
+            asOf,
+            day0: null,
+          }), {mode:0o600});
+          JS
+          node experiment-measurement/google-live-cli.js "$d/input.json" > "$d/report.json"
+          echo 'Google source statuses are in the step log. Metrics were processed on the runner only.' >> "$GITHUB_STEP_SUMMARY"

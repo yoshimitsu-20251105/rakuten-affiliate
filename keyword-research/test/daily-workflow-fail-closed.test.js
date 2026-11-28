@@ -119,7 +119,10 @@ test("Baseline assets retain their Git blobs outside the approved audit, report 
     else if (approvedReports.has(path)) assertReportOnly(bytes.toString());
     else if (!approvedTests.has(path)) assert.equal(createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), expected, path);
   }
-  const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean);
+  const wifPath = ".github/workflows/verify-google-measurement-wif.yml";
+  const wifBytes = await readFile(join(repo, wifPath));
+  assert.equal(sha256(wifBytes), "41324daeb0607bbae4681d93cd9aa7b9dd7fed4ad9efe7c3783a2155301aabe4", wifPath);
+  const currentPaths = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split("\0").filter(Boolean).filter((path) => path !== wifPath);
   for (const prefix of ["docs/", ".github/"]) assert.deepEqual(currentPaths.filter(p => p.startsWith(prefix)).sort(), [...baselinePaths.filter(p => p.startsWith(prefix)), ...(prefix === ".github/" ? [".github/workflows/full-regression.yml"] : [])].sort());
   assert.equal(baselinePaths.filter(p => p.startsWith("docs/articles/") && p.endsWith(".html")).length, 408);
 });
