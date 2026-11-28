@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { collectGoogleRows, createWifClients } from "../../experiment-measurement/google-live.js";
+import { runGoogleLiveCli } from "../../experiment-measurement/google-live-cli.js";
 import { buildExperimentReport } from "../../experiment-measurement/report.js";
 
 const input = {
@@ -32,6 +36,13 @@ test("requests exact page and read-only report scopes and connects observations 
       ga: async ({ property, requestBody }) => {
         assert.equal(property, "properties/550074703");
         assert.match(JSON.stringify(requestBody.dimensionFilter), /amv2_qa/);
+        const [host, page] = requestBody.dimensionFilter.andGroup.expressions;
+        assert.deepEqual(host.filter, {
+          fieldName: "hostName",
+          stringFilter: { matchType: "EXACT", value: "yoshimitsu-20251105.github.io", caseSensitive: true },
+        });
+        assert.equal(page.andGroup.expressions[0].filter.stringFilter.value, new URL(input.targetUrl).pathname);
+        assert.deepEqual(requestBody.dateRanges, [{ startDate: input.startDate, endDate: input.endDate }]);
         if (requestBody.metrics[0].name === "engagedSessions") {
           assert.match(JSON.stringify(requestBody.dimensionFilter), /Organic Search/);
           return { data: { rows: [gaRow("20261126", "0")] } };
@@ -93,7 +104,7 @@ test("CLI without bearer token stops before reading input or contacting Google",
   { env, encoding: "utf8" });
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "");
-  assert.match(result.stderr, /Google live collection stopped/);
+  assert.deepEqual(JSON.parse(result.stderr), { error: "AUTH_ERROR" });
 });
 
 test("late GA4 dates stay pending while finalized zero and missing GSC remain distinct", async () => {
@@ -115,4 +126,77 @@ test("late GA4 dates stay pending while finalized zero and missing GSC remain di
   assert.equal(buildExperimentReport({
     ...input, endDate: "2026-11-26", rows: result.rows.filter((row) => row.date === "2026-11-26"),
   }).requested.totals.affiliateClicks, 0);
+});
+
+async function runCliFixture(t, provider, { scope = {}, stdoutError = false } = {}) {
+  const dir = await mkdtemp(join(tmpdir(), "google-live-cli-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, "input.json");
+  await writeFile(path, JSON.stringify({ ...input, endDate: input.startDate, ...scope }));
+  let out = "";
+  let errors = "";
+  const exitCode = await runGoogleLiveCli({
+    args: [path],
+    env: { EXPERIMENT_GOOGLE_LIVE: "true", EXPERIMENT_GOOGLE_ACCESS_TOKEN: "fixture-token" },
+    createClients: () => provider,
+    stdout: { write: (value) => {
+      if (stdoutError) throw new Error("fixture private output path");
+      out += value;
+    } },
+    stderr: { write: (value) => { errors += value; } },
+  });
+  return { exitCode, out, diagnostics: errors.trim().split("\n").map(JSON.parse) };
+}
+
+for (const [label, row] of [
+  ["ranked result", gscRow],
+  ["zero-impression position placeholder", { ...gscRow, impressions: 0, position: 0 }],
+]) {
+  test(`CLI emits a report for a GSC ${label} with both GA4 responses empty`, async (t) => {
+    const result = await runCliFixture(t, clients({ gsc: async () => ({ data: { rows: [row] } }) }));
+    assert.equal(result.exitCode, 0);
+    assert.deepEqual(result.diagnostics, [{
+      gsc: "OBSERVED", ga4Organic: "NO_ROWS_RETURNED", ga4Affiliate: "NO_ROWS_RETURNED",
+    }]);
+    const report = JSON.parse(result.out);
+    assert.equal(report.decision, "HOLD");
+    assert.equal(report.day0, null);
+    assert.equal(report.requested.totals.impressions, row.impressions);
+    assert.equal(report.requested.totals.clicks, 0);
+    assert.equal(report.requested.totals.averagePosition, row.position || null);
+    assert.equal(report.requested.totals.organicEngagedSessions, null);
+    assert.equal(report.requested.totals.affiliateClicks, null);
+  });
+}
+
+test("CLI diagnoses invalid positive-impression position without logging its value", async (t) => {
+  const result = await runCliFixture(t, clients({
+    gsc: async () => ({ data: { rows: [{ ...gscRow, position: "fixture-private-value" }] } }),
+  }));
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.out, "");
+  assert.deepEqual(result.diagnostics, [
+    { gsc: "INVALID_RESPONSE", ga4Organic: "NO_ROWS_RETURNED", ga4Affiliate: "NO_ROWS_RETURNED" },
+    { error: "RESPONSE_VALIDATION_ERROR", reasons: { gsc: "INVALID_GSC_AVERAGE_POSITION" } },
+  ]);
+});
+
+test("CLI distinguishes inconsistent report counts, provider failures and output errors", async (t) => {
+  const observed = clients({ gsc: async () => ({ data: { rows: [gscRow] } }) });
+  for (const [provider, options, diagnostic] of [
+    [clients({ gsc: async () => ({ data: { rows: [{ ...gscRow, clicks: 5 }] } }) }), {},
+      { error: "REPORT_VALIDATION_ERROR", reason: "CLICKS_EXCEED_IMPRESSIONS" }],
+    [observed, { scope: { startDate: "bad date" } },
+      { error: "REPORT_VALIDATION_ERROR", reason: "INVALID_DATE" }],
+    [clients({ gsc: async () => { throw { code: 403, message: "fixture credential" }; } }), {},
+      { error: "AUTH_ERROR" }],
+    [clients({ gsc: async () => { throw { code: 503, message: "fixture request" }; } }), {},
+      { error: "FETCH_ERROR" }],
+    [observed, { stdoutError: true }, { error: "REPORT_GENERATION_ERROR" }],
+  ]) {
+    const result = await runCliFixture(t, provider, options);
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.out, "");
+    assert.deepEqual(result.diagnostics.at(-1), diagnostic);
+  }
 });
